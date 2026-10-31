@@ -6,7 +6,15 @@
  * Ownership: calendar (WS2), home + media (WS3), weather + commute + photos (WS4),
  * lists + chores (WS5). Settings and devices belong to the scaffold and WS6.
  */
-import type { BodyOf, CalendarEvent, ResponseOf, Settings, WsEventInput } from '@mantel/shared';
+import type {
+  BodyOf,
+  CalendarEvent,
+  IntegrationConfig,
+  IntegrationId,
+  ResponseOf,
+  Settings,
+  WsEventInput,
+} from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { DeviceAuth } from '../auth.js';
 import type { Config } from '../config.js';
@@ -21,6 +29,29 @@ export interface ProviderContext {
   /** Record a successful sync for `/api/health`. */
   markSynced: (source: string) => void;
   settings: () => Settings;
+  /**
+   * Live values of an integration from the plugin registry (saved in Settings, else from the
+   * environment): on/off, non-secret config and secrets by field key. Providers that need a
+   * key (quips, routes) read it through `integrationValues(ctx, id)` instead of `process.env`.
+   * Optional so hand-built test contexts keep compiling.
+   */
+  integration?: (id: IntegrationId) => IntegrationValues;
+}
+
+export interface IntegrationValues {
+  enabled: boolean;
+  config: IntegrationConfig;
+  secrets: Record<string, string>;
+}
+
+/** An integration's live values, or "enabled with nothing set" when no registry is attached. */
+export function integrationValues(ctx: ProviderContext, id: IntegrationId): IntegrationValues {
+  return ctx.integration?.(id) ?? { enabled: true, config: {}, secrets: {} };
+}
+
+/** A provider that holds timers or sockets; the plugin registry calls `stop` before replacing it. */
+export interface Stoppable {
+  stop(): void;
 }
 
 export interface CalendarProvider {

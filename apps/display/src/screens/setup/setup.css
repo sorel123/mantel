@@ -1,0 +1,153 @@
+/* The first-run wizard: the live display behind a scrim, a step rail and one section at a time. */
+.setup-page {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+.setup-page input,
+.setup-page code {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.setup-preview {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none;
+  transform: scale(1.04);
+  filter: blur(3px) saturate(0.9);
+  opacity: 0.55;
+}
+.setup-scrim {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 75%, transparent),
+    var(--bg) 85%
+  );
+  pointer-events: none;
+}
+.setup-shell {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 24px 48px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.setup-rail {
+  position: sticky;
+  top: 36px;
+  padding: 20px 14px;
+  display: grid;
+  gap: 14px;
+}
+.setup-rail .eyebrow {
+  padding: 0 10px;
+}
+.setup-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.setup-steps button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.setup-steps button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.setup-steps button .set-hint {
+  margin: 0;
+  font-size: 12.5px;
+}
+.setup-steps li[aria-current='step'] button {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.setup-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 700;
+  flex: none;
+}
+.setup-steps li.is-done .setup-num {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.setup-steps li[aria-current='step'] .setup-num {
+  background: var(--ink);
+  color: var(--bg);
+}
+.setup-main {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.setup-head {
+  display: grid;
+  gap: 6px;
+}
+.setup-head .muted {
+  font-size: 16px;
+}
+.setup-body {
+  display: grid;
+  gap: 20px;
+}
+.setup-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 0;
+}
+.setup-foot .set-bar-msg {
+  text-align: right;
+}
+.set-pin {
+  width: 220px;
+  font: 500 24px/1 var(--body);
+  letter-spacing: 0.3em;
+}
+
+@media (max-width: 900px) {
+  .setup-shell {
+    grid-template-columns: 1fr;
+    padding: 20px 14px 40px;
+  }
+  .setup-rail {
+    position: static;
+  }
+  .setup-steps {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  .setup-preview {
+    display: none;
+  }
+}

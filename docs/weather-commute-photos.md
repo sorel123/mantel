@@ -20,7 +20,7 @@ Results are cached for 15 minutes in memory and in SQLite, so a restart answers 
 
 ### Quips
 
-With `weather.personality` set to `friendly` or `snarky` in settings, `GET /api/weather/quip` returns one line a day about the weather, shown in the card's outlook line and on Ambient. The line comes from a hand-written library of a few hundred, keyed by sky, temperature band, time of day, season and whether rain is coming, and changes every three hours. With `CLAUDE_API_KEY` set, Claude writes the day's line instead from the forecast and today's calendar, once a day, cached; if the call fails the library answers. `off` (the default) shows the plain outlook line ("Rain after 6 pm").
+With `weather.personality` set to `friendly` or `snarky` in settings, `GET /api/weather/quip` returns one line a day about the weather, shown in the card's outlook line and on Ambient. The line comes from a hand-written library of a few hundred, keyed by sky, temperature band, time of day, season and whether rain is coming, and changes every three hours. With a Claude API key in Settings (Integrations > Weather quips; `CLAUDE_API_KEY` in the environment also works), Claude writes the day's line instead from the forecast and today's calendar, once a day, cached; if the call fails the library answers. `off` (the default) shows the plain outlook line ("Rain after 6 pm").
 
 ### Warnings
 

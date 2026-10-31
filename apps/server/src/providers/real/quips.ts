@@ -228,6 +228,8 @@ export interface ClaudeQuipInput {
   personality: Voice;
   now: Date;
   timeZone: string;
+  /** The provider's fetch, so tests can answer for Claude. */
+  fetch?: typeof fetch;
   /** Test seam. */
   client?: Pick<Anthropic, 'messages'>;
 }
@@ -266,7 +268,8 @@ export function forecastBrief(w: WeatherSnapshotExtended, events: CalendarEvent[
 /** One line from Claude, or null when the call fails or the answer is unusable. */
 export async function writeQuipWithClaude(input: ClaudeQuipInput): Promise<string | null> {
   const client =
-    input.client ?? new Anthropic({ apiKey: input.apiKey, maxRetries: 1, timeout: 20_000 });
+    input.client ??
+    new Anthropic({ apiKey: input.apiKey, maxRetries: 1, timeout: 20_000, fetch: input.fetch });
   try {
     const response = await client.messages.create({
       model: QUIP_MODEL,

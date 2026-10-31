@@ -143,17 +143,103 @@ test('the Dusk look renders every screen', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
-test('the settings page and the phone page load', async ({ page }) => {
+/** Every settings section, by hash, with the heading each one shows. */
+const SECTIONS: Array<[string, string]> = [
+  ['home', 'Your home'],
+  ['people', 'People'],
+  ['calendars', 'Calendars'],
+  ['integrations', 'Integrations'],
+  ['homeassistant', 'Home Assistant'],
+  ['appearance', 'Appearance'],
+  ['layout', 'Layout'],
+  ['screens', 'Screens and dock'],
+  ['lists', 'Lists and chores'],
+  ['places', 'Leave-by places'],
+  ['schedule', 'Screen schedule'],
+  ['features', 'Features'],
+  ['displays', 'Displays'],
+  ['health', 'Health'],
+  ['backup', 'Backup and restore'],
+  ['help', 'Help'],
+  ['advanced', 'Advanced'],
+];
+
+test('the settings hub shows every section by hash, and the phone page loads', async ({ page }) => {
   const problems = watchConsole(page);
   await page.goto('/settings');
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
-  await expect(page.getByText('Screen schedule')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your home' })).toBeVisible();
+  for (const [id, title] of SECTIONS) {
+    await page.goto(`/settings#${id}`);
+    await expect(page.getByRole('heading', { name: title, exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: 'Settings sections' }).locator('[aria-current="page"]'),
+    ).toHaveText(new RegExp(title.split(' ')[0]!));
+  }
+
+  // Integrations render one card per plugin manifest, calendars have a picker from the setup JSON.
+  await page.goto('/settings#integrations');
+  await expect(page.getByRole('article', { name: 'Photos' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Leave-by times' })).toBeVisible();
+  await page.goto('/settings#calendars');
+  await expect(page.getByRole('table', { name: 'Calendars on the wall' })).toBeVisible();
+  await expect(page.getByRole('switch', { name: 'Show Family' })).toBeVisible();
+
   await page.getByRole('link', { name: 'Back to the display' }).click();
   await expect(page.getByRole('navigation', { name: 'Screens' })).toBeVisible();
 
   await page.goto('/add');
   await expect(page.getByRole('heading', { name: 'Add to a list' })).toBeVisible();
   expect(problems).toEqual([]);
+});
+
+test('the old calendar setup address redirects into Settings', async ({ request }) => {
+  const res = await request.get('/api/calendar/setup', { maxRedirects: 0 });
+  expect(res.status()).toBe(302);
+  expect(res.headers()['location']).toBe('/settings#calendars');
+});
+
+test('the setup wizard walks every step and lands in Settings', async ({ page }) => {
+  const problems = watchConsole(page);
+  await page.goto('/setup');
+  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
+  // A fresh server asks for the admin PIN first; once one project has set it, the other finds
+  // the PIN in place and this (mock, pre-paired) browser is let straight through.
+  const again = page.getByLabel('Admin PIN again');
+  await expect(again.or(page.getByText('This browser is paired'))).toBeVisible();
+  if (await again.isVisible()) {
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    await page.getByLabel('Admin PIN', { exact: true }).fill('1234');
+    await again.fill('1234');
+    await page.getByRole('button', { name: 'Set the PIN' }).click();
+    // Either this browser set the PIN, or the other project beat it to it; both end here.
+    await expect(page.getByText('This browser is paired')).toBeVisible();
+  }
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Your home' }).first()).toBeVisible();
+  await expect(page.getByLabel('Location')).toBeVisible();
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+
+  await expect(page.getByRole('heading', { name: 'People' }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Calendars' }).first()).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Google Calendar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Home Assistant' }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Photos and extras' }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Put it on the wall' })).toBeVisible();
+  await page.getByRole('button', { name: 'Finish and open Settings' }).click();
+  await expect(page).toHaveURL(/\/settings/);
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  // The project that lost the PIN race gets a 403 from /api/admin/pin, which the browser logs.
+  expect(problems.filter((p) => !/Failed to load resource/.test(p))).toEqual([]);
 });
 
 test('a fresh install shows an empty state with a Settings link on every screen', async ({

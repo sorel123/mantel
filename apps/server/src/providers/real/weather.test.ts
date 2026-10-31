@@ -432,6 +432,49 @@ describe('real weather provider', () => {
     expect(types).toEqual(['weather.alert', 'display.wake']);
   });
 
+  it("writes the day's quip with Claude when the quips integration has a key", async () => {
+    const prefs = {
+      weather: { savedPlaces: [], personality: 'friendly' },
+    } as unknown as Partial<Settings>;
+    const claude = (text: string) => (url: URL) =>
+      url.hostname === 'api.anthropic.com'
+        ? json({
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-haiku-5-5',
+            content: [{ type: 'text', text }],
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 10, output_tokens: 10 },
+          })
+        : undefined;
+    const withKey = testContext(NOW, prefs);
+    withKey.integration = () => ({ enabled: true, config: {}, secrets: { claudeApiKey: 'k' } });
+    const fetch = fakeFetch(claude('Soccer at four, so the good umbrella goes too.'), upstream());
+    const provider = realWeather(withKey, { env: loadWs4Env({}), fetch });
+    const { quip } = await provider.quip(async () => []);
+    expect(quip).toMatchObject({
+      source: 'claude',
+      text: 'Soccer at four, so the good umbrella goes too.',
+    });
+    // Cached for the day: a second ask does not call Claude again.
+    const calls = fetch.mock.calls.filter(([u]) => String(u).includes('anthropic')).length;
+    await provider.quip(async () => []);
+    expect(fetch.mock.calls.filter(([u]) => String(u).includes('anthropic')).length).toBe(calls);
+
+    // Integration switched off: the library answers, Claude is never asked.
+    const off = testContext(NOW, prefs);
+    off.integration = () => ({ enabled: false, config: {}, secrets: { claudeApiKey: 'k' } });
+    const quiet = fakeFetch(claude('nope'), upstream());
+    const { quip: libraryQuip } = await realWeather(off, {
+      env: loadWs4Env({}),
+      fetch: quiet,
+    }).quip(async () => []);
+    expect(libraryQuip?.source).toBe('library');
+    expect(quiet.mock.calls.some(([u]) => String(u).includes('anthropic'))).toBe(false);
+  });
+
   it('quips from the library when the personality is on and no key is set', async () => {
     const off = realWeather(testContext(NOW), { env: loadWs4Env({}), fetch: upstream() });
     expect(await off.quip(async () => [])).toEqual({ quip: null });

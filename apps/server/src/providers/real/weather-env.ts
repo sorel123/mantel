@@ -25,7 +25,6 @@ const Ws4Env = z.object({
    * Optional. With a Claude API key the weather quip is written fresh each day from the forecast
    * and the day's events (model `claude-haiku-5-5`); without one the hand-written library is used.
    */
-  CLAUDE_API_KEY: z.string().optional(),
 });
 
 export type Ws4Env = z.infer<typeof Ws4Env>;

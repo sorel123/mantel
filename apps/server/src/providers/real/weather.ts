@@ -19,7 +19,7 @@ import {
 import { kvGet, kvSet } from '../../db/index.js';
 import { HttpError } from '../../errors.js';
 import { log } from '../../log.js';
-import type { ProviderContext, WeatherProvider } from '../types.js';
+import { integrationValues, type ProviderContext, type WeatherProvider } from '../types.js';
 import { realCommute } from './commute.js';
 import { quipContext, quipSeed, selectQuip, writeQuipWithClaude } from './quips.js';
 import type { Ws4Env } from './weather-env.js';
@@ -87,7 +87,10 @@ export async function getJson(
   return res.json();
 }
 
-export function realWeather(ctx: ProviderContext, opts: WeatherOptions): WeatherProvider {
+export function realWeather(
+  ctx: ProviderContext,
+  opts: WeatherOptions,
+): WeatherProvider & { stop(): void } {
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   let cached: Cached | null = loadCached();
   let inflight: Promise<WeatherSnapshotExtended> | null = null;
@@ -308,8 +311,10 @@ export function realWeather(ctx: ProviderContext, opts: WeatherOptions): Weather
     const day = dateInZone(now, s.timezone);
     const dayKey = `${day}:${personality}`;
 
-    // One Claude line per day, when a key is set and the last try did not fail within the hour.
-    const apiKey = opts.env.CLAUDE_API_KEY;
+    // One Claude line per day, when the quips integration is on with a key and the last try did
+    // not fail within the hour.
+    const quips = integrationValues(ctx, 'quips');
+    const apiKey = quips.enabled ? quips.secrets.claudeApiKey : undefined;
     if (apiKey) {
       if (quipCache?.key === dayKey && quipCache.quip.source === 'claude')
         return { quip: quipCache.quip };
@@ -326,6 +331,7 @@ export function realWeather(ctx: ProviderContext, opts: WeatherOptions): Weather
           personality,
           now,
           timeZone: s.timezone,
+          fetch: doFetch,
         });
         if (text) {
           const line: WeatherQuip = {
@@ -365,5 +371,9 @@ export function realWeather(ctx: ProviderContext, opts: WeatherOptions): Weather
     search,
     quip,
     commute: realCommute(ctx, { env: opts.env, fetch: doFetch }),
+    stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    },
   };
 }

@@ -157,6 +157,6 @@ describe('/add page', () => {
         <AddPage />
       </BootstrapProvider>,
     );
-    expect(await screen.findByLabelText('Pairing code')).toBeTruthy();
+    expect(await screen.findByLabelText('PIN or pairing code')).toBeTruthy();
   });
 });

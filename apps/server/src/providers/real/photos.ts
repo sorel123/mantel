@@ -82,6 +82,10 @@ export function realPhotos(
 ): PhotoProvider & {
   /** Re-read the album now. Resolves when every new photo is processed. */
   refresh(): Promise<void>;
+  /** Stop the hourly refresh (the plugin registry calls this before a rebuild). */
+  stop(): void;
+  /** True when an album link was given and understood. */
+  readonly configured: boolean;
 } {
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const panel = opts.panel ?? DEFAULT_PANEL;
@@ -192,6 +196,11 @@ export function realPhotos(
 
   return {
     refresh: refreshOnce,
+    configured: album !== null,
+    stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    },
     async next(n) {
       ensureRunning();
       const byId = new Map(index.items.map((p) => [p.id, p]));
