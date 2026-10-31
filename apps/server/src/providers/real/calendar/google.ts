@@ -154,7 +154,9 @@ export class GoogleAuth {
       return body.access_token;
     } catch (err) {
       if (err instanceof HttpError && /invalid_grant/.test(err.message)) {
-        log.warn('Google refused the refresh token; reconnect at /api/calendar/setup');
+        log.warn(
+          'Google refused the refresh token; reconnect in Settings › Calendars (/settings#calendars)',
+        );
         this.store.set('google.tokens', { ...t, revoked: true });
       }
       throw err;

@@ -1,4 +1,5 @@
 import {
+  type IntegrationStatus,
   ApiRequestError,
   HomeConfig,
   type HomeConnectionStatus,
@@ -24,7 +25,14 @@ type Save = 'idle' | 'saving' | 'saved' | { error: string };
  * devices from what Home Assistant actually has. Saves apply live; the wall reloads itself.
  * Standalone (loads and saves its own data) so the settings page or a wizard can mount it.
  */
-export function HomeSetupSection({ people: peopleProp }: { people?: Person[] } = {}) {
+export function HomeSetupSection({
+  people: peopleProp,
+  onStatus,
+}: {
+  people?: Person[];
+  /** The settings hub's integrations list, told when the connection changes. */
+  onStatus?: (s: IntegrationStatus) => void;
+} = {}) {
   const [status, setStatus] = useState<HomeConnectionStatus | null>(null);
   const [discovery, setDiscovery] = useState<HomeDiscovery | null>(null);
   const [discoverError, setDiscoverError] = useState<string | null>(null);
@@ -95,6 +103,11 @@ export function HomeSetupSection({ people: peopleProp }: { people?: Person[] } =
       setStatus(s);
       setError(null);
       void loadDiscovery(s);
+      if (onStatus) {
+        const { integrations } = await api.call('integrations');
+        const mine = integrations.find((i) => i.id === 'homeassistant');
+        if (mine) onStatus(mine);
+      }
     } catch (err) {
       setError(message(err));
     }
