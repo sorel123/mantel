@@ -82,8 +82,13 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('listAddItem', async ({ params, body }) => providers.lists.addItem(params.id!, body));
   handle('itemPatch', async ({ params, body }) => providers.lists.patchItem(params.id!, body));
   handle('itemDelete', async ({ params }) => providers.lists.deleteItem(params.id!));
+  handle('listCreate', async ({ body }) => providers.lists.createList(body));
+  handle('listDelete', async ({ params }) => providers.lists.deleteList(params.id!));
   handle('chores', async () => providers.lists.chores());
   handle('choreDone', async ({ params, body }) =>
     providers.lists.choreDone(params.id!, body?.personId),
   );
+  handle('choreUndo', async ({ params }) => providers.lists.choreUndo(params.id!));
+  handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
+  handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
 }
