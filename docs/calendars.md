@@ -4,7 +4,7 @@ The wall shows Google and iCloud calendars together. The server syncs them into 
 
 ## What it does
 
-- **Today**: the date, up to three countdowns, tonight's meal and the next three nights, the agenda with all-day bands, a timeline with a now line (past events fade, the current one is highlighted), and the next three days. The ＋ button adds an event for today; tapping a day opens its sheet.
+- **Today**: the date, the weather card (WS4) and grocery peek (WS5) on the left. On the right the agenda: all-day bands, up to three countdown chips, a timeline with a now line (past events fade, the current one is highlighted, leave-by chips sit under the events they are for), tonight's meal, and the next three days with their dinners. The ＋ button adds an event for today; tapping a day opens its sheet.
 - **Month**: six weeks from the Sunday before the 1st, as many event pills as fit plus "+n more", paging with the arrows, a sideways swipe, or Today. Tapping a day opens the day sheet.
 - **Day sheet and quick add**: the day's events, and a form with a title, a day, all day or a start time and length, who it is for, and (when there is more than one) which calendar.
 - **People and colours**: each calendar belongs to some people (chosen on the setup page). An event takes its calendar's people, narrowed or extended by names in the title: "Leo soccer" on the Kids calendar is Leo's; "Lunch with Sam" on Jay's calendar is Jay's and Sam's. Its colour is the first person's colour, else the calendar's.

@@ -1,12 +1,15 @@
 /**
- * Today: the date with countdown chips, weather and grocery slots, tonight's meal, and the
- * agenda card with all-day bands, a timeline with the now line, and the next three days.
+ * Today: the date, WS4's weather card and WS5's grocery peek on the left; on the right the
+ * agenda card with all-day bands, countdown chips, a timeline with the now line and leave-by
+ * chips, tonight's meal, and the next three days with their dinners.
  */
 import type { CalendarEvent, Meal } from '@mantel/shared';
 import { addDays, startOfDay, toIsoDate } from '@mantel/shared';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Component, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNow } from '../../app/Clock';
+import { LeaveByChip, WeatherCard, matchLeaveBy, useCommute } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
+import { GroceryPeek } from '../lists/GroceryPeek';
 import { DaySheet } from '../month/DaySheet';
 import {
   countdownLabel,
@@ -25,7 +28,6 @@ import './today.css';
 export function TodayScreen() {
   const now = useNow(30_000);
   const today = startOfDay(now);
-  const boot = useBootstrap();
   const { events } = useEvents(today, addDays(today, 4));
   const [sheet, setSheet] = useState<{ day: Date; add: boolean } | null>(null);
 
@@ -38,17 +40,13 @@ export function TodayScreen() {
             <span className="dn tnum">{today.getDate()}</span>
             <span className="mo">{monthNames[today.getMonth()]}</span>
           </div>
-          {boot.flags.countdowns && <Countdowns />}
         </div>
-        {/* WS4's weather card goes here in the integration pass. */}
-        <div className="card slot" data-slot="weather">
-          <span className="eyebrow">Weather</span>
-        </div>
-        {boot.flags.meals && <MealStrip today={today} />}
-        {/* WS5's grocery peek goes here in the integration pass. */}
-        <div className="card slot grow" data-slot="grocery">
-          <span className="eyebrow">Grocery</span>
-        </div>
+        <Guard name="weather">
+          <WeatherCard now={now} />
+        </Guard>
+        <Guard name="grocery">
+          <GroceryPeek />
+        </Guard>
       </div>
       <div className="col">
         <Agenda
@@ -61,6 +59,27 @@ export function TodayScreen() {
       <DaySheet day={sheet?.day ?? null} startWithAdd={sheet?.add} onClose={() => setSheet(null)} />
     </div>
   );
+}
+
+/**
+ * Cards from other workstreams sit inside this, so one that throws leaves an empty slot
+ * instead of taking the whole Today screen down.
+ */
+class Guard extends Component<{ name: string; children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override componentDidCatch(err: unknown) {
+    console.warn(`Today: the ${this.props.name} card failed`, err);
+  }
+  override render() {
+    return this.state.failed ? (
+      <div className="card slot" data-slot={this.props.name} />
+    ) : (
+      this.props.children
+    );
+  }
 }
 
 function Countdowns() {
@@ -86,52 +105,40 @@ const slotWord: Record<Meal['slot'], string> = {
   other: 'Snack',
 };
 
-function MealStrip({ today }: { today: Date }) {
+/** Meals by date for today and the next three days (which can cross into next week). */
+function useMealPlan(today: Date): Map<string, Meal[]> {
   const thisWeek = useMeals(today);
   const later = useMeals(addDays(today, 3));
-  const meals = useMemo(() => {
+  return useMemo(() => {
+    const out = new Map<string, Meal[]>();
     const seen = new Set<string>();
-    return [...thisWeek.meals, ...later.meals].filter((m) => {
+    for (const m of [...thisWeek.meals, ...later.meals]) {
       const k = `${m.date}|${m.slot}|${m.title}`;
-      if (seen.has(k)) return false;
+      if (seen.has(k)) continue;
       seen.add(k);
-      return true;
-    });
+      out.set(m.date, [...(out.get(m.date) ?? []), m]);
+    }
+    return out;
   }, [thisWeek, later]);
-  const iso = toIsoDate(today);
-  const todays = meals.filter((m) => m.date === iso);
-  const dinner = todays.find((m) => m.slot === 'dinner') ?? todays[todays.length - 1];
-  const others = todays.filter((m) => m !== dinner);
-  const next = [1, 2, 3].map((n) => {
-    const d = addDays(today, n);
-    const ms = meals.filter((m) => m.date === toIsoDate(d));
-    return { d, meal: ms.find((m) => m.slot === 'dinner') ?? ms[0] };
-  });
+}
 
+const mainMeal = (ms: Meal[] | undefined) => ms?.find((m) => m.slot === 'dinner') ?? ms?.at(-1);
+
+function Tonight({ meals }: { meals: Meal[] | undefined }) {
+  const main = mainMeal(meals);
+  const others = (meals ?? []).filter((m) => m !== main);
   return (
-    <div className="card meals" aria-label="Meal plan">
-      <div className="tonight">
-        <Svg>{Icon.meal}</Svg>
-        <div>
-          <span className="eyebrow">
-            {dinner?.slot === 'dinner' || !dinner ? 'Tonight' : slotWord[dinner.slot]}
-          </span>
-          <b className={dinner ? '' : 'none'}>{dinner?.title ?? 'Nothing planned'}</b>
-          {others.length > 0 && (
-            <span className="also">
-              {others.map((m) => `${slotWord[m.slot]}: ${m.title}`).join(' · ')}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="nextmeals">
-        {next.map(({ d, meal }) => (
-          <div key={d.toISOString()}>
-            <span>{dayNames[d.getDay()]!.slice(0, 3)}</span>
-            <b className={meal ? '' : 'none'}>{meal?.title ?? '—'}</b>
-          </div>
-        ))}
-      </div>
+    <div className="tonight" aria-label="Tonight's meal">
+      <Svg>{Icon.meal}</Svg>
+      <span className="eyebrow">
+        {!main || main.slot === 'dinner' ? 'Tonight' : slotWord[main.slot]}
+      </span>
+      <b className={main ? '' : 'none'}>{main?.title ?? 'Nothing planned'}</b>
+      {others.length > 0 && (
+        <span className="also">
+          {others.map((m) => `${slotWord[m.slot]}: ${m.title}`).join(' · ')}
+        </span>
+      )}
     </div>
   );
 }
@@ -149,11 +156,14 @@ function Agenda({
 }) {
   const boot = useBootstrap();
   const today = startOfDay(now);
+  const meals = useMealPlan(today);
   const todays = eventsOn(events, today);
   const allDay = todays.filter((e) => e.allDay);
   const timed = todays.filter((e) => !e.allDay);
   const t = now.getTime();
   const nowIndex = timed.findIndex((e) => new Date(e.start).getTime() > t);
+  const trips = useCommute().data;
+  const leaveBy = boot.flags.commute && trips ? matchLeaveBy(timed, trips) : null;
   const tl = useRef<HTMLDivElement>(null);
   const nowLine = useRef<HTMLDivElement>(null);
 
@@ -173,7 +183,20 @@ function Agenda({
     const s = new Date(e.start).getTime();
     const en = new Date(e.end).getTime();
     const state = en <= t ? 'past' : s <= t ? 'now' : undefined;
-    return <EventRow key={e.id} event={e} day={today} state={state} />;
+    const trip = leaveBy?.get(e.id);
+    return (
+      <EventRow
+        key={e.id}
+        event={e}
+        day={today}
+        state={state}
+        extra={
+          trip && state !== 'past' ? (
+            <LeaveByChip trip={trip} now={now} color={e.color} />
+          ) : undefined
+        }
+      />
+    );
   });
   rows.splice(nowIndex === -1 ? rows.length : nowIndex, 0, line);
 
@@ -206,13 +229,16 @@ function Agenda({
           ))}
         </div>
       )}
+      {boot.flags.countdowns && <Countdowns />}
       <div className="tl" ref={tl}>
         {rows}
       </div>
+      {boot.flags.meals && <Tonight meals={meals.get(toIsoDate(today))} />}
       <div className="upcoming">
         {[1, 2, 3].map((n) => {
           const d = addDays(today, n);
           const es = eventsOn(events, d);
+          const meal = boot.flags.meals ? mainMeal(meals.get(toIsoDate(d))) : undefined;
           return (
             <button key={n} className="d" onClick={() => onDay(d)}>
               <div className="dh">
@@ -229,6 +255,12 @@ function Agenda({
               ))}
               {es.length > 2 && <div className="r more">+{es.length - 2} more</div>}
               {es.length === 0 && <div className="r none">Nothing planned</div>}
+              {meal && (
+                <div className="r meal">
+                  <Svg>{Icon.meal}</Svg>
+                  {meal.title}
+                </div>
+              )}
             </button>
           );
         })}

@@ -1,7 +1,7 @@
 /* Today (WS2). Layout and sizes from design/mockup.html. */
 .cal.today {
   display: grid;
-  grid-template-columns: 392px 1fr;
+  grid-template-columns: 392px minmax(0, 1fr);
   gap: 28px;
   flex: 1;
   min-height: 0;
@@ -34,110 +34,16 @@
   color: var(--ink-2);
 }
 
-.today .countdowns {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 14px;
-}
-.today .countdown {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14.5px;
-  color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-}
-.today .countdown svg {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  color: var(--pc);
-  fill: color-mix(in srgb, var(--pc) 30%, transparent);
-}
-.today .countdown b {
-  color: var(--ink);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* slots other workstreams fill in the integration pass */
 .today .slot {
-  min-height: 150px;
-  padding: 20px 22px;
-  box-shadow: none;
+  min-height: 120px;
   background: transparent;
+  box-shadow: none;
   border-style: dashed;
 }
-.today .slot.grow {
+.today .gpeek {
   flex: 1;
-  min-height: 80px;
-}
-
-.today .meals {
-  padding: 18px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.today .tonight {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-.today .tonight > svg {
-  width: 30px;
-  height: 30px;
-  color: var(--warn);
-  stroke-width: 1.7;
-  flex: none;
-}
-.today .tonight div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.today .tonight b {
-  font: 500 24px/1.15 var(--display);
-  letter-spacing: -0.01em;
+  min-height: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.today .tonight .also {
-  font-size: 13.5px;
-  color: var(--ink-2);
-}
-.today .meals .none {
-  color: var(--ink-3);
-}
-.today .nextmeals {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
-  font-size: 13.5px;
-}
-.today .nextmeals div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.today .nextmeals span {
-  color: var(--ink-3);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.today .nextmeals b {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* agenda */
@@ -187,6 +93,69 @@
   height: 22px;
   stroke-width: 2.4;
 }
+.today .countdowns {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  flex: none;
+}
+.today .countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px 6px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  flex: 0 1 auto;
+  color: var(--ink-2);
+  white-space: nowrap;
+  min-width: 0;
+}
+.today .countdown svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--pc);
+  fill: color-mix(in srgb, var(--pc) 30%, transparent);
+}
+.today .countdown b {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .tonight {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.today .tonight svg {
+  width: 20px;
+  height: 20px;
+  color: var(--warn);
+  align-self: center;
+  flex: none;
+}
+.today .tonight b {
+  font: 500 21px/1.1 var(--display);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .tonight b.none {
+  color: var(--ink-3);
+}
+.today .tonight .also {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .today .allday {
   display: flex;
   gap: 8px;
@@ -230,8 +199,6 @@
   flex: none;
 }
 .today .upcoming {
-  border-top: 1px solid var(--line);
-  padding-top: 14px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
@@ -279,7 +246,21 @@
   background: var(--pc);
   flex: none;
 }
+.today .upcoming .r.meal {
+  margin-top: auto;
+  color: var(--ink-2);
+}
+.today .upcoming .r.meal svg {
+  width: 14px;
+  height: 14px;
+  color: var(--warn);
+  flex: none;
+}
 .today .upcoming .r.more,
 .today .upcoming .r.none {
   color: var(--ink-3);
+}
+.today .tl + .upcoming {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
 }

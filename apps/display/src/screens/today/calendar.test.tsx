@@ -10,6 +10,16 @@ import { TodayScreen } from './index';
 const NOW = atHour(new Date(2026, 9, 30), 10.25);
 const fixtures = routeFixtures(NOW);
 
+const byPath: Record<string, unknown> = {
+  '/bootstrap': fixtures.bootstrap,
+  '/calendar': fixtures.calendar,
+  '/countdowns': fixtures.countdowns,
+  '/meals': fixtures.meals,
+  '/weather': fixtures.weather,
+  '/commute': fixtures.commute,
+  '/lists': fixtures.lists,
+};
+
 type Call = { url: URL; method: string; body: unknown };
 let calls: Call[];
 
@@ -24,17 +34,9 @@ function stubServer() {
       calls.push({ url, method, body });
       const path = url.pathname.replace('/api', '');
       const reply =
-        path === '/bootstrap'
-          ? fixtures.bootstrap
-          : path === '/calendar'
-            ? fixtures.calendar
-            : path === '/countdowns'
-              ? fixtures.countdowns
-              : path === '/meals'
-                ? fixtures.meals
-                : path === '/calendar/quick'
-                  ? { event: { ...fixtures.calendarQuick.event, title: body.title } }
-                  : {};
+        path === '/calendar/quick'
+          ? { event: { ...fixtures.calendarQuick.event, title: body.title } }
+          : (byPath[path] ?? {});
       return new Response(JSON.stringify(reply), {
         headers: { 'content-type': 'application/json' },
       });
@@ -79,8 +81,8 @@ describe('formatting', () => {
     expect(relativeDay(addDays(NOW, 3), NOW)).toBe('Monday');
     expect(relativeDay(addDays(NOW, 9), NOW)).toBe('Sun, Nov 8');
     expect(countdownLabel(0)).toBe('today');
-    expect(countdownLabel(5)).toBe('in 5 days');
-    expect(countdownLabel(18)).toBe('in 3 weeks');
+    expect(countdownLabel(5)).toBe('5 days');
+    expect(countdownLabel(18)).toBe('3 weeks');
   });
 
   it('puts all-day events first and keeps multi-day events on every day', () => {
@@ -111,10 +113,12 @@ describe('Today', () => {
     expect(rows[0]!.className).toContain('past');
     expect(screen.getByText('Picture day').className).toContain('band');
     expect(await screen.findByText("Leo's birthday party")).toBeTruthy();
-    expect(screen.getByText('in 2 days')).toBeTruthy();
+    expect(screen.getByText('2 days')).toBeTruthy();
     expect(await screen.findByText('Pizza Friday')).toBeTruthy();
     expect(screen.getByText('Tomorrow')).toBeTruthy();
     expect(screen.getByText(/Dentist/)).toBeTruthy();
+    expect(await screen.findByText('Oat milk')).toBeTruthy();
+    expect(await screen.findByLabelText(/^Weather/)).toBeTruthy();
     const q = calls.find((c) => c.url.pathname === '/api/calendar')!;
     expect(new Date(q.url.searchParams.get('from')!).getTime()).toBe(startOfDay(NOW).getTime());
   });

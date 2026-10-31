@@ -56,9 +56,9 @@ export function relativeDay(d: Date, now: Date): string {
 export function countdownLabel(days: number): string {
   if (days <= 0) return 'today';
   if (days === 1) return 'tomorrow';
-  if (days < 14) return `in ${days} days`;
-  if (days < 60) return `in ${Math.round(days / 7)} weeks`;
-  return `in ${Math.round(days / 30)} months`;
+  if (days < 14) return `${days} days`;
+  if (days < 60) return `${Math.round(days / 7)} weeks`;
+  return `${Math.round(days / 30)} months`;
 }
 
 /** Events that touch the local day `day`, all-day first, then by start. */

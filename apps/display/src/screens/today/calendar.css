@@ -80,6 +80,9 @@
   font-weight: 500;
   margin-top: 2px;
 }
+.cal .ev .ti .extra {
+  margin-top: 8px;
+}
 .cal .ev .avs {
   align-self: center;
 }

@@ -1,6 +1,6 @@
 /** Small pieces shared by the Today and Month screens. */
 import type { CalendarEvent, Person } from '@mantel/shared';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useBootstrap } from '../../lib/bootstrap';
 import { formatTime, spanLabel } from './calendar';
 import './calendar.css';
@@ -34,10 +34,13 @@ export function EventRow({
   event,
   day,
   state,
+  extra,
 }: {
   event: CalendarEvent;
   day: Date;
   state?: 'past' | 'now';
+  /** Shown under the title, e.g. WS4's leave-by chip. */
+  extra?: ReactNode;
 }) {
   const start = new Date(event.start);
   const end = new Date(event.end);
@@ -60,6 +63,7 @@ export function EventRow({
         {(event.location || span) && (
           <span>{[span, event.location].filter(Boolean).join(' · ')}</span>
         )}
+        {extra && <div className="extra">{extra}</div>}
       </div>
       <Avatars ids={event.personIds} small />
     </div>
