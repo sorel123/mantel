@@ -8,9 +8,11 @@
 
   /* motion: one curve, three durations */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --fast: 150ms;
-  --std: 320ms;
-  --slow: 700ms;
+  --fast: 150ms; /* toggles, checks, presses */
+  --std: 320ms; /* screens, sheets, month paging */
+  --slow: 700ms; /* ambient in and out, theme change */
+  --dissolve: 1600ms; /* ambient photo cross-fade */
+  --drift: 14s; /* ambient Ken Burns */
 
   /* people (defaults; real colours come from /api/bootstrap) */
   --p-jay: #e2694f;
@@ -20,7 +22,36 @@
 
   /* touch targets are never smaller than this */
   --tap: 56px;
+
+  /* radii */
   --radius-card: 20px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  /* spacing: the screen's inset and the gaps between cards */
+  --screen-x: 36px;
+  --screen-top: 34px;
+  --screen-bottom: 104px;
+  --gap: 20px;
+  --gap-lg: 28px;
+  --card-pad: 22px;
+
+  /* layers, bottom to top */
+  --z-screen: 1;
+  --z-dock: 5;
+  --z-scrim: 6;
+  --z-sheet: 7;
+  --z-dialog: 8;
+  --z-popover: 8;
+  --z-ambient: 9;
+  --z-toast: 10;
+  --z-status: 11;
+  --z-dimmer: 20;
+
+  /* brightness from the schedule, 0-100; the shell sets it */
+  --brightness: 100;
 }
 
 :root[data-mode='daylight'] {
@@ -35,6 +66,8 @@
   --accent-soft: rgba(36, 107, 91, 0.12);
   --accent-ink: #ffffff;
   --shadow: 0 1px 2px rgba(27, 31, 39, 0.06), 0 8px 24px rgba(27, 31, 39, 0.06);
+  --shadow-lg: 0 30px 80px rgba(27, 31, 39, 0.22);
+  --scrim: rgba(10, 12, 16, 0.28);
   --warn: #c8761e;
   --good: #2e8b5b;
   color-scheme: light;
@@ -52,6 +85,8 @@
   --accent-soft: rgba(224, 169, 74, 0.16);
   --accent-ink: #1b1f27;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.5);
+  --scrim: rgba(0, 0, 0, 0.45);
   --warn: #e59a4b;
   --good: #5bc58a;
   color-scheme: dark;
@@ -62,5 +97,13 @@
     --fast: 0ms;
     --std: 0ms;
     --slow: 0ms;
+    --dissolve: 0ms;
   }
+}
+/* The shell also sets data-motion="reduced" from the reduced-motion hook, so JS-driven motion agrees with CSS. */
+:root[data-motion='reduced'] {
+  --fast: 0ms;
+  --std: 0ms;
+  --slow: 0ms;
+  --dissolve: 0ms;
 }

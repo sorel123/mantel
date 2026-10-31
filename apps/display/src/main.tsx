@@ -1,25 +1,15 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Shell } from './app/Shell';
-import { BootstrapProvider } from './lib/bootstrap';
-import { AddPage } from './screens/lists/add/AddPage';
-import { SettingsPage } from './screens/settings';
+import { App } from './app/App';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/ui.css';
 import './styles/shell.css';
-
-const path = location.pathname.replace(/\/+$/, '');
+import './styles/overlay.css';
+import './styles/ambient.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {/* The setup page (workstream 6) loads its own data; everything else needs bootstrap. */}
-    {path === '/settings' ? (
-      <SettingsPage />
-    ) : (
-      <BootstrapProvider>
-        {/* The phone page for adding to lists (workstream 5); everything else is the wall. */}
-        {path === '/add' ? <AddPage /> : <Shell />}
-      </BootstrapProvider>
-    )}
+    <App />
   </StrictMode>,
 );

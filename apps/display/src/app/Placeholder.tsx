@@ -14,8 +14,10 @@ export function Placeholder({
     <div className="placeholder card">
       <div>
         <div className="eyebrow">{owner}</div>
-        <h1 className="h1">{title}</h1>
-        {children}
+        <h1 className="h1" style={{ marginTop: 10 }}>
+          {title}
+        </h1>
+        {children ?? <p>This screen arrives with its workstream.</p>}
       </div>
     </div>
   );

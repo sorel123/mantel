@@ -43,6 +43,20 @@ Each workstream changes only its own folders, plus additions to `packages/shared
 
 Shared plumbing (`src/lib/api.ts`, `src/lib/events.ts`, `src/lib/bootstrap.tsx`, `server/src/contract.ts`, `server/src/app.ts`) belongs to the scaffold; change it only when a workstream truly needs to, and say so in the PR.
 
+## The shell and design system (workstream 1)
+
+Everything a screen needs from the shell lives in `apps/display/src/app` and `src/styles`. Open **http://localhost:5173/demo** for a gallery of every token, primitive and overlay, Ambient, screen off and the schedule; it needs no server.
+
+**Styles.** `tokens.css` (colours per `<html data-mode>`, the three durations, radii, spacing, z-layers), `base.css` (type: `.h1` `.h2` `.h3` `.eyebrow` `.display-xl` `.muted` `.tnum`), `ui.css` (primitives: `.card` `.btn` `.seg` `.sw` `.cb` `.input` `.range` `.av` `.band` `.pill` `.chip` `.dot` `.kv` `.skeleton` `.scroll-y`). Person colour goes in `--pc` on the element. Never write a raw colour or duration.
+
+**Shell.** `Shell.tsx` fits the panel to the viewport (`lib/fit.ts`), applies the theme (`lib/theme.ts`: Daylight, Dusk, or auto by clock; call `setSunTimes()` from the weather feature to follow the real sun), switches screens with a 320 ms slide and a swipe (`ScreenSwitcher`), and draws the dock with its sliding highlight (`Dock`). Screens are listed in `screens.ts`.
+
+**Overlays.** `useOverlay()` from `app/overlay` gives every screen `openSheet(render)`, `confirm({ title, body, confirmLabel, danger }) → Promise<boolean>`, `showPopover(render, { durationMs })`, `toast(message)` and `closeAll()`. Sheets, dialogs and pop-overs share one scrim, animate with the standard curve and close on Escape or a tap outside. `SheetHeader` and `PopoverHeader` are ready-made top rows.
+
+**Ambient and the schedule.** After `schedule.idleSeconds` without a touch the display fades to Ambient (`app/ambient`): a photo slideshow with a 1.6 s cross-dissolve and slow drift, the time and date, and whatever features registered with `registerAmbientSlot()` (weather now, the next event). `setAmbientPhotos()` replaces the generated placeholders with real photos. From `ambientFrom` idle still goes to Ambient; from `offFrom` to `onAt` the screen is black; the brightness steps drive a software dimmer (`setBrightness()`), which a kiosk hook can mirror to hardware. The server's `display.sleep` and `display.wake` events and a `home.doorbell` override all of this. `prefers-reduced-motion` collapses every duration to 0.
+
+**Layers over every screen.** Any export named `*Layer` from `src/features/<name>/index.tsx` is mounted once inside the panel above the screens and dock (the doorbell live view, for example); no change to the shell is needed.
+
 ## The contract
 
 Everything the display and server exchange is defined once in `packages/shared/src`:

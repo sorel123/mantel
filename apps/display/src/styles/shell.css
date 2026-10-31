@@ -1,4 +1,4 @@
-/* Scaffold shell. WS1 replaces this with the mockup's full shell. */
+/* The shell: a fixed-size panel scaled to the viewport, screens inside it, the dock on top. */
 .stage {
   position: fixed;
   inset: 0;
@@ -10,17 +10,54 @@
 .panel {
   position: relative;
   background: var(--bg);
+  color: var(--ink);
   overflow: hidden;
   transform-origin: center center;
+  transition:
+    background var(--slow) var(--ease),
+    color var(--slow) var(--ease);
+}
+:root[data-waking] .screen-active {
+  animation: wake var(--slow) var(--ease);
+}
+@keyframes wake {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- screens ---------- */
+.screens {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-screen);
 }
 .screen {
   position: absolute;
   inset: 0;
-  padding: 34px 36px 104px;
+  padding: var(--screen-top) var(--screen-x) var(--screen-bottom);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--gap);
+  will-change: transform, opacity;
 }
+.screen > * {
+  min-height: 0;
+}
+.centered {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--screen-x);
+}
+
+/* ---------- placeholder for screens other workstreams fill ---------- */
 .placeholder {
   flex: 1;
   display: grid;
@@ -28,30 +65,73 @@
   text-align: center;
   color: var(--ink-2);
   padding: 32px;
+  border-style: dashed;
+  box-shadow: none;
+}
+.placeholder .h1 {
+  color: var(--ink);
 }
 .placeholder p {
-  margin: 8px 0 0;
+  margin: 10px auto 0;
+  max-width: 44ch;
 }
-.status {
+
+/* ---------- boot states ---------- */
+.wordmark {
+  font: 400 54px/1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.wordmark small {
+  display: block;
+  margin-top: 14px;
+  font: 500 15px/1 var(--body);
+  color: var(--ink-3);
+}
+.boot {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 18px;
+  text-align: center;
+}
+.boot .wordmark {
+  animation: breathe 2.4s var(--ease) infinite alternate;
+}
+@keyframes breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.notice {
+  width: 460px;
+  max-width: 100%;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+  align-items: center;
+}
+.notice p {
   color: var(--ink-2);
-  font-size: 13.5px;
 }
-.status i {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 6px;
-  background: var(--ink-3);
+.pair {
+  width: 440px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
-.status i.ok {
-  background: var(--good);
+.pair .err {
+  color: var(--warn);
+  font-weight: 600;
 }
-.status i.warn {
-  background: var(--warn);
-}
+
+/* ---------- dock ---------- */
 .dock {
   position: absolute;
   left: 50%;
@@ -62,29 +142,44 @@
   gap: 4px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px;
   box-shadow: var(--shadow);
+  z-index: var(--z-dock);
+  transition:
+    background var(--slow) var(--ease),
+    border-color var(--slow) var(--ease),
+    opacity var(--slow) var(--ease),
+    transform var(--slow) var(--ease);
 }
-.dock button {
+.dock .tab {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: var(--tap);
+  height: 48px;
   min-width: 112px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   font-size: 15px;
   color: var(--ink-2);
-  transition:
-    color var(--std) var(--ease),
-    background var(--std) var(--ease);
+  transition: color var(--std) var(--ease);
 }
-.dock button[aria-current='page'] {
+.dock .tab[aria-current='page'] {
   color: var(--accent);
+}
+.dock .tab > * {
+  position: relative;
+  z-index: 1;
+}
+.dock .ind {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
+  z-index: 0 !important;
 }
 .dock svg {
   width: 20px;
@@ -95,39 +190,87 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.dock .sep {
+  width: 1px;
+  height: 28px;
+  background: var(--line);
+  margin: 0 6px;
+}
 .dock .clock {
   min-width: 0;
-  padding: 0 16px 0 10px;
+  height: 48px;
+  padding: 0 14px 0 8px;
+  font: 500 17px/1 var(--body);
   color: var(--ink);
-  font-size: 17px;
-  font-weight: 500;
-  border-left: 1px solid var(--line);
-  border-radius: 0 999px 999px 0;
 }
-.pair {
-  max-width: 420px;
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.dock .moon {
+  min-width: 0;
+  height: 48px;
+  width: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  transition:
+    color var(--std) var(--ease),
+    background var(--std) var(--ease);
 }
-.pair input {
-  height: var(--tap);
-  font: 500 28px/1 var(--body);
-  letter-spacing: 0.3em;
-  text-align: center;
-  border-radius: 14px;
-  border: 1px solid var(--line);
+.dock .moon:active {
   background: var(--surface-2);
-  color: var(--ink);
 }
-.pair button {
-  height: var(--tap);
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 700;
+
+/* ---------- status pill (mock, offline) ---------- */
+.status {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: var(--z-status);
+  display: flex;
+  gap: 8px;
 }
-.pair .err {
+.status .chip {
+  height: 28px;
+  padding: 0 11px 0 9px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  gap: 6px;
+}
+.status .chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status .chip.offline {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
   color: var(--warn);
+}
+
+/* ---------- brightness dimmer (covers the whole stage, letterbox included) ---------- */
+.dimmer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dimmer);
+  background: #000;
+  pointer-events: none;
+  opacity: calc((100 - var(--brightness)) / 100 * 0.82);
+  transition: opacity var(--slow) var(--ease);
+}
+
+/* ---------- screen off ---------- */
+.screen-off {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-ambient);
+  background: #000;
+  color: rgba(255, 255, 255, 0.28);
+  display: grid;
+  place-items: center;
+}
+.screen-off .clock {
+  font: 300 72px/1 var(--display);
+  letter-spacing: -0.03em;
+  animation: breathe 6s var(--ease) infinite alternate;
 }

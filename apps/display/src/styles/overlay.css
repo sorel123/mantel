@@ -1,0 +1,202 @@
+/* Overlay layer: scrim, sheet, confirm dialog, pop-over, toasts. All positioned inside the panel. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-scrim);
+}
+
+/* side sheet (the Month screen's day sheet, settings panes...) */
+.sheet {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 440px;
+  max-width: 100%;
+  background: var(--surface);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.18);
+  z-index: var(--z-sheet);
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  transition: background var(--slow) var(--ease);
+}
+.sheet.wide {
+  width: 560px;
+}
+.sheet .sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.sheet .sheet-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.sheet .sheet-body::-webkit-scrollbar {
+  display: none;
+}
+.sheet .x {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  flex: none;
+  transition: transform var(--fast) var(--ease);
+}
+.sheet .x:active {
+  transform: scale(0.92);
+}
+.sheet .x svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* confirm dialog */
+.dialog {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 400px;
+  max-width: calc(100% - 48px);
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 28px;
+  z-index: var(--z-dialog);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: background var(--slow) var(--ease);
+}
+.dialog h3 {
+  font: 500 26px/1.15 var(--display);
+  letter-spacing: -0.01em;
+}
+.dialog p {
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.dialog .btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.dialog .btns .btn {
+  flex: 1;
+  height: 54px;
+  border-radius: 14px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+/* pop-over: a large card over any screen (doorbell live view, announcements) */
+.popover {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 760px;
+  max-width: calc(100% - 64px);
+  max-height: calc(100% - 64px);
+  background: var(--surface);
+  border-radius: 24px;
+  z-index: var(--z-popover);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background var(--slow) var(--ease);
+}
+.popover .pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 0;
+}
+.popover .pop-body {
+  padding: 18px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+}
+.popover .pop-media {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+.popover .pop-timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--accent-soft);
+}
+.popover .pop-timer i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+}
+
+/* toasts */
+.toasts {
+  position: absolute;
+  left: 50%;
+  bottom: 100px;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 20px 0 16px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.toast .dot {
+  margin: 0;
+}
+.toast .btn {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  color: inherit;
+  margin-right: -8px;
+}
