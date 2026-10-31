@@ -39,6 +39,7 @@ import {
   Location,
   WeatherSnapshot,
 } from './models.js';
+import { Appearance } from './skins.js';
 
 export const API_PREFIX = '/api';
 export const WS_PATH = '/ws';
@@ -87,6 +88,7 @@ export const BootstrapResponse = z.object({
     location: Location,
     units: Units,
     schedule: ScreenSchedule,
+    appearance: Appearance.optional(),
   }),
   theme: ThemeMode,
   panel: PanelSize,

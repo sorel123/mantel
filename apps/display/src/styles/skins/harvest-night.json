@@ -1,0 +1,101 @@
+{
+  "id": "harvest-night",
+  "name": "Harvest Night",
+  "description": "Halloween week: near-black plum, pumpkin orange, a handwritten headline, bats in the corners.",
+  "tags": ["halloween", "season", "dark"],
+  "daylight": {
+    "bg": "#15101c",
+    "surface": "#1f1829",
+    "surface2": "#2a2136",
+    "ink": "#f3ead8",
+    "ink2": "#c0b1a0",
+    "ink3": "#8a7e73",
+    "line": "rgba(243, 234, 216, 0.1)",
+    "accent": "#ff8a2a",
+    "accentSoft": "rgba(255, 138, 42, 0.18)",
+    "accentInk": "#15101c",
+    "scrim": "rgba(0, 0, 0, 0.5)",
+    "warn": "#ffb15a",
+    "good": "#9cd36c"
+  },
+  "dusk": {
+    "bg": "#0d0a12",
+    "surface": "#17121f",
+    "surface2": "#211a2b",
+    "ink": "#efe5d4",
+    "ink2": "#b5a697",
+    "ink3": "#7f746a",
+    "line": "rgba(239, 229, 212, 0.1)",
+    "accent": "#f27d22",
+    "accentSoft": "rgba(242, 125, 34, 0.18)",
+    "accentInk": "#0d0a12",
+    "scrim": "rgba(0, 0, 0, 0.5)",
+    "warn": "#f5a955",
+    "good": "#92c866"
+  },
+  "fonts": {
+    "display": "caveat",
+    "body": "manrope"
+  },
+  "radii": 0.8,
+  "cardStyle": "outlined",
+  "personPalette": [
+    {
+      "name": "Orange",
+      "color": "#ff8a2a"
+    },
+    {
+      "name": "Purple",
+      "color": "#8e4fd1"
+    },
+    {
+      "name": "Lime",
+      "color": "#9ad53c"
+    },
+    {
+      "name": "Teal",
+      "color": "#2fb3a0"
+    },
+    {
+      "name": "Magenta",
+      "color": "#d6408f"
+    },
+    {
+      "name": "Red",
+      "color": "#e04a3a"
+    },
+    {
+      "name": "Gold",
+      "color": "#e3b23c"
+    },
+    {
+      "name": "Blue",
+      "color": "#4a7bd9"
+    },
+    {
+      "name": "Mint",
+      "color": "#52c493"
+    },
+    {
+      "name": "Pink",
+      "color": "#f06aa5"
+    },
+    {
+      "name": "Rust",
+      "color": "#c0582a"
+    },
+    {
+      "name": "Violet",
+      "color": "#6e5bd6"
+    }
+  ],
+  "decor": {
+    "background": "leaves",
+    "corners": "bats",
+    "opacity": 0.45
+  },
+  "season": {
+    "from": "10-24",
+    "to": "11-01"
+  }
+}

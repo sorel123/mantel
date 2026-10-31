@@ -1,0 +1,100 @@
+{
+  "id": "bloom",
+  "name": "Bloom",
+  "description": "Spring: a blush of pink, soft lilac greys and petals scattered behind everything.",
+  "tags": ["spring", "season", "soft"],
+  "daylight": {
+    "bg": "#f1ebee",
+    "surface": "#fcf8fa",
+    "surface2": "#e8dde4",
+    "ink": "#2a1f2a",
+    "ink2": "#665565",
+    "ink3": "#998a98",
+    "line": "rgba(42, 31, 42, 0.11)",
+    "accent": "#b82f66",
+    "accentSoft": "rgba(184, 47, 102, 0.13)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(10, 12, 16, 0.28)",
+    "warn": "#a85a0c",
+    "good": "#3a7f45"
+  },
+  "dusk": {
+    "bg": "#171219",
+    "surface": "#221a25",
+    "surface2": "#2e2432",
+    "ink": "#f6eef4",
+    "ink2": "#c0acbd",
+    "ink3": "#8a7a8d",
+    "line": "rgba(246, 238, 244, 0.1)",
+    "accent": "#f08cb5",
+    "accentSoft": "rgba(240, 140, 181, 0.16)",
+    "accentInk": "#171219",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e9a35b",
+    "good": "#86c98a"
+  },
+  "fonts": {
+    "display": "fraunces",
+    "body": "manrope"
+  },
+  "radii": 1.3,
+  "cardStyle": "elevated",
+  "personPalette": [
+    {
+      "name": "Pink",
+      "color": "#e2457a"
+    },
+    {
+      "name": "Orange",
+      "color": "#f07f1a"
+    },
+    {
+      "name": "Lime",
+      "color": "#7ab51d"
+    },
+    {
+      "name": "Teal",
+      "color": "#0f9d9a"
+    },
+    {
+      "name": "Blue",
+      "color": "#2f6fe4"
+    },
+    {
+      "name": "Purple",
+      "color": "#8d4de8"
+    },
+    {
+      "name": "Red",
+      "color": "#e03a2f"
+    },
+    {
+      "name": "Yellow",
+      "color": "#e0b000"
+    },
+    {
+      "name": "Mint",
+      "color": "#2bb673"
+    },
+    {
+      "name": "Sky",
+      "color": "#2aa7e0"
+    },
+    {
+      "name": "Magenta",
+      "color": "#c2328c"
+    },
+    {
+      "name": "Navy",
+      "color": "#3b4bb0"
+    }
+  ],
+  "decor": {
+    "background": "blossom",
+    "opacity": 0.45
+  },
+  "season": {
+    "from": "03-01",
+    "to": "05-31"
+  }
+}

@@ -1,4 +1,5 @@
 import type { Settings } from '../models.js';
+import { DEFAULT_APPEARANCE } from '../skins.js';
 import { people } from './people.js';
 
 export function settings(): Settings {
@@ -49,5 +50,6 @@ export function settings(): Settings {
       alexaAnnouncements: false,
       remindersSync: false,
     },
+    appearance: { ...DEFAULT_APPEARANCE },
   };
 }

@@ -9,6 +9,7 @@
  * - Ids are opaque strings.
  */
 import { z } from 'zod';
+import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -369,6 +370,8 @@ export const Settings = z.object({
   people: z.array(Person),
   destinations: z.array(Destination),
   flags: FeatureFlags,
+  /** Skin, accent, font and text size (workstream E); defaults keep old databases parsing. */
+  appearance: Appearance.default(DEFAULT_APPEARANCE),
 });
 export type Settings = z.infer<typeof Settings>;
 

@@ -38,7 +38,12 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
       timezone: s.timezone,
       people: s.people,
       calendars,
-      settings: { location: s.location, units: s.units, schedule: s.schedule },
+      settings: {
+        location: s.location,
+        units: s.units,
+        schedule: s.schedule,
+        appearance: s.appearance,
+      },
       theme: s.theme,
       panel: DEFAULT_PANEL,
       flags: s.flags,

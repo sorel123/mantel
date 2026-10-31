@@ -11,7 +11,7 @@ body {
   background: #000;
   color: var(--ink);
   font-family: var(--body);
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale));
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
@@ -61,38 +61,38 @@ svg {
   font-variant-numeric: tabular-nums;
 }
 .eyebrow {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--text-scale));
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 .h1 {
-  font: 400 44px/1.05 var(--display);
+  font: 400 calc(44px * var(--text-scale)) / 1.05 var(--display);
   letter-spacing: -0.02em;
 }
 .h2 {
-  font: 500 26px/1.1 var(--display);
+  font: 500 calc(26px * var(--text-scale)) / 1.1 var(--display);
   letter-spacing: -0.01em;
 }
 .h3 {
-  font: 500 20px/1.2 var(--display);
+  font: 500 calc(20px * var(--text-scale)) / 1.2 var(--display);
   letter-spacing: -0.01em;
 }
 .display-xl {
-  font: 300 128px/0.9 var(--display);
+  font: 300 calc(128px * var(--text-scale)) / 0.9 var(--display);
   letter-spacing: -0.04em;
 }
 .display-lg {
-  font: 300 72px/0.9 var(--display);
+  font: 300 calc(72px * var(--text-scale)) / 0.9 var(--display);
   letter-spacing: -0.03em;
 }
 .display-md {
-  font: 300 44px/1 var(--display);
+  font: 300 calc(44px * var(--text-scale)) / 1 var(--display);
   letter-spacing: -0.02em;
 }
 .italic-note {
-  font: 500 24px/1 var(--display);
+  font: 500 calc(24px * var(--text-scale)) / 1 var(--display);
   font-style: italic;
   color: var(--ink-2);
 }
@@ -103,5 +103,5 @@ svg {
   color: var(--ink-3);
 }
 .small {
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text-scale));
 }
