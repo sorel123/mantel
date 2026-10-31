@@ -5,25 +5,34 @@ import {
   scheduleStateAt,
   toLocalIso,
 } from '@mantel/shared';
-import { DEFAULT_PANEL, routeFixtures } from '@mantel/shared/fixtures';
+import { DEFAULT_PANEL } from '@mantel/shared/fixtures';
+import { decryptSecrets, encryptSecrets } from '../backup.js';
 import type { Handle, HandlerArgs } from '../contract.js';
-import { HttpError, notFound, notImplemented } from '../errors.js';
-import { log } from '../log.js';
+import { HttpError, notFound } from '../errors.js';
+import { log, logTail } from '../log.js';
 import type { AppDeps } from '../app.js';
 import type { HomeBytes } from '../providers/types.js';
 import { VERSION } from '../version.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
 export function registerRoutes(handle: Handle, deps: AppDeps) {
-  const { providers, auth, settings, config, sync, hub } = deps;
+  const { providers, auth, settings, config, sync, hub, registry, setup, geocoder } = deps;
   const started = Date.now();
 
   /* ---- scaffold / WS6: pairing, bootstrap, settings, health ---- */
   handle('pair', async ({ body }) => {
     if (body.pin !== undefined && !body.code) {
-      // The admin PIN arrives with the settings-first server (workstream A, step 2).
-      if (!config.MOCK) throw new HttpError('forbidden', 'the admin PIN is not set up yet');
-      return auth.pair('000000', body.name) ?? { deviceId: 'dev-mock', deviceKey: 'mock' };
+      if (!auth.pinSet() && !config.MOCK)
+        throw new HttpError(
+          'forbidden',
+          'no admin PIN is set yet; use the code from the server log',
+        );
+      if (auth.pinLocked())
+        throw new HttpError('forbidden', 'too many wrong PINs; wait 30 seconds and try again');
+      const paired = auth.pairWithPin(body.pin, body.name);
+      if (!paired) throw new HttpError('forbidden', 'that PIN is wrong');
+      setup.markDone('wall');
+      return paired;
     }
     const paired = auth.pair(body.code ?? '', body.name);
     if (!paired) throw new HttpError('forbidden', 'pairing code is wrong or expired');
@@ -62,7 +71,36 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
 
   handle('settings', async () => settings.get());
   handle('settingsPut', async ({ body }) => {
-    const saved = settings.put(body);
+    const before = settings.get();
+    let next = body;
+    // A new "where is home" text with untouched coordinates: look it up and fill them in.
+    const query = body.location.query.trim();
+    if (
+      query &&
+      query !== before.location.query &&
+      body.location.latitude === before.location.latitude &&
+      body.location.longitude === before.location.longitude
+    ) {
+      try {
+        const [hit] = await geocoder.search(query);
+        if (hit) {
+          next = {
+            ...body,
+            timezone: hit.timezone || body.timezone,
+            location: {
+              ...body.location,
+              name: body.location.name === before.location.name ? hit.name : body.location.name,
+              latitude: hit.latitude,
+              longitude: hit.longitude,
+            },
+          };
+        }
+      } catch (err) {
+        log.warn('settings: could not look up the location', { query, err: String(err) });
+      }
+    }
+    const saved = settings.put(next);
+    await registry.refreshToggles(before.integrations, saved.integrations);
     // Displays read settings at bootstrap, so a reload applies the new schedule and flags.
     hub.broadcast({ type: 'display.reload', payload: {} });
     return saved;
@@ -75,11 +113,10 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     return { ok: true as const };
   });
   handle('deviceRename', async ({ params, body, deviceId }) => {
-    // Per-display overrides (look, default screen, fit, scale) land with workstream A step 2.
-    const device = body.name
-      ? auth.rename(params.id!, body.name, deviceId)
-      : (auth.list(deviceId).find((d) => d.id === params.id) ?? null);
+    const device = auth.patch(params.id!, body, deviceId);
     if (!device) throw notFound(`device ${params.id}`);
+    // The display reads its overrides at bootstrap.
+    hub.broadcast({ type: 'display.reload', payload: {} });
     return { device };
   });
   handle('pairingCode', async () => {
@@ -108,72 +145,106 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     lastSync: Object.fromEntries(sync),
   }));
 
-  /* ---- v2 workstream A: plugins, integrations, admin PIN, setup, backup, geocode ----
-   * Contract only for now: fixtures in mock mode, 501 otherwise. The implementation follows. */
-  const fixture = <N extends keyof ReturnType<typeof routeFixtures>>(name: N) => {
-    if (!config.MOCK) throw notImplemented(name);
-    return routeFixtures(new Date())[name];
-  };
-  handle('plugins', async () => fixture('plugins'));
-  handle('integrations', async () => fixture('integrations'));
+  /* ---- v2 workstream A: plugins, integrations, admin PIN, setup, backup, geocode ---- */
+  handle('plugins', async () => ({ plugins: registry.manifests() }));
+  handle('integrations', async () => ({ integrations: registry.statuses() }));
   handle('integrationPut', async ({ params, body }) => {
-    const { integrations } = fixture('integrations');
-    const current = integrations.find((i) => i.id === params.id);
-    if (!current) throw notFound(`integration ${params.id}`);
-    const enabled = body.enabled ?? current.enabled;
-    return {
-      integration: {
-        ...current,
-        enabled,
-        state: enabled ? (current.state === 'disabled' ? 'not_set_up' : current.state) : 'disabled',
-        config: { ...current.config, ...body.config },
-        hasSecrets: Array.from(
-          new Set([
-            ...current.hasSecrets.filter((k) => body.secrets?.[k] !== null),
-            ...Object.keys(body.secrets ?? {}).filter((k) => body.secrets?.[k]),
-          ]),
-        ),
-      },
-    };
+    const integration = await registry.update(params.id!, body);
+    if (integration.state === 'connected') setup.markDone(stepFor(registry, params.id!));
+    // Turning a plugin on or off adds or drops whole screens and cards.
+    if (body.enabled !== undefined) hub.broadcast({ type: 'display.reload', payload: {} });
+    return { integration };
   });
-  handle('integrationTest', async ({ params }) => {
-    if (!fixture('integrations').integrations.some((i) => i.id === params.id))
-      throw notFound(`integration ${params.id}`);
-    return fixture('integrationTest');
+  handle('integrationTest', async ({ params, body }) => registry.test(params.id!, body));
+  handle('integrationAuthorizeUrl', async ({ params }) => {
+    const plugin = registry.get(params.id!);
+    if (!plugin.authorizeUrl)
+      throw new HttpError('bad_request', `${plugin.manifest.name} does not sign in with a browser`);
+    return plugin.authorizeUrl();
   });
-  handle('integrationAuthorizeUrl', async () => fixture('integrationAuthorizeUrl'));
-  handle('integrationCallback', async () => fixture('integrationCallback'));
-  handle('healthDetails', async () => fixture('healthDetails'));
-  handle('adminPin', async () => fixture('adminPin'));
-  handle('setupState', async () => fixture('setupState'));
-  handle('setupStatePut', async ({ body }) => {
-    const state = fixture('setupState');
-    return {
-      ...state,
-      completed: body.completed ?? state.completed,
-      steps: { ...state.steps, ...body.steps },
-    };
+  handle('integrationCallback', async ({ params, body }) => {
+    const plugin = registry.get(params.id!);
+    if (!plugin.callback)
+      throw new HttpError('bad_request', `${plugin.manifest.name} does not sign in with a browser`);
+    await plugin.callback(body.url);
+    setup.markDone(stepFor(registry, params.id!));
+    return { integration: registry.status(plugin.manifest.id) };
   });
-  handle('settingsExport', async () => fixture('settingsExport'));
-  handle('settingsImport', async () => fixture('settingsImport'));
-  handle('geocode', async ({ body }) => {
-    const pair = body.query.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-    if (pair) {
-      const latitude = Number(pair[1]);
-      const longitude = Number(pair[2]);
-      if (Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180)
-        return {
-          candidates: [
-            {
-              name: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-              latitude,
-              longitude,
-              timezone: settings.get().timezone,
-            },
-          ],
-        };
+
+  handle('healthDetails', async () => ({
+    version: VERSION,
+    mock: config.MOCK,
+    uptimeSeconds: Math.round((Date.now() - started) / 1000),
+    firstRun: auth.firstRun(),
+    pinSet: auth.pinSet(),
+    publicUrl: config.PUBLIC_URL,
+    integrations: registry.statuses(),
+    logTail: logTail(),
+    lastSync: Object.fromEntries(sync),
+  }));
+
+  handle('adminPin', async ({ body, deviceId }) => {
+    const problem = auth.pinChangeProblem(body.currentPin, deviceId !== null);
+    if (problem) throw new HttpError('forbidden', problem);
+    auth.setPin(body.pin);
+    setup.markDone('welcome');
+    return { ok: true as const, pinSet: true as const };
+  });
+
+  handle('setupState', async () => setup.get());
+  handle('setupStatePut', async ({ body }) => setup.put(body));
+
+  handle('settingsExport', async ({ body }) => ({
+    format: 'mantel-settings' as const,
+    version: 1 as const,
+    exportedAt: new Date().toISOString(),
+    appVersion: VERSION,
+    settings: settings.get(),
+    integrations: registry.exportConfig(),
+    ...(body?.passphrase
+      ? { secrets: encryptSecrets(registry.exportSecrets(), body.passphrase) }
+      : {}),
+  }));
+  handle('settingsImport', async ({ body }) => {
+    const { bundle, passphrase } = body;
+    let restored: Record<string, Record<string, string>> = {};
+    if (bundle.secrets) {
+      if (!passphrase)
+        throw new HttpError(
+          'bad_request',
+          'this backup holds secrets; type the passphrase it was exported with',
+        );
+      try {
+        restored = decryptSecrets(bundle.secrets, passphrase);
+      } catch {
+        throw new HttpError('forbidden', 'that passphrase does not open this backup');
+      }
     }
-    return fixture('geocode');
+    const before = settings.get();
+    const saved = settings.put(bundle.settings);
+    const known = new Set<string>(registry.ids());
+    for (const [id, entry] of Object.entries(bundle.integrations)) {
+      if (!known.has(id)) continue;
+      await registry.update(id, {
+        enabled: entry.enabled,
+        config: entry.config,
+        ...(restored[id] ? { secrets: restored[id] } : {}),
+      });
+    }
+    await registry.refreshToggles(before.integrations, saved.integrations);
+    hub.broadcast({ type: 'display.reload', payload: {} });
+    return {
+      ok: true as const,
+      secretsRestored: Object.keys(restored).filter((id) => known.has(id)),
+    };
+  });
+
+  handle('geocode', async ({ body }) => {
+    try {
+      return { candidates: await geocoder.search(body.query) };
+    } catch (err) {
+      throw new HttpError('upstream_error', `could not look that up: ${String(err)}`);
+    }
   });
 
   /* ---- WS2: calendars ---- */
@@ -252,4 +323,9 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('choreUndo', async ({ params }) => providers.lists.choreUndo(params.id!));
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
+}
+
+/** The wizard step a plugin belongs to, for marking progress from the server side. */
+function stepFor(registry: AppDeps['registry'], id: string): string {
+  return registry.get(id).manifest.step ?? 'extras';
 }

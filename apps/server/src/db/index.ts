@@ -66,6 +66,20 @@ const migrations = [
     stars INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS chore_completions_day ON chore_completions (day)`,
+  // v2 (workstream A): integration secrets, encrypted with the key in DATA_DIR/secret.key
+  `CREATE TABLE IF NOT EXISTS secrets (
+    key TEXT PRIMARY KEY,
+    iv TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+];
+
+/** Columns added after a table shipped. `ALTER TABLE` has no IF NOT EXISTS, so each is tried once. */
+const addedColumns: Array<[table: string, column: string, definition: string]> = [
+  // v2 (workstream A): per-display overrides as JSON (look, defaultScreen, fit, scale)
+  ['devices', 'overrides', 'TEXT'],
 ];
 
 export function openDb(dataDir: string): Db {
@@ -78,6 +92,11 @@ export function openDb(dataDir: string): Db {
   sqlite.pragma('journal_mode = WAL');
   sqlite.pragma('foreign_keys = ON');
   for (const sql of migrations) sqlite.exec(sql);
+  for (const [table, column, definition] of addedColumns) {
+    const columns = sqlite.pragma(`table_info(${table})`) as Array<{ name: string }>;
+    if (!columns.some((c) => c.name === column))
+      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
   return drizzle(sqlite, { schema });
 }
 
