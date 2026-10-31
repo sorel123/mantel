@@ -1,0 +1,124 @@
+/* Ambient mode: full-bleed photos, big clock, a glance at what's next. */
+.ambient {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-ambient);
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+}
+.slideshow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--slide-bg, #000);
+  transition: background var(--dissolve) var(--ease);
+}
+.slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  will-change: transform, opacity;
+}
+.slide.drift {
+  animation: drift var(--drift) linear infinite alternate;
+}
+.slide.drift.alt {
+  animation-name: drift-alt;
+}
+@keyframes drift {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.09) translate(-1.5%, 1%);
+  }
+}
+@keyframes drift-alt {
+  from {
+    transform: scale(1.09) translate(1.2%, -1%);
+  }
+  to {
+    transform: scale(1) translate(0, 0);
+  }
+}
+:root[data-motion='reduced'] .slide.drift {
+  animation: none;
+}
+.ambient .veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+.ambient .a-clock {
+  position: absolute;
+  left: 48px;
+  bottom: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+}
+.ambient .a-clock b {
+  font: 300 124px/0.9 var(--display);
+  letter-spacing: -0.04em;
+}
+.ambient .a-clock span {
+  font: 400 24px/1.2 var(--display);
+  font-style: italic;
+  opacity: 0.9;
+  margin-top: 8px;
+}
+.ambient .a-side {
+  position: absolute;
+  right: 48px;
+  bottom: 52px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+}
+.ambient .a-side .w {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  font-size: 20px;
+}
+.ambient .a-side .w b {
+  font: 300 44px/1 var(--display);
+}
+.ambient .a-side .w svg {
+  width: 36px;
+  height: 36px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ambient .a-side .nx {
+  font-size: 15px;
+  opacity: 0.85;
+}
+.ambient .a-side .nx b {
+  display: block;
+  font-size: 19px;
+  opacity: 1;
+  font-weight: 600;
+}
+.ambient .hint {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  font-weight: 700;
+}

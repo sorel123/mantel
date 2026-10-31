@@ -1,0 +1,139 @@
+/* The /demo gallery: one screen per section, scrolling inside the panel. */
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;
+  min-height: 0;
+}
+.demo-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 4px;
+}
+.demo-head .title {
+  font: 400 42px/1 var(--display);
+  letter-spacing: -0.02em;
+}
+.demo-head .title span {
+  color: var(--ink-2);
+  font-size: 28px;
+  margin-left: 12px;
+}
+.demo-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  align-content: start;
+  padding-bottom: 8px;
+}
+.demo-body::-webkit-scrollbar {
+  display: none;
+}
+.demo-body .card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.demo-body .card.span {
+  grid-column: 1 / -1;
+}
+.demo-body .card .h2 {
+  font-size: 22px;
+}
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.swatch i {
+  display: block;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--sw);
+}
+.swatch b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.type-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.type-row .eyebrow {
+  width: 110px;
+  flex: none;
+}
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 14px;
+}
+.bar-track {
+  position: relative;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.bar-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.sched {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+.sched .read {
+  display: flex;
+  gap: 18px;
+  align-items: baseline;
+}
+.sched .read b {
+  font: 300 44px/1 var(--display);
+}
+.timeline {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  display: flex;
+}
+.timeline i {
+  display: block;
+  height: 100%;
+}

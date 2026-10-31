@@ -1,0 +1,492 @@
+/*
+ * Shared UI primitives. Any workstream may use these classes; WS1 owns the file.
+ * Everything is sized for touch (56 px targets) and animates with the three durations.
+ */
+
+/* ---------- cards ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  transition:
+    background var(--slow) var(--ease),
+    border-color var(--slow) var(--ease),
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+.card.tap {
+  text-align: inherit;
+  color: inherit;
+}
+.card.tap:active {
+  transform: scale(0.985);
+}
+.card.inset {
+  background: var(--surface-2);
+  border-color: transparent;
+  box-shadow: none;
+}
+.card-pad {
+  padding: var(--card-pad);
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;
+  transition:
+    transform var(--fast) var(--ease),
+    background var(--std) var(--ease),
+    color var(--std) var(--ease),
+    filter var(--fast) var(--ease),
+    opacity var(--std) var(--ease);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn.primary:active {
+  filter: brightness(1.08);
+}
+.btn.danger {
+  background: var(--warn);
+  color: #fff;
+}
+.btn.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+}
+.btn.quiet {
+  background: transparent;
+  color: var(--ink-2);
+}
+.btn.selected {
+  background: var(--ink);
+  color: var(--bg);
+}
+.btn.block {
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+.btn.icon {
+  padding: 0;
+  width: var(--tap);
+  border-radius: 50%;
+}
+.btn.sm {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+.btn.sm.icon {
+  width: 44px;
+}
+.btn.lg {
+  height: 64px;
+  padding: 0 28px;
+  font-size: 17px;
+}
+.btn svg,
+.icon-20 {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.btn.lg svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* a row of pill choices, one selected */
+.seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+}
+.seg .btn {
+  height: 44px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.seg .btn[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- switch ---------- */
+.sw {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  flex: none;
+  transition: background var(--fast) var(--ease);
+}
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform var(--fast) var(--ease);
+}
+.sw[aria-checked='true'],
+.sw.on {
+  background: var(--accent);
+}
+.sw[aria-checked='true']::after,
+.sw.on::after {
+  transform: translateX(20px);
+}
+/* a 56 px hit area around the 30 px control */
+.sw-hit {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+}
+
+/* ---------- checkbox with drawn tick ---------- */
+.cb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  border: 2px solid var(--ink-3);
+  display: grid;
+  place-items: center;
+  flex: none;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.cb svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--accent-ink);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset var(--std) var(--ease);
+}
+.cb.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+.cb.on svg {
+  stroke-dashoffset: 0;
+}
+
+/* ---------- inputs ---------- */
+.input {
+  height: var(--tap);
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0 16px;
+  font-size: 16px;
+  color: var(--ink);
+  transition:
+    background var(--slow) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+.input::placeholder {
+  color: var(--ink-3);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.input.code {
+  font: 500 28px/1 var(--body);
+  letter-spacing: 0.3em;
+  text-align: center;
+  background: var(--surface-2);
+}
+
+/* range slider: fill with --v (0-100%) */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 30px;
+  border-radius: 10px;
+  margin: 0;
+  background: linear-gradient(90deg, var(--accent) var(--v, 50%), var(--surface-2) var(--v, 50%));
+  transition: opacity var(--std) var(--ease);
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 22px;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 0;
+}
+.range::-moz-range-thumb {
+  width: 10px;
+  height: 22px;
+  border-radius: 5px;
+  background: #fff;
+  border: 0;
+}
+.range:disabled {
+  opacity: 0.35;
+}
+
+/* ---------- avatars ---------- */
+.av {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: var(--pc, var(--accent));
+  box-shadow: 0 0 0 2px var(--surface);
+  flex: none;
+}
+.av.sm {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+.av.lg {
+  width: 44px;
+  height: 44px;
+  font-size: 17px;
+}
+.av.away {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.avs {
+  display: flex;
+}
+.avs .av {
+  margin-left: -6px;
+}
+.avs .av:first-child {
+  margin-left: 0;
+}
+
+/* ---------- chips, bands, pills ---------- */
+.band {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pc, var(--accent)) 16%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+.band i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pc, var(--accent));
+}
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pc, var(--accent)) 18%, transparent);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 3px solid var(--pc, var(--accent));
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.chip.neutral {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+/* ---------- status dots ---------- */
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  background: var(--good);
+  flex: none;
+}
+.dot.warn {
+  background: var(--warn);
+}
+.dot.off {
+  background: var(--ink-3);
+}
+
+/* ---------- rows of label and value ---------- */
+.kv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14.5px;
+}
+.kv > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.kv span {
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- section head: title left, meta right ---------- */
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.head .n {
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+/* ---------- dividers ---------- */
+.rule {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: 0;
+}
+
+/* ---------- loading skeleton ---------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shimmer 1.6s var(--ease) infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+:root[data-motion='reduced'] .skeleton::after {
+  animation: none;
+}
+
+/* ---------- empty state ---------- */
+.empty {
+  color: var(--ink-2);
+  font-size: 15px;
+  padding: 8px 4px;
+}
+
+/* ---------- scrolling inside a card ---------- */
+.scroll-y {
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-y::-webkit-scrollbar {
+  display: none;
+}
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- layout helpers ---------- */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.grow {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
