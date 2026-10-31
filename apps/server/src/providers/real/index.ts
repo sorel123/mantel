@@ -4,6 +4,7 @@
  */
 import { notImplemented } from '../../errors.js';
 import type { ProviderContext, Providers } from '../types.js';
+import { realCalendar } from './calendar/index.js';
 import { realHome } from './home.js';
 import { realLists } from './lists.js';
 import { realPhotos } from './photos.js';
@@ -18,7 +19,7 @@ const stub = <T extends object>(name: string): T =>
 export function realProviders(ctx: ProviderContext): Providers {
   const ws4 = loadWs4Env();
   return {
-    calendar: stub('calendar'),
+    calendar: realCalendar(ctx),
     weather: realWeather(ctx, { env: ws4 }),
     photos: realPhotos(ctx, { env: ws4 }),
     home: realHome(ctx),
