@@ -166,7 +166,8 @@ export function homeState(now: Date): {
   const thermostat = entities.find((e) => e.id === 'climate.main_floor')!;
   thermostat.attrs.hvac_modes = ['off', 'heat', 'cool', 'heat_cool'];
   thermostat.name = 'Main floor';
-  entities.find((e) => e.id === 'scene.morning')!.lastChanged = minsAgo(95);
+  // Morning ran most recently, so its chip shows as on.
+  entities.find((e) => e.id === 'scene.morning')!.lastChanged = minsAgo(20);
   entities.find((e) => e.id === 'binary_sensor.back_door')!.lastChanged = minsAgo(12);
   entities.find((e) => e.id === 'binary_sensor.hallway_motion')!.lastChanged = minsAgo(2);
 

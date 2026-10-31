@@ -93,12 +93,6 @@ export function cameraSvg(entityId: string, name: string, now: Date, live: boole
   ${live ? scene.live : ''}
   <rect width="${W}" height="${H}" fill="url(#vig)"/>
   <text x="16" y="${H - 16}" font-family="Menlo, monospace" font-size="15" fill="#fff" opacity=".85">${label}</text>
-  ${
-    live
-      ? `<g><circle cx="${W - 64}" cy="24" r="6" fill="#e5484d"><animate attributeName="opacity" values="1;.2;1" dur="1.4s" repeatCount="indefinite"/></circle>
-  <text x="${W - 50}" y="29" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="14" fill="#fff">LIVE</text></g>`
-      : ''
-  }
 </svg>`;
 }
 
