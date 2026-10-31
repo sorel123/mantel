@@ -60,6 +60,22 @@ describe('mock mode', () => {
     choreDelete: ['/chores/chore-plants'],
     settings: ['/settings'],
     health: ['/health'],
+    // v2 workstream A contract (fixtures until the implementation lands)
+    plugins: ['/plugins'],
+    integrations: ['/integrations'],
+    integrationPut: ['/integrations/homeassistant', { enabled: false }],
+    integrationTest: ['/integrations/homeassistant/test'],
+    integrationAuthorizeUrl: ['/integrations/google/authorize-url'],
+    integrationCallback: [
+      '/integrations/google/callback',
+      { url: 'http://localhost/cb?code=x&state=y' },
+    ],
+    healthDetails: ['/health/details'],
+    adminPin: ['/admin/pin', { pin: '1234' }],
+    setupState: ['/setup/state'],
+    setupStatePut: ['/setup/state', { steps: { people: 'done' } }],
+    settingsExport: ['/settings/export', { passphrase: 'hunter2' }],
+    geocode: ['/geocode', { query: 'Seattle' }],
   };
 
   for (const [name, [path, body]] of Object.entries(samples) as [RouteName, [string, unknown?]][]) {
@@ -69,6 +85,19 @@ describe('mock mode', () => {
       routes[name].response!.parse(await json(res));
     });
   }
+
+  it('geocodes a pasted coordinate pair without a lookup', async () => {
+    const res = await req(mock.app, 'POST', '/geocode', { query: '47.6062, -122.3321' });
+    const { candidates } = await json(res);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({ latitude: 47.6062, longitude: -122.3321 });
+  });
+
+  it('pairs with a PIN in mock mode', async () => {
+    const res = await req(mock.app, 'POST', '/pair', { pin: '1234', name: 'Phone' });
+    expect(res.status).toBe(200);
+    expect((await req(mock.app, 'POST', '/pair', { name: 'Phone' })).status).toBe(400);
+  });
 
   it('round-trips settings', async () => {
     const s = await json(await req(mock.app, 'GET', '/settings'));

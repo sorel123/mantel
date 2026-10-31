@@ -5,9 +5,9 @@ import {
   scheduleStateAt,
   toLocalIso,
 } from '@mantel/shared';
-import { DEFAULT_PANEL } from '@mantel/shared/fixtures';
+import { DEFAULT_PANEL, routeFixtures } from '@mantel/shared/fixtures';
 import type { Handle, HandlerArgs } from '../contract.js';
-import { HttpError, notFound } from '../errors.js';
+import { HttpError, notFound, notImplemented } from '../errors.js';
 import { log } from '../log.js';
 import type { AppDeps } from '../app.js';
 import type { HomeBytes } from '../providers/types.js';
@@ -20,12 +20,17 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
 
   /* ---- scaffold / WS6: pairing, bootstrap, settings, health ---- */
   handle('pair', async ({ body }) => {
-    const paired = auth.pair(body.code, body.name);
+    if (body.pin !== undefined && !body.code) {
+      // The admin PIN arrives with the settings-first server (workstream A, step 2).
+      if (!config.MOCK) throw new HttpError('forbidden', 'the admin PIN is not set up yet');
+      return auth.pair('000000', body.name) ?? { deviceId: 'dev-mock', deviceKey: 'mock' };
+    }
+    const paired = auth.pair(body.code ?? '', body.name);
     if (!paired) throw new HttpError('forbidden', 'pairing code is wrong or expired');
     return paired;
   });
 
-  handle('bootstrap', async () => {
+  handle('bootstrap', async ({ deviceId }) => {
     const s = settings.get();
     const calendars = await providers.calendar.calendars().catch((err: unknown) => {
       log.warn('bootstrap: calendars unavailable', { err: String(err) });
@@ -38,10 +43,20 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
       timezone: s.timezone,
       people: s.people,
       calendars,
-      settings: { location: s.location, units: s.units, schedule: s.schedule },
+      settings: {
+        location: s.location,
+        units: s.units,
+        schedule: s.schedule,
+        appearance: s.appearance,
+        layout: s.layout,
+        screens: s.screens,
+        defaultScreen: s.defaultScreen,
+        integrations: s.integrations,
+      },
       theme: s.theme,
       panel: DEFAULT_PANEL,
       flags: s.flags,
+      device: auth.list(deviceId).find((d) => d.current) ?? null,
     };
   });
 
@@ -60,7 +75,10 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     return { ok: true as const };
   });
   handle('deviceRename', async ({ params, body, deviceId }) => {
-    const device = auth.rename(params.id!, body.name, deviceId);
+    // Per-display overrides (look, default screen, fit, scale) land with workstream A step 2.
+    const device = body.name
+      ? auth.rename(params.id!, body.name, deviceId)
+      : (auth.list(deviceId).find((d) => d.id === params.id) ?? null);
     if (!device) throw notFound(`device ${params.id}`);
     return { device };
   });
@@ -89,6 +107,74 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     uptimeSeconds: Math.round((Date.now() - started) / 1000),
     lastSync: Object.fromEntries(sync),
   }));
+
+  /* ---- v2 workstream A: plugins, integrations, admin PIN, setup, backup, geocode ----
+   * Contract only for now: fixtures in mock mode, 501 otherwise. The implementation follows. */
+  const fixture = <N extends keyof ReturnType<typeof routeFixtures>>(name: N) => {
+    if (!config.MOCK) throw notImplemented(name);
+    return routeFixtures(new Date())[name];
+  };
+  handle('plugins', async () => fixture('plugins'));
+  handle('integrations', async () => fixture('integrations'));
+  handle('integrationPut', async ({ params, body }) => {
+    const { integrations } = fixture('integrations');
+    const current = integrations.find((i) => i.id === params.id);
+    if (!current) throw notFound(`integration ${params.id}`);
+    const enabled = body.enabled ?? current.enabled;
+    return {
+      integration: {
+        ...current,
+        enabled,
+        state: enabled ? (current.state === 'disabled' ? 'not_set_up' : current.state) : 'disabled',
+        config: { ...current.config, ...body.config },
+        hasSecrets: Array.from(
+          new Set([
+            ...current.hasSecrets.filter((k) => body.secrets?.[k] !== null),
+            ...Object.keys(body.secrets ?? {}).filter((k) => body.secrets?.[k]),
+          ]),
+        ),
+      },
+    };
+  });
+  handle('integrationTest', async ({ params }) => {
+    if (!fixture('integrations').integrations.some((i) => i.id === params.id))
+      throw notFound(`integration ${params.id}`);
+    return fixture('integrationTest');
+  });
+  handle('integrationAuthorizeUrl', async () => fixture('integrationAuthorizeUrl'));
+  handle('integrationCallback', async () => fixture('integrationCallback'));
+  handle('healthDetails', async () => fixture('healthDetails'));
+  handle('adminPin', async () => fixture('adminPin'));
+  handle('setupState', async () => fixture('setupState'));
+  handle('setupStatePut', async ({ body }) => {
+    const state = fixture('setupState');
+    return {
+      ...state,
+      completed: body.completed ?? state.completed,
+      steps: { ...state.steps, ...body.steps },
+    };
+  });
+  handle('settingsExport', async () => fixture('settingsExport'));
+  handle('settingsImport', async () => fixture('settingsImport'));
+  handle('geocode', async ({ body }) => {
+    const pair = body.query.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (pair) {
+      const latitude = Number(pair[1]);
+      const longitude = Number(pair[2]);
+      if (Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180)
+        return {
+          candidates: [
+            {
+              name: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+              latitude,
+              longitude,
+              timezone: settings.get().timezone,
+            },
+          ],
+        };
+    }
+    return fixture('geocode');
+  });
 
   /* ---- WS2: calendars ---- */
   handle('calendar', async ({ query }) =>
