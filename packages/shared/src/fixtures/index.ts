@@ -7,6 +7,14 @@ import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
 import { eventsInRange, countdowns, meals } from './calendar.js';
 import { homeState, mediaPlayers } from './home.js';
+import {
+  geocodeCandidates,
+  healthDetails,
+  integrationStatuses,
+  pluginManifests,
+  settingsBundle,
+  setupState,
+} from './integrations.js';
 import { chores, lists } from './lists.js';
 import { calendars, people } from './people.js';
 import { photos } from './photos.js';
@@ -15,6 +23,7 @@ import { commute, weather } from './weather.js';
 
 export * from './calendar.js';
 export * from './home.js';
+export * from './integrations.js';
 export * from './lists.js';
 export * from './people.js';
 export * from './photos.js';
@@ -46,10 +55,20 @@ export function routeFixtures(now = new Date()): {
       timezone: s.timezone,
       people,
       calendars,
-      settings: { location: s.location, units: s.units, schedule: s.schedule },
+      settings: {
+        location: s.location,
+        units: s.units,
+        schedule: s.schedule,
+        appearance: s.appearance,
+        layout: s.layout,
+        screens: s.screens,
+        defaultScreen: s.defaultScreen,
+        integrations: s.integrations,
+      },
       theme: s.theme,
       panel: DEFAULT_PANEL,
       flags: s.flags,
+      device: null,
     },
     calendar: { events: eventsInRange(now, addDays(today, -35), addDays(today, 42)) },
     calendarQuick: { event: events[0]! },
@@ -125,6 +144,23 @@ export function routeFixtures(now = new Date()): {
         lists: toLocalIso(now),
       },
     },
+    plugins: { plugins: pluginManifests },
+    integrations: { integrations: integrationStatuses(now) },
+    integrationPut: { integration: integrationStatuses(now)[2]! },
+    integrationTest: { ok: true, message: 'Connected to Home Assistant 2026.10, 3 rooms found.' },
+    integrationAuthorizeUrl: {
+      url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=mock&scope=calendar',
+      redirectUri: 'http://localhost:8787/api/calendar/google/callback',
+      pasteBack: true,
+    },
+    integrationCallback: { integration: integrationStatuses(now)[0]! },
+    healthDetails: healthDetails(now),
+    adminPin: { ok: true, pinSet: true },
+    setupState: setupState(),
+    setupStatePut: setupState(),
+    settingsExport: settingsBundle(now),
+    settingsImport: { ok: true, secretsRestored: ['google', 'homeassistant'] },
+    geocode: { candidates: geocodeCandidates },
   };
 }
 

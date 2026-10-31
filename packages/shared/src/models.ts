@@ -357,8 +357,88 @@ export const Location = z.object({
   name: z.string(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  /** What the user typed: "47.6062, -122.3321", an address or a city. The server geocodes it into the fields above. */
+  query: z.string().default(''),
 });
 export type Location = z.infer<typeof Location>;
+
+/* ---- v2: appearance, layout, screens, weather, integrations (workstream A owns the schema) ---- */
+
+export const TextSize = z.enum(['compact', 'default', 'large']);
+export type TextSize = z.infer<typeof TextSize>;
+
+/** Skins are JSON files under `apps/display/src/styles/skins/` (workstream E); `skin` is one of their ids. */
+export const Appearance = z.object({
+  skin: z.string().default('mantel'),
+  /** Overrides the skin's accent colour. */
+  accent: Color.optional(),
+  /** Overrides the skin's display font (one of the bundled set). */
+  displayFont: z.string().optional(),
+  textSize: TextSize.default('default'),
+  /** Pick a seasonal skin automatically by date. */
+  followSeason: z.boolean().default(false),
+});
+export type Appearance = z.infer<typeof Appearance>;
+
+/** Layout presets (workstream F renders them; import these rather than redefining). */
+export const TodayPreset = z.enum(['agenda', 'weather', 'family', 'photo', 'poster']);
+export type TodayPreset = z.infer<typeof TodayPreset>;
+export const MonthPreset = z.enum(['grid', 'week']);
+export type MonthPreset = z.infer<typeof MonthPreset>;
+/** `fit`: letterbox the panel. `fill`: stretch the grid to the viewport. `scale`: fixed factor. */
+export const Fit = z.enum(['fit', 'fill', 'scale']);
+export type Fit = z.infer<typeof Fit>;
+
+export const Layout = z.object({
+  todayPreset: TodayPreset.default('agenda'),
+  monthPreset: MonthPreset.default('grid'),
+  fit: Fit.default('fit'),
+  /** Used when `fit` is `scale`: 0.9 to 1.3. */
+  scale: z.number().min(0.5).max(2).default(1),
+});
+export type Layout = z.infer<typeof Layout>;
+
+/** A screen in the dock: on or off, renamed, reordered. Ids match the display's screen registry (`today`, `month`, `lists`, `home`...). */
+export const ScreenConfig = z.object({
+  id: Id,
+  enabled: z.boolean().default(true),
+  label: z.string().max(24).optional(),
+  order: z.number().int().nonnegative(),
+});
+export type ScreenConfig = z.infer<typeof ScreenConfig>;
+
+export const DEFAULT_SCREENS: ScreenConfig[] = [
+  { id: 'today', enabled: true, order: 0 },
+  { id: 'month', enabled: true, order: 1 },
+  { id: 'lists', enabled: true, order: 2 },
+  { id: 'home', enabled: true, order: 3 },
+];
+
+export const SavedPlace = z.object({
+  name: z.string().min(1).max(60),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+export type SavedPlace = z.infer<typeof SavedPlace>;
+
+export const WeatherPersonality = z.enum(['off', 'friendly', 'snarky']);
+export type WeatherPersonality = z.infer<typeof WeatherPersonality>;
+
+export const WeatherSettings = z.object({
+  /** Other places to look up from the weather sheet. */
+  savedPlaces: z.array(SavedPlace).default([]),
+  /** Quips: off, or the tone of voice. */
+  personality: WeatherPersonality.default('off'),
+});
+export type WeatherSettings = z.infer<typeof WeatherSettings>;
+
+/**
+ * On/off per integration id (see `IntegrationId` in integrations.ts). A missing id means
+ * enabled. Credentials never live here: they are in the server's encrypted store, edited
+ * through `PUT /api/integrations/:id`.
+ */
+export const IntegrationToggles = z.record(z.string(), z.object({ enabled: z.boolean() }));
+export type IntegrationToggles = z.infer<typeof IntegrationToggles>;
 
 export const Settings = z.object({
   timezone: z.string(),
@@ -369,6 +449,18 @@ export const Settings = z.object({
   people: z.array(Person),
   destinations: z.array(Destination),
   flags: FeatureFlags,
+  // v2 additions, each with a default so settings saved before them still parse.
+  appearance: Appearance.default({
+    skin: 'mantel',
+    textSize: 'default',
+    followSeason: false,
+  }),
+  layout: Layout.default({ todayPreset: 'agenda', monthPreset: 'grid', fit: 'fit', scale: 1 }),
+  screens: z.array(ScreenConfig).default(() => structuredClone(DEFAULT_SCREENS)),
+  /** The screen shown after a wake and after the display reloads. */
+  defaultScreen: Id.default('today'),
+  weather: WeatherSettings.default({ savedPlaces: [], personality: 'off' }),
+  integrations: IntegrationToggles.default({}),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -383,8 +475,22 @@ export const Device = z.object({
   revokedAt: IsoDateTime.nullable(),
   /** True for the device making the request. */
   current: z.boolean(),
+  /** Per-display overrides of the household settings; absent means "use the settings". */
+  look: ThemeMode.optional(),
+  defaultScreen: Id.optional(),
+  fit: Fit.optional(),
+  scale: z.number().min(0.5).max(2).optional(),
 });
 export type Device = z.infer<typeof Device>;
+
+/** Rename a display or change its overrides; `null` clears an override. */
+export const DeviceOverrides = z.object({
+  look: ThemeMode.nullable(),
+  defaultScreen: Id.nullable(),
+  fit: Fit.nullable(),
+  scale: z.number().min(0.5).max(2).nullable(),
+});
+export type DeviceOverrides = z.infer<typeof DeviceOverrides>;
 
 /**
  * What the screen should be doing right now according to the schedule. Kiosk helpers
