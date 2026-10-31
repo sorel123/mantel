@@ -55,6 +55,35 @@ describe('Settings page', () => {
     expect(body.people.length).toBeGreaterThan(0);
   });
 
+  it('lets a negative longitude be typed and fills both fields from a pasted pair', async () => {
+    const { calls } = fakeServer();
+    render(<SettingsPage />);
+    const lng = (await screen.findByLabelText('Longitude')) as HTMLInputElement;
+    const lat = screen.getByLabelText('Latitude') as HTMLInputElement;
+    const save = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
+
+    // Typing character by character passes through "-" and "-83." without a NaN in the draft.
+    fireEvent.focus(lng);
+    for (const typed of ['-', '-8', '-83', '-83.', '-83.33']) {
+      fireEvent.change(lng, { target: { value: typed } });
+      expect(lng.value).toBe(typed);
+      expect(screen.queryByText(/received NaN/)).toBeNull();
+    }
+    expect(save.disabled).toBe(false);
+
+    // A Google Maps pair pasted into Latitude fills both.
+    fireEvent.paste(lat, {
+      clipboardData: { getData: () => '42.60032240592796, -83.33092662800189' },
+    });
+    fireEvent.click(save);
+    await screen.findByText(/Saved\./);
+    const body = calls.find((c) => c.method === 'PUT')!.body as ReturnType<
+      typeof routeFixtures
+    >['settings'];
+    expect(body.location.latitude).toBeCloseTo(42.6003, 3);
+    expect(body.location.longitude).toBeCloseTo(-83.3309, 3);
+  });
+
   it('lists displays, needs a second tap to revoke, and shows a pairing code', async () => {
     const { calls } = fakeServer();
     render(<SettingsPage />);

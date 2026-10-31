@@ -20,6 +20,16 @@ import {
   newId,
 } from './controls';
 
+/** "42.6003, -83.3309" (or with a space or tab between) as a pair of numbers, else null. */
+export function parseLatLng(text: string): [number, number] | null {
+  const m = text.trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return [lat, lng];
+}
+
 const timeZones: string[] =
   typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
 
@@ -88,6 +98,13 @@ export function General({
             min={-90}
             max={90}
             onChange={(latitude) => set('location', { ...loc, latitude })}
+            onPasteText={(text) => {
+              // "42.6003, -83.3309" straight from Google Maps fills both fields.
+              const pair = parseLatLng(text);
+              if (!pair) return false;
+              set('location', { ...loc, latitude: pair[0], longitude: pair[1] });
+              return true;
+            }}
           />
           <NumberInput
             label="Longitude"
