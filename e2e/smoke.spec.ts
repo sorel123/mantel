@@ -51,25 +51,30 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await wx.getByRole('button', { name: 'Close' }).click();
   await expect(wx).toBeHidden();
 
-  // A pushed warning shows a banner until dismissed.
-  const warned = await request.post('/api/dev/emit', {
-    data: {
-      type: 'weather.alert',
-      payload: {
-        locationName: 'Home',
-        alert: {
-          id: 'smoke-wind',
-          event: 'High Wind Warning',
-          severity: 'severe',
-          headline: 'High Wind Warning until 6 PM',
-          description: 'Gusts up to 60 mph.',
-          starts: new Date().toISOString(),
-          ends: null,
-        },
+  // A pushed warning shows a banner until dismissed. The push only reaches a display whose
+  // socket is up, so send it until the server reports a client.
+  const warning = {
+    type: 'weather.alert',
+    payload: {
+      locationName: 'Home',
+      alert: {
+        id: 'smoke-wind',
+        event: 'High Wind Warning',
+        severity: 'severe',
+        headline: 'High Wind Warning until 6 PM',
+        description: 'Gusts up to 60 mph.',
+        starts: new Date().toISOString(),
+        ends: null,
       },
     },
-  });
-  expect(warned.ok()).toBe(true);
+  };
+  await expect
+    .poll(async () => {
+      const res = await request.post('/api/dev/emit', { data: warning });
+      expect(res.ok()).toBe(true);
+      return ((await res.json()) as { clients: number }).clients;
+    })
+    .toBeGreaterThan(0);
   const banner = page.getByRole('alert');
   await expect(banner.getByText('High Wind Warning')).toBeVisible();
   await banner.getByRole('button', { name: 'Dismiss' }).click();
