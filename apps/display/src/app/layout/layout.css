@@ -1,0 +1,25 @@
+/* The slot grid: a preset's regions, each a stack (or row) of slots. */
+.slots {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.slots .region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  min-width: 0;
+  /* a zoomed-in panel clips at the region's edge rather than running under the dock */
+  overflow: hidden;
+}
+.slots .region.row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-lg);
+}
+.slots .region > * {
+  min-height: 0;
+}

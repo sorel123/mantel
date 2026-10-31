@@ -1,15 +1,7 @@
-/* Today (WS2). Layout and sizes from design/mockup.html. */
+/* Today (WS2, presets by WS F). Layout and sizes from design/mockup.html; the grid itself comes
+   from the preset through app/layout's Slots, the regions stack their cards 20 px apart. */
 .cal.today {
-  display: grid;
-  grid-template-columns: 392px minmax(0, 1fr);
-  gap: 28px;
   flex: 1;
-  min-height: 0;
-}
-.today .col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
   min-height: 0;
 }
 .today .datebox {
@@ -52,7 +44,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  height: 100%;
+  flex: 1;
   min-height: 0;
 }
 .today .agenda .head {
