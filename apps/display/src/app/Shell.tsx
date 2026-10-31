@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useBootstrap, useBootstrapState } from '../lib/bootstrap';
 import { connectEvents, useConnection, useServerEvent } from '../lib/events';
 import { useFitPanel, type FitOptions } from '../lib/fit';
+import { appearanceFromSearch, isPreview } from '../lib/preview';
 import {
   setModeOverride,
   setSkinOverride,
@@ -36,6 +37,9 @@ const pinned = params.get('mode');
 if (pinned === 'daylight' || pinned === 'dusk') setModeOverride(pinned);
 if (params.get('skin')) setSkinOverride(params.get('skin'));
 const firstScreen = (params.get('screen') ?? 'today') as ScreenId;
+// "Preview on the wall" from Settings: unsaved appearance choices ride in `?look=`.
+const previewLook = appearanceFromSearch(location.search);
+const previewing = isPreview(location.search);
 
 /**
  * The shell: fits the panel to the viewport, applies the theme, loads bootstrap and pairs if
@@ -44,7 +48,9 @@ const firstScreen = (params.get('screen') ?? 'today') as ScreenId;
 export function Shell() {
   const { state, reload } = useBootstrapState();
   useThemeMode(state.status === 'ready' ? state.data.theme : 'auto');
-  useAppearance(state.status === 'ready' ? state.data.settings.appearance : undefined);
+  useAppearance(
+    previewLook ?? (state.status === 'ready' ? state.data.settings.appearance : undefined),
+  );
   useMotionPreference();
 
   if (state.status === 'ready') return <Display />;
@@ -251,6 +257,20 @@ function DisplayInner() {
         onAmbient={() => setMode('ambient')}
       />
       <div className="status">
+        {previewing && (
+          <button
+            type="button"
+            className="chip preview-chip"
+            onClick={() => {
+              window.close();
+              // A tab the script did not open stays; go back to Settings instead.
+              setTimeout(() => location.assign('/settings'), 150);
+            }}
+          >
+            <i />
+            Preview, not saved · Close
+          </button>
+        )}
         {boot.mock && (
           <span className="chip neutral">
             <i />

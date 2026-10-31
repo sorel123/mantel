@@ -218,3 +218,137 @@ button.sk-tile:active {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ---------- live preview: a miniature Today in the chosen look ---------- */
+.sk-look {
+  --s: calc(var(--text-scale, 1) * 1px);
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  border: 1px solid var(--line);
+  max-width: 640px;
+  transition:
+    background 0.3s,
+    color 0.3s;
+}
+.sk-look .lk-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sk-look .lk-date {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--display);
+  line-height: 1.05;
+}
+.sk-look .lk-dow {
+  font-size: calc(15 * var(--s));
+  color: var(--ink-2);
+}
+.sk-look .lk-day {
+  font-size: calc(30 * var(--s));
+  letter-spacing: -0.01em;
+}
+.sk-look .lk-card {
+  background: var(--surface);
+  border-radius: calc(12px * var(--radius-scale, 1));
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sk-look[data-card-style='outlined'] .lk-card {
+  border: 1px solid var(--line);
+}
+.sk-look[data-card-style='elevated'] .lk-card {
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+}
+.sk-look .lk-temp {
+  font-family: var(--display);
+  font-size: calc(34 * var(--s));
+  line-height: 1;
+}
+.sk-look .lk-sub {
+  font-size: calc(12 * var(--s));
+  color: var(--ink-2);
+}
+.sk-look .lk-quip {
+  font-size: calc(12 * var(--s));
+  font-style: italic;
+  color: var(--ink-2);
+}
+.sk-look .lk-h {
+  font-family: var(--display);
+  font-size: calc(18 * var(--s));
+  margin-bottom: 2px;
+}
+.sk-look .lk-ev {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-left: 3px solid var(--pc);
+  background: color-mix(in srgb, var(--pc) 10%, transparent);
+  border-radius: 6px;
+  font-size: calc(13 * var(--s));
+}
+.sk-look .lk-t {
+  color: var(--ink-2);
+  min-width: 3.2em;
+}
+.sk-look .lk-btn {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: calc(12 * var(--s));
+  font-weight: 600;
+}
+
+/* font and text-size pickers that show what they pick */
+.sk-faces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sk-face {
+  min-width: 112px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+.sk-face[aria-checked='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.sk-face .big {
+  font-size: 24px;
+  line-height: 1.1;
+}
+.sk-face small {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-family: var(--body);
+}
+.sk-look-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}

@@ -152,6 +152,7 @@ const SECTIONS: Array<[string, string]> = [
   ['homeassistant', 'Home Assistant'],
   ['appearance', 'Appearance'],
   ['layout', 'Layout'],
+  ['quips', 'Weather quips'],
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
   ['places', 'Leave-by places'],
@@ -194,6 +195,21 @@ test('the settings hub shows every section by hash, and the phone page loads', a
 
   await page.goto('/add');
   await expect(page.getByRole('heading', { name: 'Add to a list' })).toBeVisible();
+
+  await page.goto('/settings#appearance');
+  // Fonts are shown in their own face, and Preview on the wall opens the real display with the
+  // unsaved choice.
+  await page.getByRole('button', { name: 'Poster skin' }).click();
+  await page.getByRole('radio', { name: 'Caveat' }).click();
+  await expect(page.getByRole('img', { name: /^Preview: Poster, Caveat headlines/ })).toBeVisible();
+  const [wall] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.getByRole('button', { name: 'Preview on the wall' }).click(),
+  ]);
+  await expect(wall.getByRole('navigation', { name: 'Screens' })).toBeVisible();
+  await expect(wall.locator('html')).toHaveAttribute('data-skin', 'poster');
+  await expect(wall.getByRole('button', { name: /Preview, not saved/ })).toBeVisible();
+  await wall.close();
   expect(problems).toEqual([]);
 });
 

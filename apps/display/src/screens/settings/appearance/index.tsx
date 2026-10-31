@@ -4,6 +4,8 @@ import {
   FONTS,
   FontId,
   Skin,
+  TEXT_SCALE,
+  applyOverrides,
   checkContrast,
   parseColor,
   pickSkin,
@@ -11,11 +13,13 @@ import {
   type Appearance,
 } from '@mantel/shared';
 import { useMemo, useRef, useState } from 'react';
+import { openPreview } from '../../../lib/preview';
 import type { Mode } from '../../../lib/theme';
 import { builtInSkins, defaultSkin } from '../../../styles/skins';
 import { Field, Section, Seg, Toggle } from '../controls';
 import './appearance.css';
 import { CustomSkinEditor } from './CustomSkinEditor';
+import { LookPreview } from './LookPreview';
 import { SkinTile } from './SkinTile';
 
 /** Accents offered as one-tap swatches; the colour input takes anything else. */
@@ -67,6 +71,11 @@ export function AppearanceSection({
     [value],
   );
   const seasonal = useMemo(() => seasonalSkin(builtInSkins), []);
+  // What the wall would show: the season's skin when following it, with accent and font applied.
+  const shown = useMemo(
+    () => applyOverrides(value.followSeason && seasonal ? seasonal : chosen, value),
+    [value, chosen, seasonal],
+  );
   const tiles = value.custom ? [...builtInSkins, value.custom] : builtInSkins;
 
   const importSkin = (text: string) => {
@@ -140,6 +149,23 @@ export function AppearanceSection({
         />
       }
     >
+      <div className="set-sub wide">
+        <LookPreview skin={shown} mode={preview} appearance={value} />
+        <div className="sk-look-actions">
+          <button
+            type="button"
+            className="set-btn primary"
+            onClick={() => openPreview({ appearance: value, mode: preview, screen: 'today' })}
+          >
+            Preview on the wall
+          </button>
+          <span className="set-hint">
+            Opens the real display in a new tab with these choices. Nothing is saved until you press
+            Save.
+          </span>
+        </div>
+      </div>
+
       <div className="sk-grid" role="radiogroup" aria-label="Skin">
         {tiles.map((skin) => (
           <SkinTile
@@ -199,25 +225,49 @@ export function AppearanceSection({
         </div>
       </Field>
 
-      <Field label="Headline font" hint="Dates, titles and the big clock.">
-        <Seg
-          label="Headline font"
-          value={value.displayFont ?? 'skin'}
-          options={[
-            ['skin', "Skin's"],
-            ...FontId.options.map((id): [string, string] => [id, FONTS[id].name]),
-          ]}
-          onChange={(v) => set({ displayFont: v === 'skin' ? undefined : (v as FontId) })}
-        />
+      <Field label="Headline font" hint="Dates, titles and the big clock." stack>
+        <div className="sk-faces" role="radiogroup" aria-label="Headline font">
+          {[undefined, ...FontId.options].map((id) => {
+            const face = FONTS[id ?? chosen.fonts.display];
+            return (
+              <button
+                key={id ?? 'skin'}
+                type="button"
+                role="radio"
+                aria-checked={value.displayFont === id}
+                aria-label={id ? face.name : `Skin's own (${face.name})`}
+                className="sk-face"
+                onClick={() => set({ displayFont: id })}
+              >
+                <span className="big" style={{ fontFamily: face.stack }}>
+                  {face.name}
+                </span>
+                <small>{id ? `${face.kind}` : "Skin's own"}</small>
+              </button>
+            );
+          })}
+        </div>
       </Field>
 
-      <Field label="Text size">
-        <Seg
-          label="Text size"
-          value={value.textSize}
-          options={TEXT_SIZES}
-          onChange={(textSize) => set({ textSize })}
-        />
+      <Field label="Text size" hint="Event titles, times and labels. The preview above follows.">
+        <div className="sk-faces" role="radiogroup" aria-label="Text size">
+          {TEXT_SIZES.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={value.textSize === id}
+              aria-label={label}
+              className="sk-face"
+              onClick={() => set({ textSize: id })}
+            >
+              <span className="big" style={{ fontSize: 15 * TEXT_SCALE[id] }}>
+                Leo soccer · 10:00
+              </span>
+              <small>{label}</small>
+            </button>
+          ))}
+        </div>
       </Field>
 
       <div className="set-field sk-tools">

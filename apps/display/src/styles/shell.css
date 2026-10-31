@@ -253,6 +253,12 @@
   border-radius: 50%;
   background: currentColor;
 }
+.status .chip.preview-chip {
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
 .status .chip.offline {
   background: color-mix(in srgb, var(--warn) 16%, transparent);
   color: var(--warn);

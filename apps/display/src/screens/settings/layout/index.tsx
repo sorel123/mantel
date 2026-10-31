@@ -17,6 +17,7 @@ import {
   type TodayPreset,
 } from '@mantel/shared';
 import type { ComponentType, CSSProperties } from 'react';
+import { openPreview } from '../../../lib/preview';
 import { Field, Section } from '../controls';
 import { FitPreview } from './FitPreview';
 import { FitThumb, MonthThumb, TodayThumb } from './thumbs';
@@ -93,6 +94,26 @@ export function LayoutSection({
           </span>
         </div>
         <FitPreview fit={value.fit} scale={scale} />
+        <div className="lay-wall">
+          <button
+            type="button"
+            className="set-btn primary"
+            onClick={() => openPreview({ layout: { ...value, scale }, screen: 'today' })}
+          >
+            Preview Today on the wall
+          </button>
+          <button
+            type="button"
+            className="set-btn"
+            onClick={() => openPreview({ layout: { ...value, scale }, screen: 'month' })}
+          >
+            Preview Month
+          </button>
+          <span className="set-hint">
+            Opens the real display in a new tab with this layout. Nothing is saved until you press
+            Save.
+          </span>
+        </div>
       </div>
       <p className="set-hint lay-note">
         Every display uses this. To give one display its own fit or size, set it on that display
