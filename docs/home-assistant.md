@@ -56,3 +56,7 @@ curl -X POST localhost:8787/api/dev/doorbell
 ```
 
 Turn on announcements in mock mode by setting `flags.alexaAnnouncements` with `PUT /api/settings`.
+
+## Known gaps
+
+- Media players (Apple TV) and Alexa announcement targets have no picker in Settings yet: they are found automatically from Home Assistant, or set in `home.yaml` and imported. A picker for both is the natural next step for this section.
