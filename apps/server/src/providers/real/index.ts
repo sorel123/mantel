@@ -4,6 +4,7 @@
  */
 import { notImplemented } from '../../errors.js';
 import type { ProviderContext, Providers } from '../types.js';
+import { realLists } from './lists.js';
 import { realPhotos } from './photos.js';
 import { realWeather } from './weather.js';
 import { loadWs4Env } from './weather-env.js';
@@ -20,6 +21,6 @@ export function realProviders(ctx: ProviderContext): Providers {
     weather: realWeather(ctx, { env: ws4 }),
     photos: realPhotos(ctx, { env: ws4 }),
     home: stub('home'),
-    lists: stub('lists'),
+    lists: realLists(ctx),
   };
 }

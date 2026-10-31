@@ -25,6 +25,47 @@ const migrations = [
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  // WS5: lists and chores
+  `CREATE TABLE IF NOT EXISTS lists (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    sort INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    remote_id TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS list_items (
+    id TEXT PRIMARY KEY,
+    list_id TEXT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    done INTEGER NOT NULL,
+    person_id TEXT,
+    sort INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    completed_at TEXT,
+    remote_id TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS list_items_list ON list_items (list_id, sort)`,
+  `CREATE TABLE IF NOT EXISTS chores (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    person_id TEXT NOT NULL,
+    cadence TEXT NOT NULL,
+    stars INTEGER NOT NULL,
+    target INTEGER NOT NULL,
+    sort INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    archived_at TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS chore_completions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chore_id TEXT NOT NULL REFERENCES chores(id) ON DELETE CASCADE,
+    person_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    at TEXT NOT NULL,
+    stars INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS chore_completions_day ON chore_completions (day)`,
 ];
 
 export function openDb(dataDir: string): Db {
