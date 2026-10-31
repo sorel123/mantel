@@ -141,7 +141,7 @@ describe('real mode', () => {
     const { deviceKey } = await json(
       await req(real.app, 'POST', '/pair', { code: real.deps.auth.currentCode() }),
     );
-    const res = await req(real.app, 'GET', '/weather', undefined, {
+    const res = await req(real.app, 'GET', '/home/state', undefined, {
       [DEVICE_KEY_HEADER]: deviceKey,
     });
     expect(res.status).toBe(501);

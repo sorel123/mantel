@@ -132,6 +132,8 @@ Outside mock mode the display shows a pairing screen. The server prints a 6-digi
 
 All configuration is environment variables; see [`.env.example`](.env.example). The server loads `.env` from the repo root or `apps/server`. No secrets in the repo.
 
+- Weather, leave-by times and the photo album: [`docs/weather-commute-photos.md`](docs/weather-commute-photos.md).
+
 ## Running the container
 
 ```sh
