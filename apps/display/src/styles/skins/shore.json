@@ -1,0 +1,100 @@
+{
+  "id": "shore",
+  "name": "Shore",
+  "description": "Summer: sea-glass teal, sun-bleached white, round corners and a line of waves.",
+  "tags": ["summer", "season", "fresh"],
+  "daylight": {
+    "bg": "#e7f0f0",
+    "surface": "#f8fcfc",
+    "surface2": "#d6e6e6",
+    "ink": "#15282c",
+    "ink2": "#4a666b",
+    "ink3": "#7c979c",
+    "line": "rgba(21, 40, 44, 0.11)",
+    "accent": "#0d7580",
+    "accentSoft": "rgba(13, 117, 128, 0.13)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(10, 12, 16, 0.28)",
+    "warn": "#a85f12",
+    "good": "#2a7d55"
+  },
+  "dusk": {
+    "bg": "#0b1b20",
+    "surface": "#12272e",
+    "surface2": "#1a343c",
+    "ink": "#ecf6f7",
+    "ink2": "#9fbbc0",
+    "ink3": "#6b878e",
+    "line": "rgba(236, 246, 247, 0.1)",
+    "accent": "#5ad0dc",
+    "accentSoft": "rgba(90, 208, 220, 0.16)",
+    "accentInk": "#0b1b20",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#eaa45c",
+    "good": "#6dcc9b"
+  },
+  "fonts": {
+    "display": "space-grotesk",
+    "body": "manrope"
+  },
+  "radii": 1.4,
+  "cardStyle": "flat",
+  "personPalette": [
+    {
+      "name": "Pink",
+      "color": "#e2457a"
+    },
+    {
+      "name": "Orange",
+      "color": "#f07f1a"
+    },
+    {
+      "name": "Lime",
+      "color": "#7ab51d"
+    },
+    {
+      "name": "Teal",
+      "color": "#0f9d9a"
+    },
+    {
+      "name": "Blue",
+      "color": "#2f6fe4"
+    },
+    {
+      "name": "Purple",
+      "color": "#8d4de8"
+    },
+    {
+      "name": "Red",
+      "color": "#e03a2f"
+    },
+    {
+      "name": "Yellow",
+      "color": "#e0b000"
+    },
+    {
+      "name": "Mint",
+      "color": "#2bb673"
+    },
+    {
+      "name": "Sky",
+      "color": "#2aa7e0"
+    },
+    {
+      "name": "Magenta",
+      "color": "#c2328c"
+    },
+    {
+      "name": "Navy",
+      "color": "#3b4bb0"
+    }
+  ],
+  "decor": {
+    "background": "waves",
+    "opacity": 0.35
+  },
+  "season": {
+    "from": "06-01",
+    "to": "08-31"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "lights",
+  "name": "Lights",
+  "description": "The holidays: snow-white cards, a deep red by day, gold by night, and a string of bulbs along the top.",
+  "tags": ["holidays", "season", "festive"],
+  "daylight": {
+    "bg": "#ece6e0",
+    "surface": "#fbf7f3",
+    "surface2": "#e3dad3",
+    "ink": "#241b1b",
+    "ink2": "#665353",
+    "ink3": "#978585",
+    "line": "rgba(36, 27, 27, 0.11)",
+    "accent": "#ad232c",
+    "accentSoft": "rgba(173, 35, 44, 0.13)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(10, 12, 16, 0.28)",
+    "warn": "#a35f0c",
+    "good": "#2b7646"
+  },
+  "dusk": {
+    "bg": "#121418",
+    "surface": "#1b1e25",
+    "surface2": "#262a33",
+    "ink": "#f5f0ea",
+    "ink2": "#b5aca6",
+    "ink3": "#807873",
+    "line": "rgba(245, 240, 234, 0.09)",
+    "accent": "#e8b84a",
+    "accentSoft": "rgba(232, 184, 74, 0.18)",
+    "accentInk": "#121418",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e9a35b",
+    "good": "#6fcf8f"
+  },
+  "fonts": {
+    "display": "fraunces",
+    "body": "manrope"
+  },
+  "radii": 1,
+  "cardStyle": "elevated",
+  "personPalette": [
+    {
+      "name": "Red",
+      "color": "#c62828"
+    },
+    {
+      "name": "Green",
+      "color": "#2e7d32"
+    },
+    {
+      "name": "Gold",
+      "color": "#d4a017"
+    },
+    {
+      "name": "Blue",
+      "color": "#1e5fb3"
+    },
+    {
+      "name": "Plum",
+      "color": "#7b3f8f"
+    },
+    {
+      "name": "Teal",
+      "color": "#1f8a80"
+    },
+    {
+      "name": "Coral",
+      "color": "#e2694f"
+    },
+    {
+      "name": "Pine",
+      "color": "#1b5e3a"
+    },
+    {
+      "name": "Berry",
+      "color": "#b3335c"
+    },
+    {
+      "name": "Silver",
+      "color": "#7a8894"
+    },
+    {
+      "name": "Copper",
+      "color": "#b86b2e"
+    },
+    {
+      "name": "Ice",
+      "color": "#4aa3d9"
+    }
+  ],
+  "decor": {
+    "header": "lights",
+    "opacity": 0.9
+  },
+  "season": {
+    "from": "12-01",
+    "to": "01-06"
+  }
+}

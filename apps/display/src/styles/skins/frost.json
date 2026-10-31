@@ -1,0 +1,100 @@
+{
+  "id": "frost",
+  "name": "Frost",
+  "description": "Winter: ice blues, crisp white cards and a slow drift of snow.",
+  "tags": ["winter", "season", "cool"],
+  "daylight": {
+    "bg": "#e5edf5",
+    "surface": "#f8fbfe",
+    "surface2": "#d8e3ee",
+    "ink": "#14202e",
+    "ink2": "#4d6078",
+    "ink3": "#7f91a7",
+    "line": "rgba(20, 32, 46, 0.11)",
+    "accent": "#2a6fb0",
+    "accentSoft": "rgba(42, 111, 176, 0.13)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(10, 20, 30, 0.3)",
+    "warn": "#a55d0f",
+    "good": "#277554"
+  },
+  "dusk": {
+    "bg": "#0c1420",
+    "surface": "#14202f",
+    "surface2": "#1d2c3f",
+    "ink": "#eef4fb",
+    "ink2": "#a3b4c8",
+    "ink3": "#6f829a",
+    "line": "rgba(255, 255, 255, 0.09)",
+    "accent": "#8fc5ff",
+    "accentSoft": "rgba(143, 197, 255, 0.16)",
+    "accentInk": "#0c1420",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e7a35a",
+    "good": "#6cc9a3"
+  },
+  "fonts": {
+    "display": "fraunces",
+    "body": "manrope"
+  },
+  "radii": 1.15,
+  "cardStyle": "elevated",
+  "personPalette": [
+    {
+      "name": "Blue",
+      "color": "#3f7bd9"
+    },
+    {
+      "name": "Teal",
+      "color": "#2a9d8f"
+    },
+    {
+      "name": "Violet",
+      "color": "#8e63cf"
+    },
+    {
+      "name": "Sky",
+      "color": "#3aa0d8"
+    },
+    {
+      "name": "Indigo",
+      "color": "#4f5fc9"
+    },
+    {
+      "name": "Mint",
+      "color": "#3ba06f"
+    },
+    {
+      "name": "Coral",
+      "color": "#e2694f"
+    },
+    {
+      "name": "Lavender",
+      "color": "#8f7bd3"
+    },
+    {
+      "name": "Steel",
+      "color": "#5b7a99"
+    },
+    {
+      "name": "Rose",
+      "color": "#d4567e"
+    },
+    {
+      "name": "Navy",
+      "color": "#2f4f9f"
+    },
+    {
+      "name": "Pine",
+      "color": "#2e7d5b"
+    }
+  ],
+  "decor": {
+    "background": "snow",
+    "opacity": 0.5
+  },
+  "season": {
+    "from": "12-01",
+    "to": "02-28"
+  }
+}

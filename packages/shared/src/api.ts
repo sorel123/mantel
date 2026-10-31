@@ -29,7 +29,6 @@ import {
 } from './integrations.js';
 import { PluginsResponse } from './plugins.js';
 import {
-  Appearance,
   Calendar,
   CalendarEvent,
   Chore,
@@ -64,6 +63,7 @@ import {
   Units,
   Location,
 } from './models.js';
+import { Appearance } from './skins.js';
 import {
   WeatherPlaceQuery,
   WeatherQuipResponse,

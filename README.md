@@ -34,14 +34,15 @@ design/           The mockup.
 
 Each workstream changes only its own folders, plus additions to `packages/shared`.
 
-| Workstream                 | Display                                                         | Server                                                                                |
-| -------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 1 Shell & design system    | `src/app/`, `src/styles/`, `src/lib/theme.ts`, `src/lib/fit.ts` | schedule reads from settings                                                          |
-| 2 Calendars                | `src/screens/today/`, `src/screens/month/`                      | `providers/real/calendar*`, `providers/mock/calendar.ts`, calendar block in `routes/` |
-| 3 Home Assistant           | `src/screens/home/`, `src/features/doorbell/`                   | `providers/real/home*`, `providers/mock/home.ts`, home and media block in `routes/`   |
-| 4 Weather, commute, photos | `src/features/weather/`, `src/features/photos/`                 | `providers/real/{weather,commute,photos}*`, `providers/mock/{weather,photos}.ts`      |
-| 5 Lists & chores           | `src/screens/lists/`, `/add` page                               | `providers/real/lists*`, `providers/mock/lists.ts`, lists block in `routes/`          |
-| 6 Deployment & kiosk       | `src/screens/settings/` (the `/settings` page)                  | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
+| Workstream                 | Display                                                                                                 | Server                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1 Shell & design system    | `src/app/`, `src/styles/`, `src/lib/theme.ts`, `src/lib/fit.ts`                                         | schedule reads from settings                                                          |
+| 2 Calendars                | `src/screens/today/`, `src/screens/month/`                                                              | `providers/real/calendar*`, `providers/mock/calendar.ts`, calendar block in `routes/` |
+| 3 Home Assistant           | `src/screens/home/`, `src/features/doorbell/`                                                           | `providers/real/home*`, `providers/mock/home.ts`, home and media block in `routes/`   |
+| 4 Weather, commute, photos | `src/features/weather/`, `src/features/photos/`                                                         | `providers/real/{weather,commute,photos}*`, `providers/mock/{weather,photos}.ts`      |
+| 5 Lists & chores           | `src/screens/lists/`, `/add` page                                                                       | `providers/real/lists*`, `providers/mock/lists.ts`, lists block in `routes/`          |
+| 6 Deployment & kiosk       | `src/screens/settings/` (the `/settings` page)                                                          | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
+| E Skins & appearance       | `src/styles/skins/`, `lib/theme.ts`, `app/SkinDecor.tsx`, `screens/settings/appearance/`, `/demo/skins` | `appearance` on `Settings` (`packages/shared/src/skins.ts`)                           |
 
 Shared plumbing (`src/lib/api.ts`, `src/lib/events.ts`, `src/lib/bootstrap.tsx`, `server/src/contract.ts`, `server/src/app.ts`) belongs to the scaffold; change it only when a workstream truly needs to, and say so in the PR.
 
@@ -60,6 +61,8 @@ Everything a screen needs from the shell lives in `apps/display/src/app` and `sr
 **Settings from the wall.** Hold the clock in the dock for about a second and confirm, and the display opens `/settings`; **Back to the display** returns. There is no visible button, so guests and children do not wander in. `?mode=daylight` or `?mode=dusk` on the URL pins the look (screenshots, kiosk tools, the smoke test).
 
 **Ambient and the schedule.** After `schedule.idleSeconds` without a touch the display fades to Ambient (`app/ambient`): the server's album through `PhotoSlideshow` (`features/photos`, a 1.6 s cross-dissolve and slow drift; `placeholderPhotos()` stands in on the demo page and in tests), the time and date, and whatever features registered with `registerAmbientSlot()` (the shell registers the weather line, the Today screen the next event). From `ambientFrom` idle still goes to Ambient; from `offFrom` to `onAt` the screen is black; the brightness steps drive a software dimmer (`setBrightness()`), which a kiosk hook can mirror to hardware. The server's `display.sleep` and `display.wake` events and a `home.doorbell` override all of this. `prefers-reduced-motion` collapses every duration to 0.
+
+**Skins.** Every colour, font and radius comes from a skin: one JSON file in `src/styles/skins/` (see [`docs/skins.md`](docs/skins.md)). Twelve are bundled, six of them seasonal; `lib/theme.ts` writes the chosen one as CSS variables on `<html>`, `app/SkinDecor.tsx` draws its pattern, header and corners under the screens, and `screens/settings/appearance/` is the Appearance section (skin tiles, Follow the season, accent, headline font, text size, import, export, Create your own). Browse them on the real screens at **http://localhost:5173/demo/skins**. `?skin=<id>` on the display URL pins one. `pnpm test` fails a skin that misses the contrast check.
 
 **Layers over every screen.** Any export named `*Layer` from `src/features/<name>/index.tsx` is mounted once inside the panel above the screens and dock (the doorbell live view, for example); no change to the shell is needed.
 

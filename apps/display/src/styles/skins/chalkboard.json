@@ -1,0 +1,96 @@
+{
+  "id": "chalkboard",
+  "name": "Chalkboard",
+  "description": "A green board, chalk-white text, handwritten headings and doodled corners.",
+  "tags": ["playful", "dark"],
+  "daylight": {
+    "bg": "#27413a",
+    "surface": "#2f4b43",
+    "surface2": "#3a5a50",
+    "ink": "#f4f1e4",
+    "ink2": "#c9d0c2",
+    "ink3": "#97a59a",
+    "line": "rgba(244, 241, 228, 0.24)",
+    "accent": "#f6d35b",
+    "accentSoft": "rgba(246, 211, 91, 0.18)",
+    "accentInk": "#27413a",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#f3a26b",
+    "good": "#9fd68f"
+  },
+  "dusk": {
+    "bg": "#1c2e29",
+    "surface": "#243a33",
+    "surface2": "#2d473e",
+    "ink": "#ebe8da",
+    "ink2": "#b8c0b3",
+    "ink3": "#86968a",
+    "line": "rgba(235, 232, 218, 0.18)",
+    "accent": "#efcf5f",
+    "accentSoft": "rgba(239, 207, 95, 0.18)",
+    "accentInk": "#1c2e29",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e9a06f",
+    "good": "#94cb86"
+  },
+  "fonts": {
+    "display": "caveat",
+    "body": "manrope"
+  },
+  "radii": 0.5,
+  "cardStyle": "outlined",
+  "personPalette": [
+    {
+      "name": "Chalk pink",
+      "color": "#f2a7b8"
+    },
+    {
+      "name": "Chalk blue",
+      "color": "#9ccbe8"
+    },
+    {
+      "name": "Chalk yellow",
+      "color": "#f6d35b"
+    },
+    {
+      "name": "Chalk green",
+      "color": "#a8d99a"
+    },
+    {
+      "name": "Chalk orange",
+      "color": "#f5b36b"
+    },
+    {
+      "name": "Chalk purple",
+      "color": "#c9b1e8"
+    },
+    {
+      "name": "Chalk mint",
+      "color": "#9ee0cf"
+    },
+    {
+      "name": "Chalk red",
+      "color": "#ef8c8c"
+    },
+    {
+      "name": "Chalk white",
+      "color": "#efe9d8"
+    },
+    {
+      "name": "Chalk peach",
+      "color": "#f7c7a3"
+    },
+    {
+      "name": "Chalk teal",
+      "color": "#7fd0d6"
+    },
+    {
+      "name": "Chalk lilac",
+      "color": "#d9b8f0"
+    }
+  ],
+  "decor": {
+    "corners": "chalk",
+    "opacity": 0.55
+  }
+}

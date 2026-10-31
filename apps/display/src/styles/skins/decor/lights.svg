@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 34" width="100%" height="34" preserveAspectRatio="none">
+  <path d="M-10 2c90 14 180 16 290 10s200-14 300-8 200 18 310 12 190-14 300-8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
+  <g>
+    <g transform="translate(70 11)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#e0453a"/></g>
+    <g transform="translate(190 15)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#f2c14e"/></g>
+    <g transform="translate(310 12)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#3f9f5f"/></g>
+    <g transform="translate(430 7)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#3a7bd5"/></g>
+    <g transform="translate(550 8)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#e0453a"/></g>
+    <g transform="translate(670 14)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#f2c14e"/></g>
+    <g transform="translate(790 17)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#3f9f5f"/></g>
+    <g transform="translate(910 13)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#3a7bd5"/></g>
+    <g transform="translate(1030 8)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#e0453a"/></g>
+    <g transform="translate(1130 5)"><rect x="-2.5" y="0" width="5" height="4" fill="currentColor"/><path d="M0 4c-4.5 0-6.5 5-6.5 9.5S-3 22 0 22s6.5-4 6.5-8.5S4.5 4 0 4z" fill="#f2c14e"/></g>
+  </g>
+</svg>

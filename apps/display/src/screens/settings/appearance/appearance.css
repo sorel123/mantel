@@ -1,0 +1,220 @@
+/* Appearance section (workstream E): skin tiles, swatches, import and the custom editor. */
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+  padding: 4px 0 18px;
+}
+
+/* A tile renders in its own skin's variables (set inline by SkinTile). */
+.sk-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  text-align: left;
+  color: inherit;
+  transition:
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+button.sk-tile:active {
+  transform: scale(0.98);
+}
+.sk-tile[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+.sk-art {
+  position: relative;
+  aspect-ratio: 1180 / 820;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  font-family: var(--body);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.sk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.sk-aa {
+  font: 500 26px/1 var(--display);
+  letter-spacing: -0.02em;
+}
+.sk-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.sk-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+}
+.sk-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: calc(8px * var(--radius-scale));
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.sk-art[data-card-style='flat'] .sk-card {
+  border-color: transparent;
+  box-shadow: none;
+}
+.sk-art[data-card-style='outlined'] .sk-card {
+  box-shadow: none;
+  border-width: 1.5px;
+}
+.sk-card i {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--ink-2);
+}
+.sk-card i.faint {
+  background: var(--ink-3);
+}
+.sk-pill {
+  margin-top: auto;
+  width: 60%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.sk-meta {
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px 4px;
+  min-width: 0;
+}
+.sk-meta b {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+.sk-meta span {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sk-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sk-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--line);
+  transition: transform var(--fast) var(--ease);
+}
+.sk-swatch.own {
+  width: auto;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.sk-swatch[aria-pressed='true'] {
+  border-color: var(--ink);
+  transform: scale(1.08);
+}
+.sk-swatch.own[aria-pressed='true'] {
+  color: var(--ink);
+  transform: none;
+}
+
+.sk-tools {
+  align-items: flex-start;
+}
+.sk-tool-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.sk-import {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 0 14px;
+}
+.sk-import-text {
+  height: 120px;
+  padding: 12px 14px;
+  resize: vertical;
+  font:
+    500 13.5px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+}
+
+.sk-editor {
+  border-top: 1px solid var(--line);
+  padding: 14px 0 8px;
+}
+.sk-editor-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  max-width: 420px;
+  margin-bottom: 6px;
+}
+.sk-colors {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px 16px;
+  padding: 10px 0 14px;
+}
+.sk-color {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  min-height: var(--tap);
+}
+.sk-issues {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--warn);
+  font-weight: 600;
+  font-size: 14px;
+  display: grid;
+  gap: 4px;
+}
+.sk-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+@media (max-width: 640px) {
+  .sk-colors {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

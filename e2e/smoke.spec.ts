@@ -184,12 +184,68 @@ test('the settings hub shows every section by hash, and the phone page loads', a
   await page.goto('/settings#calendars');
   await expect(page.getByRole('table', { name: 'Calendars on the wall' })).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Show Family' })).toBeVisible();
+  // Appearance mounts workstream E's section: skin tiles and Follow the season.
+  await page.goto('/settings#appearance');
+  await expect(page.getByRole('button', { name: 'Poster skin' })).toBeVisible();
+  await expect(page.getByRole('switch', { name: 'Follow the season' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Back to the display' }).click();
   await expect(page.getByRole('navigation', { name: 'Screens' })).toBeVisible();
 
   await page.goto('/add');
   await expect(page.getByRole('heading', { name: 'Add to a list' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test('three skins render every screen, with their decor, and no console errors', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  for (const [skin, decor] of [
+    ['poster', 'rules'],
+    ['harvest', 'leaves'],
+    ['midnight', null],
+  ] as const) {
+    await page.goto(`/?mode=daylight&skin=${skin}`);
+    await expect(page.locator('html')).toHaveAttribute('data-skin', skin);
+    const dock = page.getByRole('navigation', { name: 'Screens' });
+    for (const name of ['Month', 'Home', 'Today']) {
+      await dock.getByRole('button', { name }).click();
+      await expect(page.locator(`.screen[data-screen="${name.toLowerCase()}"]`)).toBeVisible();
+    }
+    if (decor)
+      await expect(page.locator(`.skin-decor[data-decor="${skin}"] svg`).first()).toBeAttached();
+    else await expect(page.locator('.skin-decor')).toHaveCount(0);
+  }
+  // The skin's fonts are self-hosted and actually load (Midnight's headline face is Space Grotesk).
+  const loaded = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return [...document.fonts]
+      .filter((f) => f.status === 'loaded')
+      .map((f) => f.family.replace(/"/g, ''));
+  });
+  expect(loaded).toContain('Space Grotesk');
+  expect(loaded).toContain('Manrope');
+  expect(problems).toEqual([]);
+});
+
+test('the skin gallery switches skins and makes a custom one', async ({ page }) => {
+  const problems = watchConsole(page);
+  await page.goto('/demo/skins?screen=month');
+  await expect(page.getByRole('heading', { name: 'Skins' })).toBeVisible();
+  await expect(page.getByRole('grid')).toBeVisible();
+  await page.getByRole('button', { name: 'Poster skin' }).first().click();
+  await expect(page.locator('html')).toHaveAttribute('data-skin', 'poster');
+  await page
+    .getByRole('group', { name: 'Look', exact: true })
+    .getByRole('button', { name: 'Dusk' })
+    .click();
+  await expect(page.locator('html')).toHaveAttribute('data-mode', 'dusk');
+  await page.getByRole('switch', { name: 'Follow the season' }).click();
+  await page.getByRole('button', { name: 'Create your own' }).click();
+  await page.getByRole('button', { name: 'Use this skin' }).click();
+  await page.getByRole('switch', { name: 'Follow the season' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-skin', 'custom');
   expect(problems).toEqual([]);
 });
 

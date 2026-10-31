@@ -1,0 +1,97 @@
+{
+  "id": "poster",
+  "name": "Poster",
+  "description": "A flyer on the wall: oversized condensed type, cream stock, a yellow block, red ink and heavy rules.",
+  "tags": ["bold", "flyer"],
+  "daylight": {
+    "bg": "#f2e9d8",
+    "surface": "#fff8ec",
+    "surface2": "#f6c445",
+    "ink": "#141414",
+    "ink2": "#474747",
+    "ink3": "#777777",
+    "line": "rgba(20, 20, 20, 0.8)",
+    "accent": "#d6301f",
+    "accentSoft": "rgba(214, 48, 31, 0.14)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(20, 20, 20, 0.4)",
+    "warn": "#a84e0a",
+    "good": "#1f7a4d"
+  },
+  "dusk": {
+    "bg": "#141414",
+    "surface": "#1f1f1f",
+    "surface2": "#2c2c2c",
+    "ink": "#f5f1e8",
+    "ink2": "#b8b3aa",
+    "ink3": "#80796f",
+    "line": "rgba(245, 241, 232, 0.5)",
+    "accent": "#f6c445",
+    "accentSoft": "rgba(246, 196, 69, 0.18)",
+    "accentInk": "#141414",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#f2a04d",
+    "good": "#6fcf8f"
+  },
+  "fonts": {
+    "display": "archivo",
+    "body": "manrope"
+  },
+  "radii": 0.15,
+  "cardStyle": "outlined",
+  "type": "heavy",
+  "personPalette": [
+    {
+      "name": "Pink",
+      "color": "#e2457a"
+    },
+    {
+      "name": "Orange",
+      "color": "#f07f1a"
+    },
+    {
+      "name": "Lime",
+      "color": "#7ab51d"
+    },
+    {
+      "name": "Teal",
+      "color": "#0f9d9a"
+    },
+    {
+      "name": "Blue",
+      "color": "#2f6fe4"
+    },
+    {
+      "name": "Purple",
+      "color": "#8d4de8"
+    },
+    {
+      "name": "Red",
+      "color": "#e03a2f"
+    },
+    {
+      "name": "Yellow",
+      "color": "#e0b000"
+    },
+    {
+      "name": "Mint",
+      "color": "#2bb673"
+    },
+    {
+      "name": "Sky",
+      "color": "#2aa7e0"
+    },
+    {
+      "name": "Magenta",
+      "color": "#c2328c"
+    },
+    {
+      "name": "Navy",
+      "color": "#3b4bb0"
+    }
+  ],
+  "decor": {
+    "header": "rules",
+    "opacity": 0.9
+  }
+}
