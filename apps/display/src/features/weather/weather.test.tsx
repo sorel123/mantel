@@ -327,6 +327,7 @@ describe('leave-by', () => {
       allDay: false,
       personIds: ['jay'],
       color: '#000',
+      countdown: false,
     };
     const at = (h: number, m: number) => new Date(2026, 10, 2, h, m).toISOString();
     const office = {
