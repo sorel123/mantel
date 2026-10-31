@@ -20,7 +20,7 @@ export function gridStart(month: Date): Date {
   return addDays(first, -first.getDay());
 }
 
-export function MonthGrid() {
+export function MonthGrid({ toggle }: { toggle?: React.ReactNode }) {
   const now = useNow(60_000);
   const today = startOfDay(now);
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -63,6 +63,7 @@ export function MonthGrid() {
           <span className="yr tnum">{view.getFullYear()}</span>
         </h1>
         <div className="navbtns">
+          {toggle}
           <button aria-label="Previous month" onClick={() => go(-1)}>
             <Svg>{Icon.prev}</Svg>
           </button>

@@ -7,7 +7,7 @@
  * OpenRouteService for the typical drive time, cached for an hour, with `traffic: false`.
  * https://developers.google.com/maps/documentation/routes/compute_route_directions
  */
-import type { Destination, LeaveBy } from '@mantel/shared';
+import type { CalendarEvent, Destination, LeaveBy } from '@mantel/shared';
 import { z } from 'zod';
 import { kvGet, kvSet } from '../../db/index.js';
 import { log } from '../../log.js';
@@ -74,6 +74,57 @@ export function activeDestinations(
   });
 }
 
+/**
+ * A calendar location worth routing to: it has a house number, a postcode or a comma, and is
+ * not a meeting link or a room name ("Zoom", "Kitchen", "https://meet…").
+ */
+export function routableLocation(location: string | undefined): string | null {
+  const s = location?.trim().replace(/\s+/g, ' ');
+  if (!s || s.length < 6 || s.length > 200) return null;
+  if (/https?:\/\/|www\.|\b(zoom|teams|meet|webex|facetime|online|virtual|tbd|tba)\b/i.test(s))
+    return null;
+  if (parseLatLon(s)) return s;
+  return /\d/.test(s) || s.includes(',') ? s : null;
+}
+
+/**
+ * Today's timed events with an address whose leave-by window is open: from three hours before
+ * the start until the start. Each becomes a destination arriving at the event's start.
+ */
+export function eventStops(
+  events: CalendarEvent[],
+  now: Date,
+  destinations: Destination[] = [],
+): Array<{ dest: Destination; arriveBy: Date; eventId: string }> {
+  const t = now.getTime();
+  const saved = new Set(destinations.map((d) => d.address.trim().toLowerCase()));
+  return events.flatMap((e) => {
+    if (e.allDay) return [];
+    const address = routableLocation(e.location);
+    if (!address) return [];
+    const start = new Date(e.start);
+    const ms = start.getTime();
+    if (t >= ms || t < ms - WINDOW_MINUTES * 60_000) return [];
+    // A saved destination already covers this address on its own schedule.
+    if (saved.has(address.toLowerCase())) return [];
+    return [
+      {
+        // Trips are cached by this id, so the same address shares one routing call.
+        dest: {
+          id: `event:${address.toLowerCase()}`,
+          name: e.title,
+          address,
+          personIds: e.personIds,
+          arriveBy: '00:00',
+          days: [],
+        },
+        arriveBy: start,
+        eventId: e.id,
+      },
+    ];
+  });
+}
+
 async function getJson(doFetch: typeof fetch, url: string, init: RequestInit = {}) {
   const res = await doFetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
   if (!res.ok) {
@@ -90,6 +141,8 @@ export function realCommute(
   const { env } = opts;
   const status = commuteStatus(env);
   const trips = new Map<string, { at: number; trip: Trip }>();
+  /** Event addresses the map did not know, skipped for an hour so the log stays quiet. */
+  const unknown = new Map<string, number>();
   let announced = false;
 
   const home = (): LatLon => {
@@ -169,16 +222,26 @@ export function realCommute(
     return trip;
   }
 
-  return async () => {
+  return async (events) => {
     const s = ctx.settings();
     if (!s.flags.commute) return { leaveBy: [] };
-    const active = activeDestinations(s.destinations, ctx.now(), s.timezone);
+    const now = ctx.now();
+    const active: Array<{ dest: Destination; arriveBy: Date; eventId?: string }> =
+      activeDestinations(s.destinations, now, s.timezone);
+    if (events) {
+      const stops = eventStops(await events().catch(() => []), now, s.destinations);
+      for (const stop of stops) {
+        const failedAt = unknown.get(stop.dest.address);
+        if (failedAt !== undefined && now.getTime() - failedAt < STATIC_TTL_MS) continue;
+        active.push(stop);
+      }
+    }
     if (!active.length) return { leaveBy: [] };
     if (!announced) log.info(`commute: ${status.summary}`);
     announced = true;
 
     const results = await Promise.all(
-      active.map(async ({ dest, arriveBy }): Promise<LeaveBy | null> => {
+      active.map(async ({ dest, arriveBy, eventId }): Promise<LeaveBy | null> => {
         try {
           const trip = await route(dest);
           return {
@@ -193,8 +256,14 @@ export function realCommute(
             delayMinutes: Math.max(0, Math.round((trip.durationSeconds - trip.staticSeconds) / 60)),
             traffic: trip.traffic,
             personIds: dest.personIds,
+            ...(eventId ? { eventId } : {}),
           };
         } catch (err) {
+          if (eventId) {
+            unknown.set(dest.address, ctx.now().getTime());
+            log.debug(`commute: no route for event "${dest.name}"`, { err: String(err) });
+            return null;
+          }
           log.warn(`commute: ${dest.name} unavailable`, { err: String(err) });
           return null;
         }

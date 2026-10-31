@@ -33,7 +33,7 @@ export function weekLabel(start: Date): string {
     : `${m1} ${start.getDate()} to ${m2} ${end.getDate()}`;
 }
 
-export function WeekStrip() {
+export function WeekStrip({ toggle }: { toggle?: React.ReactNode }) {
   const now = useNow(60_000);
   const today = startOfDay(now);
   const [view, setView] = useState(() => weekStart(today));
@@ -67,6 +67,7 @@ export function WeekStrip() {
           {thisWeek && <span className="yr">{weekLabel(view)}</span>}
         </h1>
         <div className="navbtns">
+          {toggle}
           <button aria-label="Previous week" onClick={() => go(-1)}>
             <Svg>{Icon.prev}</Svg>
           </button>

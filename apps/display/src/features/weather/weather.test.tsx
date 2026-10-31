@@ -317,6 +317,32 @@ describe('leave-by', () => {
     expect(paired.size).toBe(2);
   });
 
+  it('lets a trip for an event address claim its event before a destination does', () => {
+    const event = {
+      id: 'dentist',
+      calendarId: 'c',
+      title: 'Dentist',
+      start: new Date(2026, 10, 2, 8, 0).toISOString(),
+      end: new Date(2026, 10, 2, 9, 0).toISOString(),
+      allDay: false,
+      personIds: ['jay'],
+      color: '#000',
+      countdown: false,
+    };
+    const at = (h: number, m: number) => new Date(2026, 10, 2, h, m).toISOString();
+    const office = {
+      destinationId: 'dest-office',
+      name: 'Office',
+      leaveBy: at(7, 30),
+      arriveBy: at(8, 0),
+      durationMinutes: 30,
+      delayMinutes: 0,
+      personIds: ['jay'],
+    };
+    const dentist = { ...office, destinationId: 'event:x', name: 'Dentist', eventId: 'dentist' };
+    expect(matchLeaveBy([event], [office, dentist]).get('dentist')?.name).toBe('Dentist');
+  });
+
   it('counts down to leaving and then says leave now', () => {
     const trip = trips[0]!;
     const leave = new Date(trip.leaveBy).getTime();

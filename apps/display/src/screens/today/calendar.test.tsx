@@ -166,4 +166,19 @@ describe('Month', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Today' }));
     expect(await screen.findByRole('grid', { name: 'October 2026' })).toBeTruthy();
   });
+
+  it('flips between Month and Week on the wall', async () => {
+    mount(<MonthScreen />);
+    expect(await screen.findByRole('grid', { name: 'October 2026' })).toBeTruthy();
+    const views = screen.getByRole('group', { name: 'Calendar view' });
+    fireEvent.click(within(views).getByRole('button', { name: 'Week' }));
+    expect(await screen.findByRole('list', { name: /^Week of October 25/ })).toBeTruthy();
+    expect(screen.queryByRole('grid')).toBeNull();
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Calendar view' })).getByRole('button', {
+        name: 'Month',
+      }),
+    );
+    expect(await screen.findByRole('grid', { name: 'October 2026' })).toBeTruthy();
+  });
 });
