@@ -1,0 +1,66 @@
+/*
+ * Design tokens from design/mockup.html. Daylight and Dusk are set on <html data-mode>.
+ * WS1 owns this file; other workstreams use the variables, never raw values.
+ */
+:root {
+  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --body: 'Manrope', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  /* motion: one curve, three durations */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 150ms;
+  --std: 320ms;
+  --slow: 700ms;
+
+  /* people (defaults; real colours come from /api/bootstrap) */
+  --p-jay: #e2694f;
+  --p-sam: #3f7bd9;
+  --p-ava: #8e63cf;
+  --p-leo: #3ba06f;
+
+  /* touch targets are never smaller than this */
+  --tap: 56px;
+  --radius-card: 20px;
+}
+
+:root[data-mode='daylight'] {
+  --bg: #efeee9;
+  --surface: #fbfaf7;
+  --surface-2: #e7e5de;
+  --ink: #1b1f27;
+  --ink-2: #626878;
+  --ink-3: #9298a6;
+  --line: rgba(27, 31, 39, 0.09);
+  --accent: #246b5b;
+  --accent-soft: rgba(36, 107, 91, 0.12);
+  --accent-ink: #ffffff;
+  --shadow: 0 1px 2px rgba(27, 31, 39, 0.06), 0 8px 24px rgba(27, 31, 39, 0.06);
+  --warn: #c8761e;
+  --good: #2e8b5b;
+  color-scheme: light;
+}
+
+:root[data-mode='dusk'] {
+  --bg: #101216;
+  --surface: #1a1d24;
+  --surface-2: #242830;
+  --ink: #f3f1eb;
+  --ink-2: #a3a8b4;
+  --ink-3: #6e7482;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #e0a94a;
+  --accent-soft: rgba(224, 169, 74, 0.16);
+  --accent-ink: #1b1f27;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --warn: #e59a4b;
+  --good: #5bc58a;
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --fast: 0ms;
+    --std: 0ms;
+    --slow: 0ms;
+  }
+}
