@@ -12,3 +12,6 @@ data/
 .vite/
 # Household-specific allow-list (start from config/home.example.yaml)
 config/home.yaml
+# Playwright
+playwright-report/
+test-results/

@@ -1,16 +1,17 @@
 import { DEFAULT_PANEL, type PanelSize, type ScreenSchedule } from '@mantel/shared';
 import { AnimatePresence } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useBootstrap, useBootstrapState } from '../lib/bootstrap';
 import { connectEvents, useConnection, useServerEvent } from '../lib/events';
 import { useFitPanel } from '../lib/fit';
-import { setSunTimes, useThemeMode } from '../lib/theme';
+import { setModeOverride, setSunTimes, useThemeMode } from '../lib/theme';
 import { AmbientWeather, useWeather } from '../features/weather';
 import { Ambient, ScreenOff, registerAmbientSlot, useIdle } from './ambient';
 import { formatClock, useNow } from './Clock';
 import { Dock } from './Dock';
 import { FeatureLayers } from './FeatureLayers';
 import { useMotionPreference } from './motion';
+import { NavProvider } from './nav';
 import { OverlayProvider, useOverlay } from './overlay';
 import { Pairing } from './Pairing';
 import { msToNextMinute, scheduleAt, type Phase } from './schedule';
@@ -19,6 +20,10 @@ import { ScreenSwitcher } from './ScreenSwitcher';
 
 // What Ambient shows beside the clock. Other features (the next event) register their own.
 registerAmbientSlot({ id: 'weather', Component: AmbientWeather, order: 0 });
+
+// `?mode=daylight|dusk` pins the look for kiosk tools, screenshots and the smoke test.
+const pinned = new URLSearchParams(location.search).get('mode');
+if (pinned === 'daylight' || pinned === 'dusk') setModeOverride(pinned);
 
 /**
  * The shell: fits the panel to the viewport, applies the theme, loads bootstrap and pairs if
@@ -176,23 +181,39 @@ function DisplayInner() {
     if (mode !== 'active') closeAll();
   }, [mode, closeAll]);
 
-  const go = (id: string) => {
-    closeAll();
-    setCurrent(id as ScreenId);
-  };
+  const go = useCallback(
+    (id: string) => {
+      closeAll();
+      setCurrent(id as ScreenId);
+    },
+    [closeAll],
+  );
+  const nav = useMemo(() => ({ current, go }), [current, go]);
   const wakeToToday = () => {
     setCurrent('today');
     wake();
   };
 
+  // The quiet way into setup from the wall: hold the dock clock for a second.
+  const openSettings = async () => {
+    const ok = await overlay.confirm({
+      title: 'Open settings?',
+      body: 'Schedule, people, places and features. The display comes back when you are done.',
+      confirmLabel: 'Open settings',
+      cancelLabel: 'Stay here',
+    });
+    if (ok) location.assign('/settings');
+  };
+
   return (
-    <>
+    <NavProvider value={nav}>
       <ScreenSwitcher screens={screens} current={current} onChange={go} />
       <Dock
         items={screens}
         current={current}
         onSelect={go}
         clock={formatClock(now)}
+        onClockHold={openSettings}
         onAmbient={() => setMode('ambient')}
       />
       <div className="status">
@@ -214,6 +235,6 @@ function DisplayInner() {
         {mode === 'ambient' && <Ambient key="ambient" onWake={wakeToToday} />}
         {mode === 'off' && <ScreenOff key="off" onWake={wake} />}
       </AnimatePresence>
-    </>
+    </NavProvider>
   );
 }

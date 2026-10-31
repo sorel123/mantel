@@ -1,6 +1,7 @@
 import type { HomeEntity } from '@mantel/shared';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNow } from '../../app/Clock';
+import { SheetHeader, useOverlay } from '../../app/overlay';
 import { useBootstrap } from '../../lib/bootstrap';
 import { AnnounceSheet } from './Announce';
 import { CamerasCard } from './Cameras';
@@ -20,9 +21,45 @@ export function HomeScreen() {
   const { flags, people } = useBootstrap();
   const home = useHome(flags.media);
   const now = useNow(30_000);
-  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
-  const [announcing, setAnnouncing] = useState(false);
+  const overlay = useOverlay();
   const { data } = home;
+
+  // Locks and garage doors ask first, through the shell's dialog.
+  const confirm = useCallback(
+    (req: ConfirmRequest) => {
+      void overlay
+        .confirm({
+          title: req.title,
+          body: req.body,
+          confirmLabel: req.yes,
+          cancelLabel: req.no,
+          danger: true,
+        })
+        .then((ok) => ok && req.onYes());
+    },
+    [overlay],
+  );
+
+  // A refused call shows as a toast rather than a card of its own.
+  const { notice } = home;
+  const { toast } = overlay;
+  useEffect(() => {
+    if (notice) toast(notice, { tone: 'warn' });
+  }, [notice, toast]);
+
+  const announce = () => {
+    if (!data) return;
+    const targets = data.announceTargets;
+    overlay.openSheet(
+      (close) => (
+        <>
+          <SheetHeader title="Announce" onClose={close} />
+          <AnnounceSheet targets={targets} onSend={home.announce} onClose={close} />
+        </>
+      ),
+      { wide: true, label: 'Announce' },
+    );
+  };
 
   return (
     <div className="home">
@@ -44,28 +81,14 @@ export function HomeScreen() {
             {data.presence.length > 0 && <PresenceCard data={data} people={people} now={now} />}
             <Scenes data={data} call={home.call} now={now} />
             {flags.alexaAnnouncements && data.announceTargets.length > 0 && (
-              <button className="hm-scene hm-announce-btn" onClick={() => setAnnouncing(true)}>
+              <button className="hm-scene hm-announce-btn" onClick={announce}>
                 <Icon name="speaker" />
                 Announce
               </button>
             )}
           </div>
-          <Body data={data} home={home} now={now} confirm={setConfirm} showMedia={flags.media} />
+          <Body data={data} home={home} now={now} confirm={confirm} showMedia={flags.media} />
         </>
-      )}
-
-      {home.notice && (
-        <div className="hm-notice" role="alert">
-          {home.notice}
-        </div>
-      )}
-      {confirm && <Confirm req={confirm} onClose={() => setConfirm(null)} />}
-      {announcing && data && (
-        <AnnounceSheet
-          targets={data.announceTargets}
-          onSend={home.announce}
-          onClose={() => setAnnouncing(false)}
-        />
       )}
     </div>
   );
@@ -195,43 +218,5 @@ function Body({
         </aside>
       )}
     </div>
-  );
-}
-
-/** Local confirm dialog in the mockup's style, until the shell's primitive lands. */
-function Confirm({ req, onClose }: { req: ConfirmRequest; onClose: () => void }) {
-  const close = useCallback(onClose, [onClose]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [close]);
-  return (
-    <>
-      <div className="hm-scrim" onClick={close} />
-      <div
-        className="hm-dialog hm-confirm"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="hm-confirm-title"
-      >
-        <h3 id="hm-confirm-title">{req.title}</h3>
-        <p>{req.body}</p>
-        <div className="btns">
-          <button onClick={close} autoFocus>
-            {req.no}
-          </button>
-          <button
-            className="go"
-            onClick={() => {
-              req.onYes();
-              close();
-            }}
-          >
-            {req.yes}
-          </button>
-        </div>
-      </div>
-    </>
   );
 }

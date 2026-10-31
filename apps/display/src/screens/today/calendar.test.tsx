@@ -2,6 +2,7 @@ import { addDays, atHour, startOfDay } from '@mantel/shared';
 import { routeFixtures } from '@mantel/shared/fixtures';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OverlayProvider } from '../../app/overlay';
 import { BootstrapProvider, useBootstrapState } from '../../lib/bootstrap';
 import { MonthScreen, gridStart } from '../month';
 import { countdownLabel, eventsOn, formatTime, relativeDay, resetCalendarCache } from './calendar';
@@ -50,7 +51,11 @@ class FakeSocket {
 
 function Ready({ children }: { children: React.ReactNode }) {
   const { state } = useBootstrapState();
-  return state.status === 'ready' ? <div className="panel">{children}</div> : null;
+  return state.status === 'ready' ? (
+    <div className="panel">
+      <OverlayProvider>{children}</OverlayProvider>
+    </div>
+  ) : null;
 }
 const mount = (ui: React.ReactNode) =>
   render(

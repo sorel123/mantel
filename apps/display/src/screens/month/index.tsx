@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNow } from '../../app/Clock';
 import { eventsOn, formatTime, monthNames, useEvents } from '../today/calendar';
 import { Icon, Svg, pc } from '../today/parts';
-import { DaySheet } from './DaySheet';
+import { useDaySheet } from './DaySheet';
 import './month.css';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -28,6 +28,11 @@ export function MonthScreen() {
   const [dir, setDir] = useState(0);
   const [selected, setSelected] = useState<Date | null>(null);
   const reduce = useReducedMotion();
+  const openDay = useDaySheet();
+  const select = (d: Date) => {
+    setSelected(d);
+    openDay(d, { onClosed: () => setSelected((s) => (s?.getTime() === d.getTime() ? null : s)) });
+  };
 
   const wrap = useRef<HTMLDivElement>(null);
   const fit = usePillCapacity(wrap);
@@ -103,14 +108,13 @@ export function MonthScreen() {
                   selected={selected?.getTime() === d.getTime()}
                   events={eventsOn(events, d)}
                   fit={fit}
-                  onOpen={() => setSelected(d)}
+                  onOpen={() => select(d)}
                 />
               );
             })}
           </motion.div>
         </AnimatePresence>
       </div>
-      <DaySheet day={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
