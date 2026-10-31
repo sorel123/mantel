@@ -27,14 +27,14 @@ All of this happens once, on any computer on the home network, in **Settings ›
 
    Google only accepts `https` addresses or `localhost`, so on a plain `http://192.168.x.x` or `http://tower.local` server the setup page uses `localhost` and a **paste-back** step: after you allow access, your browser lands on a `localhost` page that does not load; copy the whole address from the browser bar into the setup page and press Finish. If the server has an https address (`PUBLIC_URL=https://...`, for example through a reverse proxy or Tailscale Funnel), the redirect is `https://<that address>/api/calendar/google/callback` and there is no paste-back.
 
-4. Put the client ID and secret in `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, restart the container, open the setup page, and press **Connect Google**.
+4. In **Settings › Calendars** paste the client ID and secret (or drop the downloaded client JSON on the card to fill both), press **Save**, then **Connect Google**. No restart is needed. (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the environment still work as fallbacks until something is saved.)
 
 Mantel asks for two scopes: see the list of calendars, and view and edit events (quick add writes events). The refresh token is stored in the server's SQLite file in `DATA_DIR`.
 
 ### iCloud
 
 1. At [account.apple.com](https://account.apple.com), under Sign-In and Security, create an **app-specific password**.
-2. Set `ICLOUD_USERNAME` (the Apple ID email) and `ICLOUD_APP_PASSWORD` in `.env` and restart. Calendars shared with that Apple ID appear once the invitation is accepted on an Apple device.
+2. In **Settings › Calendars** enter the Apple ID email and the app-specific password on the iCloud card and press **Test**, then **Save** (`ICLOUD_USERNAME` and `ICLOUD_APP_PASSWORD` in the environment are fallbacks). Calendars shared with that Apple ID appear once the invitation is accepted on an Apple device.
 
 ### Choosing what shows
 

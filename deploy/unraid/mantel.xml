@@ -4,7 +4,7 @@
     1. Copy this file to /boot/config/plugins/dockerMan/templates-user/my-mantel.xml
        (the "flash" share: \\tower\flash\config\plugins\dockerMan\templates-user\).
     2. Docker tab, Add Container, Template: pick "mantel" under User templates.
-    3. Fill in the values you have, Apply. See deploy/README.md for the full walk-through.
+    3. Fill in the port, data folder and Public URL, Apply, then open the WebUI: the first-run wizard collects every account and key. See deploy/README.md.
 -->
 <Container version="2">
   <Name>mantel</Name>
@@ -36,16 +36,16 @@
   <Config Name="Timezone" Target="TZ" Default="America/Los_Angeles" Mode="" Description="Household timezone for logs. The screen schedule uses the timezone on the settings page." Type="Variable" Display="always" Required="false" Mask="false">America/Los_Angeles</Config>
   <Config Name="Mock mode" Target="MOCK" Default="0" Mode="" Description="1 shows sample data for everything and skips pairing: handy to check the container works before any accounts are connected. 0 for the real house." Type="Variable" Display="always" Required="false" Mask="false">0</Config>
 
-  <Config Name="Home Assistant URL" Target="HA_URL" Default="http://192.168.1.10:8123" Mode="" Description="Home Assistant's address as seen from this container. With HA on host networking, use the Unraid IP and port 8123." Type="Variable" Display="always" Required="false" Mask="false">http://192.168.1.10:8123</Config>
-  <Config Name="Home Assistant token" Target="HA_TOKEN" Default="" Mode="" Description="Long-lived access token from your Home Assistant profile, Security tab." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Home Assistant URL" Target="HA_URL" Default="http://192.168.1.10:8123" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. Home Assistant's address as seen from this container. With HA on host networking, use the Unraid IP and port 8123." Type="Variable" Display="advanced" Required="false" Mask="false">http://192.168.1.10:8123</Config>
+  <Config Name="Home Assistant token" Target="HA_TOKEN" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. Long-lived access token from your Home Assistant profile, Security tab." Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="Home Assistant allow-list" Target="HA_ALLOWLIST" Default="/data/home.yaml" Mode="" Description="YAML list of the areas and entities the wall may see and control. Lives in the Data folder." Type="Variable" Display="advanced" Required="false" Mask="false">/data/home.yaml</Config>
 
-  <Config Name="Google client ID" Target="GOOGLE_CLIENT_ID" Default="" Mode="" Description="OAuth client (Web application) from Google Cloud Console, for Google Calendar." Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Google client secret" Target="GOOGLE_CLIENT_SECRET" Default="" Mode="" Description="The secret for the OAuth client above." Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="iCloud Apple ID" Target="ICLOUD_USERNAME" Default="" Mode="" Description="Apple ID email for iCloud calendars." Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="iCloud app-specific password" Target="ICLOUD_APP_PASSWORD" Default="" Mode="" Description="From appleid.apple.com, Sign-In and Security, App-Specific Passwords." Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="iCloud shared album link" Target="ICLOUD_SHARED_ALBUM_URL" Default="" Mode="" Description="Public Website link of the iCloud Shared Album for the photo slideshow." Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Google Routes API key" Target="GOOGLE_ROUTES_API_KEY" Default="" Mode="" Description="For leave-by times on weekday mornings. Optional." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Google client ID" Target="GOOGLE_CLIENT_ID" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. OAuth client (Web application) from Google Cloud Console, for Google Calendar." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Google client secret" Target="GOOGLE_CLIENT_SECRET" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. The secret for the OAuth client above." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="iCloud Apple ID" Target="ICLOUD_USERNAME" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. Apple ID email for iCloud calendars." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="iCloud app-specific password" Target="ICLOUD_APP_PASSWORD" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. From appleid.apple.com, Sign-In and Security, App-Specific Passwords." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="iCloud shared album link" Target="ICLOUD_SHARED_ALBUM_URL" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. Public Website link of the iCloud Shared Album for the photo slideshow." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Google Routes API key" Target="GOOGLE_ROUTES_API_KEY" Default="" Mode="" Description="Optional: set this in Mantel Settings instead. Only used when nothing is saved there. For leave-by times on weekday mornings. Optional." Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="Google Pollen API key" Target="GOOGLE_POLLEN_API_KEY" Default="" Mode="" Description="Optional key for the Google Pollen API (pollen outside Europe). Leave empty to reuse the Routes key." Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="Photo limit" Target="PHOTO_LIMIT" Default="500" Mode="" Description="Most photos to keep from the shared album, newest first." Type="Variable" Display="advanced" Required="false" Mask="false">500</Config>
   <Config Name="Google redirect URI" Target="GOOGLE_REDIRECT_URI" Default="" Mode="" Description="Optional. Leave empty to use the Public URL (or a localhost paste-back on plain http); see docs/calendars.md." Type="Variable" Display="advanced" Required="false" Mask="false"/>

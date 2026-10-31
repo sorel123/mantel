@@ -41,10 +41,10 @@ so the image is private too, and Unraid needs to be allowed to pull it. Pick one
 2. Unraid **Docker** tab, **Add Container**, **Template**: choose `mantel` under User templates.
 3. Fill in:
    - **Public URL**: `http://192.168.1.10:8787`.
-   - **Home Assistant URL**: `http://192.168.1.10:8123`. Home Assistant runs with host
-     networking, so from Mantel's container it is at the Unraid IP, not `homeassistant.local`.
-   - **Home Assistant token**, **Google**, **iCloud** and the rest as you get them. Leave a
-     field empty until you have it; that part of the display waits until it is filled in.
+   - Nothing else is needed here. Home Assistant, Google, iCloud, photos and the rest are
+     entered in the app (step 4), where each box has a link to the page that gives you the
+     value and a **Test** button. The matching Unraid variables are under **Show more
+     settings** and only act as fallbacks when nothing is saved in the app.
    - **Mock mode** `1` if you want to see the display working on sample data first. Set it
      back to `0` for the real house.
 4. **Apply**. Unraid pulls the image and starts it. The Docker tab shows it healthy within
@@ -64,7 +64,10 @@ Assistant credential.
 1. On the tablet (or a laptop, for now) open `http://192.168.1.10:8787`. It asks for a code.
 2. On Unraid, click the `mantel` container icon, **Logs**. The newest line reading
    `Pairing code: 123456` is the code. It changes every 15 minutes and works once.
-3. Enter it. The display loads.
+3. Enter it. The display loads. On a brand-new install the pairing screen offers
+   **Set up Mantel**, which opens the wizard at `/setup`: pick an admin PIN, then the steps
+   below in order. The PIN pairs later displays and opens Settings, so the log code is no
+   longer needed.
 
 After that, any paired display can hand out a code for the next one: settings page,
 **Displays**, **Show a code**. In mock mode no pairing is needed, and `000000` also pairs.
@@ -72,9 +75,22 @@ After that, any paired display can hand out a code for the next one: settings pa
 ## 4. The settings page
 
 Open `http://192.168.1.10:8787/settings` from a laptop or phone (pair that browser the same
-way the first time). It has:
+way the first time). Everything is set up here, and the first-run wizard at `/setup` walks
+through the same sections in order. Secrets are stored encrypted in the data folder
+(`secret.key` beside `mantel.db`: keep both in your backup). Saving takes effect at once, no
+restart. It has:
 
-- **Home**: look (Auto, Daylight, Dusk), units, timezone and location for weather.
+- **Your home**: where home is (a place name, or `lat, lng` pasted from Google Maps), timezone
+  found from it, units, look.
+- **Calendars**: Connect Google (client ID and secret, with the redirect address to copy) and
+  iCloud (Apple ID and app password), then show/hide, name, colour and owner per calendar.
+- **Integrations**: one card each for photos, leave-by, pollen, weather alerts, quips, with
+  status, Test and Turn off.
+- **Home Assistant**: address and token, Test, then tick rooms and devices.
+- **Appearance** and **Layout**: skins (including seasonal), text size, Today and Month
+  presets, fit to screen.
+- **Health** and **Backup**: status of every integration, copy diagnostics, export or import
+  all settings.
 - **Screen schedule**: seconds to Ambient, evening Ambient, screen off overnight, the nightly
   reload time (04:00 by default) and brightness steps through the day.
 - **People**: name, initial, colour and which calendars are theirs.
@@ -197,7 +213,7 @@ keeps the key and is the setup to use.
   tablet's browser, and that the container is running.
 - **Home Assistant parts are empty**: Mantel's container must reach Home Assistant at the
   URL you gave. Open the container's **Console** and run
-  `node -e "fetch(process.env.HA_URL+'/api/',{headers:{authorization:'Bearer '+process.env.HA_TOKEN}}).then(r=>console.log(r.status))"`;
-  200 means it can.
+  `curl -sI http://192.168.1.10:8123/api/` (a 401 means it can reach Home Assistant), then
+  press **Test** in Settings, Home Assistant: it says in plain words what is wrong.
 - **Run without Unraid**: `docker compose up -d` from a checkout uses the same image and a
   local `.env` (see `.env.example`).
