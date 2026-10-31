@@ -1,0 +1,45 @@
+/* The skin gallery at /demo/skins: a scrolling page with the real screens in a scaled panel. */
+.gal-main {
+  max-width: 1180px;
+}
+.gal.bare .gal-main {
+  padding: 0;
+  max-width: none;
+}
+.gal-actions {
+  display: flex;
+  gap: 8px;
+}
+.gal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 18px;
+}
+.gal-save {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gal-save .set-hint {
+  margin: 0;
+}
+.gal-stage {
+  position: relative;
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.gal.bare .gal-stage {
+  border-radius: 0;
+  box-shadow: none;
+}
+.gal-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}

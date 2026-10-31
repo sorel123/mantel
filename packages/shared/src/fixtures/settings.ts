@@ -1,4 +1,5 @@
 import { DEFAULT_SCREENS, type Settings } from '../models.js';
+import { DEFAULT_APPEARANCE } from '../skins.js';
 import { people } from './people.js';
 
 export function settings(): Settings {
@@ -49,7 +50,7 @@ export function settings(): Settings {
       alexaAnnouncements: false,
       remindersSync: false,
     },
-    appearance: { skin: 'mantel', textSize: 'default', followSeason: false },
+    appearance: { ...DEFAULT_APPEARANCE },
     layout: { todayPreset: 'agenda', monthPreset: 'grid', fit: 'fit', scale: 1 },
     screens: structuredClone(DEFAULT_SCREENS),
     defaultScreen: 'today',

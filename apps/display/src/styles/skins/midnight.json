@@ -1,0 +1,92 @@
+{
+  "id": "midnight",
+  "name": "Midnight",
+  "description": "Deep navy around the clock with a sea-glass accent; Dusk only dims it further.",
+  "tags": ["dark", "cool"],
+  "daylight": {
+    "bg": "#0e1430",
+    "surface": "#16204a",
+    "surface2": "#1f2b5c",
+    "ink": "#eef1ff",
+    "ink2": "#aab4da",
+    "ink3": "#7581ad",
+    "line": "rgba(255, 255, 255, 0.1)",
+    "accent": "#6ee7d8",
+    "accentSoft": "rgba(110, 231, 216, 0.16)",
+    "accentInk": "#0e1430",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#f0a35e",
+    "good": "#6fd39a"
+  },
+  "dusk": {
+    "bg": "#080b1c",
+    "surface": "#0f142e",
+    "surface2": "#171e3f",
+    "ink": "#e4e8fa",
+    "ink2": "#9ba5cc",
+    "ink3": "#6a7498",
+    "line": "rgba(255, 255, 255, 0.09)",
+    "accent": "#5fd4c6",
+    "accentSoft": "rgba(95, 212, 198, 0.16)",
+    "accentInk": "#080b1c",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e49a5a",
+    "good": "#63c58f"
+  },
+  "fonts": {
+    "display": "space-grotesk",
+    "body": "manrope"
+  },
+  "radii": 1,
+  "cardStyle": "elevated",
+  "personPalette": [
+    {
+      "name": "Blue",
+      "color": "#3f7bd9"
+    },
+    {
+      "name": "Teal",
+      "color": "#2a9d8f"
+    },
+    {
+      "name": "Violet",
+      "color": "#8e63cf"
+    },
+    {
+      "name": "Sky",
+      "color": "#3aa0d8"
+    },
+    {
+      "name": "Indigo",
+      "color": "#4f5fc9"
+    },
+    {
+      "name": "Mint",
+      "color": "#3ba06f"
+    },
+    {
+      "name": "Coral",
+      "color": "#e2694f"
+    },
+    {
+      "name": "Lavender",
+      "color": "#8f7bd3"
+    },
+    {
+      "name": "Steel",
+      "color": "#5b7a99"
+    },
+    {
+      "name": "Rose",
+      "color": "#d4567e"
+    },
+    {
+      "name": "Navy",
+      "color": "#2f4f9f"
+    },
+    {
+      "name": "Pine",
+      "color": "#2e7d5b"
+    }
+  ]
+}

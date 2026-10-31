@@ -1,0 +1,92 @@
+{
+  "id": "mantel",
+  "name": "Mantel",
+  "description": "The original: warm greys, a deep green accent by day and brass by night.",
+  "tags": ["default", "calm"],
+  "daylight": {
+    "bg": "#efeee9",
+    "surface": "#fbfaf7",
+    "surface2": "#e7e5de",
+    "ink": "#1b1f27",
+    "ink2": "#626878",
+    "ink3": "#9298a6",
+    "line": "rgba(27, 31, 39, 0.09)",
+    "accent": "#246b5b",
+    "accentSoft": "rgba(36, 107, 91, 0.12)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(10, 12, 16, 0.28)",
+    "warn": "#c8761e",
+    "good": "#2e8b5b"
+  },
+  "dusk": {
+    "bg": "#101216",
+    "surface": "#1a1d24",
+    "surface2": "#242830",
+    "ink": "#f3f1eb",
+    "ink2": "#a3a8b4",
+    "ink3": "#6e7482",
+    "line": "rgba(255, 255, 255, 0.08)",
+    "accent": "#e0a94a",
+    "accentSoft": "rgba(224, 169, 74, 0.16)",
+    "accentInk": "#1b1f27",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e59a4b",
+    "good": "#5bc58a"
+  },
+  "fonts": {
+    "display": "fraunces",
+    "body": "manrope"
+  },
+  "radii": 1,
+  "cardStyle": "elevated",
+  "personPalette": [
+    {
+      "name": "Coral",
+      "color": "#e2694f"
+    },
+    {
+      "name": "Blue",
+      "color": "#3f7bd9"
+    },
+    {
+      "name": "Violet",
+      "color": "#8e63cf"
+    },
+    {
+      "name": "Green",
+      "color": "#3ba06f"
+    },
+    {
+      "name": "Amber",
+      "color": "#d9942b"
+    },
+    {
+      "name": "Teal",
+      "color": "#2a9d8f"
+    },
+    {
+      "name": "Rose",
+      "color": "#d4567e"
+    },
+    {
+      "name": "Indigo",
+      "color": "#4f5fc9"
+    },
+    {
+      "name": "Olive",
+      "color": "#7d9a3a"
+    },
+    {
+      "name": "Plum",
+      "color": "#9a4f8f"
+    },
+    {
+      "name": "Sky",
+      "color": "#3aa0d8"
+    },
+    {
+      "name": "Rust",
+      "color": "#c0582a"
+    }
+  ]
+}

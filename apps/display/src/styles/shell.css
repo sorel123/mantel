@@ -284,3 +284,72 @@
   letter-spacing: -0.03em;
   animation: breathe 6s var(--ease) infinite alternate;
 }
+
+/* ---------- skin decor (SkinDecor.tsx): under the screens, tinted with the ink ---------- */
+.skin-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  color: var(--ink);
+  opacity: var(--decor-opacity);
+  transition:
+    opacity var(--slow) var(--ease),
+    color var(--slow) var(--ease);
+}
+.skin-decor .decor-bg,
+.skin-decor .decor-bg svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.skin-decor .decor-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+.skin-decor .decor-header svg {
+  width: 100%;
+}
+.skin-decor .decor-corner {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+}
+.skin-decor .decor-corner svg {
+  width: 100%;
+  height: 100%;
+}
+.skin-decor .decor-corner.tl {
+  top: 0;
+  left: 0;
+}
+.skin-decor .decor-corner.tr {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+.skin-decor .decor-corner.bl {
+  bottom: 0;
+  left: 0;
+  transform: scaleY(-1);
+}
+.skin-decor .decor-corner.br {
+  bottom: 0;
+  right: 0;
+  transform: scale(-1, -1);
+}
+
+/* ---------- skin change: every colour cross-fades for 700 ms ---------- */
+:root[data-skin-fade] .panel,
+:root[data-skin-fade] .panel *:not(.screens, .screen, .skin-decor *) {
+  transition:
+    background-color var(--slow) var(--ease),
+    color var(--slow) var(--ease),
+    border-color var(--slow) var(--ease),
+    fill var(--slow) var(--ease),
+    stroke var(--slow) var(--ease),
+    box-shadow var(--slow) var(--ease) !important;
+}

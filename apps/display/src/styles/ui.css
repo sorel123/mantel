@@ -529,3 +529,54 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---------- card styles, set per skin on <html data-card-style> ---------- */
+:root[data-card-style='flat'] .card,
+:root[data-card-style='flat'] .dock {
+  box-shadow: none;
+  border-color: transparent;
+}
+:root[data-card-style='outlined'] .card,
+:root[data-card-style='outlined'] .dock {
+  box-shadow: none;
+  border-width: 1.5px;
+}
+:root[data-card-style='paper'] .card {
+  box-shadow:
+    0 1px 0 var(--line),
+    0 6px 18px rgba(60, 40, 10, 0.08);
+}
+/* a handwritten display face needs more room than a serif at the same size */
+:root[data-display-font='script'] .h1,
+:root[data-display-font='script'] .h2,
+:root[data-display-font='script'] .h3,
+:root[data-display-font='script'] .display-xl,
+:root[data-display-font='script'] .display-lg,
+:root[data-display-font='script'] .display-md {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* the flyer look (skin `type: heavy`): headlines in a wide black weight, the big date in capitals */
+:root[data-type='heavy']
+  :is(
+    .h1,
+    .h2,
+    .h3,
+    .display-xl,
+    .display-lg,
+    .display-md,
+    .italic-note,
+    .wordmark,
+    .datebox,
+    .a-clock
+  ) {
+  font-variation-settings:
+    'wght' 800,
+    'wdth' 118;
+  font-style: normal;
+  letter-spacing: -0.01em;
+}
+:root[data-type='heavy'] :is(.display-xl, .datebox .big, .a-clock) {
+  text-transform: uppercase;
+}

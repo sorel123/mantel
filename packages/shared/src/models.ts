@@ -9,6 +9,7 @@
  * - Ids are opaque strings.
  */
 import { z } from 'zod';
+import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -366,21 +367,7 @@ export type Location = z.infer<typeof Location>;
 
 /* ---- v2: appearance, layout, screens, weather, integrations (workstream A owns the schema) ---- */
 
-export const TextSize = z.enum(['compact', 'default', 'large']);
-export type TextSize = z.infer<typeof TextSize>;
-
-/** Skins are JSON files under `apps/display/src/styles/skins/` (workstream E); `skin` is one of their ids. */
-export const Appearance = z.object({
-  skin: z.string().default('mantel'),
-  /** Overrides the skin's accent colour. */
-  accent: Color.optional(),
-  /** Overrides the skin's display font (one of the bundled set). */
-  displayFont: z.string().optional(),
-  textSize: TextSize.default('default'),
-  /** Pick a seasonal skin automatically by date. */
-  followSeason: z.boolean().default(false),
-});
-export type Appearance = z.infer<typeof Appearance>;
+// `Appearance` and `TextSize` live in skins.ts (workstream E) and are re-exported from the index.
 
 /** Layout presets (workstream F renders them; import these rather than redefining). */
 export const TodayPreset = z.enum(['agenda', 'weather', 'family', 'photo', 'poster']);
@@ -452,11 +439,7 @@ export const Settings = z.object({
   destinations: z.array(Destination),
   flags: FeatureFlags,
   // v2 additions, each with a default so settings saved before them still parse.
-  appearance: Appearance.default({
-    skin: 'mantel',
-    textSize: 'default',
-    followSeason: false,
-  }),
+  appearance: Appearance.default(DEFAULT_APPEARANCE),
   layout: Layout.default({ todayPreset: 'agenda', monthPreset: 'grid', fit: 'fit', scale: 1 }),
   screens: z.array(ScreenConfig).default(() => structuredClone(DEFAULT_SCREENS)),
   /** The screen shown after a wake and after the display reloads. */

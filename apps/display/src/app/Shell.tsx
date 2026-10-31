@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useBootstrap, useBootstrapState } from '../lib/bootstrap';
 import { connectEvents, useConnection, useServerEvent } from '../lib/events';
 import { useFitPanel, type FitOptions } from '../lib/fit';
-import { setModeOverride, setSunTimes, useThemeMode } from '../lib/theme';
+import {
+  setModeOverride,
+  setSkinOverride,
+  setSunTimes,
+  useAppearance,
+  useThemeMode,
+} from '../lib/theme';
 import { AmbientWeather, useWeather } from '../features/weather';
 import { Ambient, ScreenOff, registerAmbientSlot, useIdle } from './ambient';
 import { formatClock, useNow } from './Clock';
@@ -18,13 +24,18 @@ import { Pairing } from './Pairing';
 import { msToNextMinute, scheduleAt, type Phase } from './schedule';
 import { screens as allScreens, type ScreenId } from './screens';
 import { ScreenSwitcher } from './ScreenSwitcher';
+import { SkinDecor } from './SkinDecor';
 
 // What Ambient shows beside the clock. Other features (the next event) register their own.
 registerAmbientSlot({ id: 'weather', Component: AmbientWeather, order: 0 });
 
-// `?mode=daylight|dusk` pins the look for kiosk tools, screenshots and the smoke test.
-const pinned = new URLSearchParams(location.search).get('mode');
+// `?mode=daylight|dusk` pins the look and `?skin=<id>` the skin, for kiosk tools, screenshots
+// and the smoke test; `?screen=<id>` picks the first screen shown.
+const params = new URLSearchParams(location.search);
+const pinned = params.get('mode');
 if (pinned === 'daylight' || pinned === 'dusk') setModeOverride(pinned);
+if (params.get('skin')) setSkinOverride(params.get('skin'));
+const firstScreen = (params.get('screen') ?? 'today') as ScreenId;
 
 /**
  * The shell: fits the panel to the viewport, applies the theme, loads bootstrap and pairs if
@@ -33,6 +44,7 @@ if (pinned === 'daylight' || pinned === 'dusk') setModeOverride(pinned);
 export function Shell() {
   const { state, reload } = useBootstrapState();
   useThemeMode(state.status === 'ready' ? state.data.theme : 'auto');
+  useAppearance(state.status === 'ready' ? state.data.settings.appearance : undefined);
   useMotionPreference();
 
   if (state.status === 'ready') return <Display />;
@@ -178,7 +190,9 @@ function DisplayInner() {
     [boot.settings.integrations],
   );
   const now = useNow();
-  const [current, setCurrent] = useState<ScreenId>('today');
+  const [current, setCurrent] = useState<ScreenId>(() =>
+    screens.some((s) => s.id === firstScreen) ? firstScreen : 'today',
+  );
   const { mode, wake, rest, setMode } = useDisplayMode(boot.settings.schedule);
   const connection = useConnection();
   useEffect(connectEvents, []);
@@ -226,6 +240,7 @@ function DisplayInner() {
 
   return (
     <NavProvider value={nav}>
+      <SkinDecor />
       <ScreenSwitcher screens={screens} current={current} onChange={go} />
       <Dock
         items={screens}

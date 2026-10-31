@@ -1,0 +1,96 @@
+{
+  "id": "paper",
+  "name": "Paper",
+  "description": "Cream stock, book serifs and a brick-red accent; a lamp-lit sepia after dark.",
+  "tags": ["warm", "quiet"],
+  "daylight": {
+    "bg": "#f1e9d8",
+    "surface": "#faf5e9",
+    "surface2": "#e8dfc9",
+    "ink": "#2a2318",
+    "ink2": "#655a47",
+    "ink3": "#938671",
+    "line": "rgba(42, 35, 24, 0.13)",
+    "accent": "#8a3b2a",
+    "accentSoft": "rgba(138, 59, 42, 0.12)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(40, 30, 15, 0.3)",
+    "warn": "#a0570c",
+    "good": "#4a7536"
+  },
+  "dusk": {
+    "bg": "#231c14",
+    "surface": "#2e261c",
+    "surface2": "#3a3124",
+    "ink": "#f1e7d3",
+    "ink2": "#bfb098",
+    "ink3": "#857760",
+    "line": "rgba(241, 231, 211, 0.1)",
+    "accent": "#e0a35a",
+    "accentSoft": "rgba(224, 163, 90, 0.16)",
+    "accentInk": "#231c14",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e39a4b",
+    "good": "#86b86a"
+  },
+  "fonts": {
+    "display": "fraunces",
+    "body": "lora"
+  },
+  "radii": 0.5,
+  "cardStyle": "paper",
+  "personPalette": [
+    {
+      "name": "Pumpkin",
+      "color": "#c9601f"
+    },
+    {
+      "name": "Mustard",
+      "color": "#c9961a"
+    },
+    {
+      "name": "Brick",
+      "color": "#a53c2a"
+    },
+    {
+      "name": "Moss",
+      "color": "#6f8a2f"
+    },
+    {
+      "name": "Plum",
+      "color": "#7f3e6a"
+    },
+    {
+      "name": "Cocoa",
+      "color": "#7a4a2b"
+    },
+    {
+      "name": "Clay",
+      "color": "#b36a4a"
+    },
+    {
+      "name": "Olive",
+      "color": "#8c8a2a"
+    },
+    {
+      "name": "Wine",
+      "color": "#8a2d3b"
+    },
+    {
+      "name": "Sage",
+      "color": "#6b8f71"
+    },
+    {
+      "name": "Marigold",
+      "color": "#d8a21c"
+    },
+    {
+      "name": "Teal",
+      "color": "#2c7a73"
+    }
+  ],
+  "decor": {
+    "background": "grain",
+    "opacity": 0.35
+  }
+}

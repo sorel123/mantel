@@ -1,0 +1,100 @@
+{
+  "id": "harvest",
+  "name": "Harvest",
+  "description": "Fall: parchment, pumpkin and moss, a bookish serif and leaves drifting behind the cards.",
+  "tags": ["fall", "season", "warm"],
+  "daylight": {
+    "bg": "#efe3d2",
+    "surface": "#f9f1e6",
+    "surface2": "#e6d5bf",
+    "ink": "#2b1d14",
+    "ink2": "#6a5341",
+    "ink3": "#9a8470",
+    "line": "rgba(43, 29, 20, 0.12)",
+    "accent": "#b4481a",
+    "accentSoft": "rgba(180, 72, 26, 0.13)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(40, 20, 10, 0.3)",
+    "warn": "#935408",
+    "good": "#56732a"
+  },
+  "dusk": {
+    "bg": "#1d1410",
+    "surface": "#2a1e17",
+    "surface2": "#37291f",
+    "ink": "#f6ebdc",
+    "ink2": "#c4ad94",
+    "ink3": "#8b765f",
+    "line": "rgba(246, 235, 220, 0.1)",
+    "accent": "#e8893a",
+    "accentSoft": "rgba(232, 137, 58, 0.16)",
+    "accentInk": "#1d1410",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e9a24f",
+    "good": "#9cbb64"
+  },
+  "fonts": {
+    "display": "lora",
+    "body": "manrope"
+  },
+  "radii": 1,
+  "cardStyle": "elevated",
+  "personPalette": [
+    {
+      "name": "Pumpkin",
+      "color": "#c9601f"
+    },
+    {
+      "name": "Mustard",
+      "color": "#c9961a"
+    },
+    {
+      "name": "Brick",
+      "color": "#a53c2a"
+    },
+    {
+      "name": "Moss",
+      "color": "#6f8a2f"
+    },
+    {
+      "name": "Plum",
+      "color": "#7f3e6a"
+    },
+    {
+      "name": "Cocoa",
+      "color": "#7a4a2b"
+    },
+    {
+      "name": "Clay",
+      "color": "#b36a4a"
+    },
+    {
+      "name": "Olive",
+      "color": "#8c8a2a"
+    },
+    {
+      "name": "Wine",
+      "color": "#8a2d3b"
+    },
+    {
+      "name": "Sage",
+      "color": "#6b8f71"
+    },
+    {
+      "name": "Marigold",
+      "color": "#d8a21c"
+    },
+    {
+      "name": "Teal",
+      "color": "#2c7a73"
+    }
+  ],
+  "decor": {
+    "background": "leaves",
+    "opacity": 0.4
+  },
+  "season": {
+    "from": "09-15",
+    "to": "11-30"
+  }
+}

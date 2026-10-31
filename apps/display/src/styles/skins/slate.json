@@ -1,0 +1,92 @@
+{
+  "id": "slate",
+  "name": "Slate",
+  "description": "Cool greys, a clear blue, square-ish flat cards and a geometric headline face.",
+  "tags": ["cool", "modern"],
+  "daylight": {
+    "bg": "#e4e8ee",
+    "surface": "#f6f7f9",
+    "surface2": "#d9dee6",
+    "ink": "#161a21",
+    "ink2": "#4f5765",
+    "ink3": "#7f889a",
+    "line": "rgba(22, 26, 33, 0.12)",
+    "accent": "#2a5bd0",
+    "accentSoft": "rgba(42, 91, 208, 0.13)",
+    "accentInk": "#ffffff",
+    "scrim": "rgba(10, 12, 16, 0.28)",
+    "warn": "#a85a14",
+    "good": "#1f7a4c"
+  },
+  "dusk": {
+    "bg": "#0f1318",
+    "surface": "#181d25",
+    "surface2": "#222934",
+    "ink": "#e9edf3",
+    "ink2": "#9aa4b4",
+    "ink3": "#6a7485",
+    "line": "rgba(255, 255, 255, 0.09)",
+    "accent": "#7fa6ff",
+    "accentSoft": "rgba(127, 166, 255, 0.16)",
+    "accentInk": "#0f1318",
+    "scrim": "rgba(0, 0, 0, 0.45)",
+    "warn": "#e8a052",
+    "good": "#5fc48c"
+  },
+  "fonts": {
+    "display": "space-grotesk",
+    "body": "manrope"
+  },
+  "radii": 0.55,
+  "cardStyle": "flat",
+  "personPalette": [
+    {
+      "name": "Blue",
+      "color": "#3f7bd9"
+    },
+    {
+      "name": "Teal",
+      "color": "#2a9d8f"
+    },
+    {
+      "name": "Violet",
+      "color": "#8e63cf"
+    },
+    {
+      "name": "Sky",
+      "color": "#3aa0d8"
+    },
+    {
+      "name": "Indigo",
+      "color": "#4f5fc9"
+    },
+    {
+      "name": "Mint",
+      "color": "#3ba06f"
+    },
+    {
+      "name": "Coral",
+      "color": "#e2694f"
+    },
+    {
+      "name": "Lavender",
+      "color": "#8f7bd3"
+    },
+    {
+      "name": "Steel",
+      "color": "#5b7a99"
+    },
+    {
+      "name": "Rose",
+      "color": "#d4567e"
+    },
+    {
+      "name": "Navy",
+      "color": "#2f4f9f"
+    },
+    {
+      "name": "Pine",
+      "color": "#2e7d5b"
+    }
+  ]
+}
