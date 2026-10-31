@@ -1,0 +1,87 @@
+/*
+ * Ambient slideshow (WS4). The mockup cross-dissolves over 1600 ms and drifts each photo by
+ * up to 9 %. The dissolve scales with --slow (0 under reduced motion) and the drift is turned
+ * off there, so photos simply swap. Ambient is black in both themes.
+ */
+.ph-show {
+  --ph-dissolve: calc(var(--slow) * 16 / 7);
+  /* the drift spans the photo's whole time on screen: its hold plus the next dissolve */
+  --ph-drift: calc(var(--ph-hold, 9000ms) + var(--ph-dissolve) * 2);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+.ph-slide {
+  position: absolute;
+  inset: 0;
+  animation: ph-in var(--ph-dissolve) var(--ease) both;
+}
+.ph-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform-origin: center;
+  will-change: transform;
+  animation: var(--ph-drift) linear both;
+}
+.ph-slide[data-drift='0'] img {
+  animation-name: ph-drift-0;
+}
+.ph-slide[data-drift='1'] img {
+  animation-name: ph-drift-1;
+}
+.ph-slide[data-drift='2'] img {
+  animation-name: ph-drift-2;
+}
+.ph-slide[data-drift='3'] img {
+  animation-name: ph-drift-3;
+}
+
+@keyframes ph-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ph-drift-0 {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.09) translate(-1.5%, 1%);
+  }
+}
+@keyframes ph-drift-1 {
+  from {
+    transform: scale(1.09) translate(1.5%, -1%);
+  }
+  to {
+    transform: scale(1) translate(0, 0);
+  }
+}
+@keyframes ph-drift-2 {
+  from {
+    transform: scale(1.02) translate(1%, 1%);
+  }
+  to {
+    transform: scale(1.1) translate(-1%, -1.2%);
+  }
+}
+@keyframes ph-drift-3 {
+  from {
+    transform: scale(1.1) translate(-1.2%, 0.8%);
+  }
+  to {
+    transform: scale(1.02) translate(1%, -0.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-slide img {
+    animation: none;
+  }
+}
