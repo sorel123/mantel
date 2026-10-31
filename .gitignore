@@ -10,3 +10,5 @@ data/
 *.db-journal
 .DS_Store
 .vite/
+# Household-specific allow-list (start from config/home.example.yaml)
+config/home.yaml

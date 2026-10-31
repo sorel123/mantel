@@ -1,0 +1,86 @@
+# Home Assistant allow-list for Mantel. Copy to config/home.yaml (or wherever HA_ALLOWLIST
+# points) and edit. The display sees and controls only what this file names; edits are picked
+# up without a restart and the wall display reloads itself.
+#
+# Entity ids come from Home Assistant: Settings > Devices & services > Entities.
+
+# Room cards on the Home screen, in order.
+areas:
+  - id: living_room
+    name: Living room
+    # Pull in every light, switch, fan, thermostat, lock, cover and camera that Home Assistant
+    # has in this area (by area id or name). Hue and Caseta lights and Meross plugs land here.
+    ha_area: living_room
+    # Leave things out of the ha_area expansion.
+    exclude:
+      - switch.living_room_plug_led
+    # Anything else to show, including sensors (never pulled in automatically).
+    entities:
+      - sensor.living_room_temperature
+      - id: light.living_room_lamp
+        name: Reading lamp # override the name on the display
+
+  - id: kitchen
+    name: Kitchen
+    ha_area: kitchen
+
+  - id: kids
+    name: Kids
+    entities:
+      - light.ava_lamp
+      - light.leo_lamp
+
+  - id: entry
+    name: Front door
+    entities:
+      - lock.front_door
+      - binary_sensor.front_door_contact
+      - id: cover.garage_door
+        read_only: true # shown, never opened from the wall
+
+  - id: house
+    name: Around the house
+    entities:
+      # The three ecobees: thermostats get their own card with a tab each.
+      - climate.main_floor
+      - climate.upstairs
+      - climate.basement
+      - binary_sensor.hallway_motion
+      - sensor.washer_status
+
+# Scene chips across the top, in order. Scripts work too.
+scenes:
+  - scene.morning
+  - scene.focus
+  - scene.movie
+  - scene.goodnight
+
+# Ring doorbell: when the trigger fires, the camera's live view pops over every screen.
+# The Ring integration makes an event entity per doorbell (event.<name>_ding).
+doorbells:
+  - camera: camera.front_door_live_view
+    trigger: event.front_door_ding
+    seconds: 30
+
+# Who is home. Leave this out to match each person in settings to person.<id>.
+presence:
+  - { person: jay, entity: person.jay }
+  - { person: sam, entity: person.sam }
+
+# Wake the screen when someone gets home, sleep it when the last person leaves.
+presence_display:
+  wake_on_arrival: true
+  sleep_when_away: true
+
+# Now playing. Leave this out to use every Apple TV Home Assistant knows.
+# media_players:
+#   - id: media_player.living_room
+#     name: Living room
+
+# Alexa announcements, through the Alexa Media Player custom integration (HACS). Also turn on
+# the "Alexa announcements" flag in settings.
+# alexa:
+#   service: notify.alexa_media
+#   targets:
+#     - { id: media_player.kitchen_echo, name: Kitchen }
+#     - { id: media_player.kids_room_echo, name: Kids room }

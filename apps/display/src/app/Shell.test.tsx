@@ -1,3 +1,4 @@
+import { API_PREFIX, routes } from '@mantel/shared';
 import { routeFixtures } from '@mantel/shared/fixtures';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,6 +18,22 @@ const respond = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }),
   );
 
+/** Serve every route its fixture, like the mock server does, so any screen can render. */
+const mockFetch = (boot = routeFixtures().bootstrap) =>
+  vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input instanceof Request ? input.url : input), 'http://display');
+    const method = (init?.method ?? 'GET').toUpperCase();
+    const fixtures = routeFixtures() as Record<string, unknown>;
+    for (const [name, r] of Object.entries(routes)) {
+      if (r.method !== method) continue;
+      const re = new RegExp(`^${API_PREFIX}${r.path.replace(/:[^/]+/g, '[^/]+')}$`);
+      if (!re.test(url.pathname)) continue;
+      const body = name === 'bootstrap' ? boot : fixtures[name];
+      if (body !== undefined) return respond(200, body);
+    }
+    return respond(404, { error: { code: 'not_found', message: url.pathname } });
+  });
+
 const renderShell = () =>
   render(
     <BootstrapProvider>
@@ -34,26 +51,20 @@ describe('Shell', () => {
   });
 
   it('renders the four screens from mock bootstrap and switches between them', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => respond(200, routeFixtures().bootstrap)),
-    );
+    vi.stubGlobal('fetch', mockFetch());
     renderShell();
     expect(await screen.findByText(/mock data/i)).toBeTruthy();
     for (const label of ['Today', 'Month', 'Lists', 'Home'])
       expect(screen.getByRole('button', { name: label })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Today' }).getAttribute('aria-current')).toBe('page');
     fireEvent.click(screen.getByRole('button', { name: 'Home' }));
-    expect(await screen.findByRole('heading', { name: 'Home' })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector('[data-screen="home"]')).toBeTruthy());
     expect(screen.getByRole('button', { name: 'Home' }).getAttribute('aria-current')).toBe('page');
     expect(document.documentElement.dataset.mode).toMatch(/daylight|dusk/);
   });
 
   it('starts Ambient from the dock and wakes on a tap', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => respond(200, routeFixtures().bootstrap)),
-    );
+    vi.stubGlobal('fetch', mockFetch());
     renderShell();
     await screen.findByText(/mock data/i);
     fireEvent.click(screen.getByRole('button', { name: 'Ambient mode' }));
@@ -77,10 +88,7 @@ describe('Shell', () => {
       offFrom: '00:00',
       onAt: '00:00',
     };
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => respond(200, boot)),
-    );
+    vi.stubGlobal('fetch', mockFetch(boot));
     renderShell();
     await screen.findByText(/mock data/i);
     await act(async () => {
@@ -105,5 +113,23 @@ describe('Shell', () => {
     );
     renderShell();
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+});
+
+describe('ScreenBoundary', () => {
+  it('shows a retry card instead of blanking the wall', async () => {
+    const { ScreenBoundary } = await import('./ScreenBoundary');
+    const Boom = () => {
+      throw new Error('kaboom');
+    };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <ScreenBoundary name="home">
+        <Boom />
+      </ScreenBoundary>,
+    );
+    expect(screen.getByRole('alert').textContent).toContain('kaboom');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    spy.mockRestore();
   });
 });

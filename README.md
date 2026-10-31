@@ -85,7 +85,10 @@ The server validates every request against the route table and, outside producti
 | `GET /photos/:id`                                                              | Image bytes                                                           |
 | `GET /home/state`                                                              | Allowed areas, entities, states and presence                          |
 | `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity                    |
+| `POST /home/announce`                                                          | Alexa announcement on chosen Echos (needs the settings flag)          |
+| `GET /home/cameras/:id/snapshot`, `GET /home/cameras/:id/stream`               | Camera still and live view for `<img>` (`?key=` accepted)             |
 | `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                           |
+| `GET /media/:id/artwork`                                                       | Now-playing artwork for `<img>` (`?key=` accepted)                    |
 | `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                              |
 | `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                               |
 | `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back              |
@@ -101,7 +104,7 @@ Errors are `{ "error": { "code", "message" } }` with codes `bad_request`, `unaut
 
 ### WebSocket (`/ws?key=<device key>`)
 
-`calendar.changed {from, to}` · `home.state {entity}` · `home.doorbell {cameraEntityId, at, durationSeconds}` · `media.state {player}` · `list.changed {listId}` · `chores.changed {}` · `weather.updated {weather}` · `display.reload {}` · `display.wake {reason}` · `display.sleep {reason}`
+`calendar.changed {from, to}` · `home.state {entity}` · `home.presence {presence}` · `home.doorbell {cameraEntityId, at, durationSeconds}` · `media.state {player}` · `list.changed {listId}` · `chores.changed {}` · `weather.updated {weather}` · `display.reload {}` · `display.wake {reason}` · `display.sleep {reason}`
 
 In the display, `useServerEvent('home.doorbell', handler)` subscribes; the socket reconnects with backoff. `display.reload` is handled by the shell.
 
@@ -155,6 +158,10 @@ docker compose up --build       # http://localhost:8787, data in ./data
 ```
 
 The image builds the display and serves it from the server on one port. Merges to `main` publish it as `ghcr.io/sorel123/mantel:latest`. [`deploy/README.md`](deploy/README.md) walks from the Unraid template to a paired iPad or Surface in kiosk mode; the settings page is at `/settings`.
+
+## Home Assistant
+
+Lights, plugs, thermostats, cameras and the doorbell, Apple TV and presence all come through Home Assistant, filtered by an allow-list in `config/home.yaml`. Setup, what each integration gives you and the limits are in [`docs/home-assistant.md`](docs/home-assistant.md).
 
 ## Conventions
 

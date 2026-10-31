@@ -3,7 +3,7 @@
  * Dates are generated relative to `now` so the mock always looks like "today".
  * Every value here must parse against its route's response schema (see fixtures.test.ts).
  */
-import { DEFAULT_PANEL, type ResponseOf, type RouteName } from '../api.js';
+import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
 import { eventsInRange, countdowns, meals } from './calendar.js';
 import { homeState, mediaPlayers } from './home.js';
@@ -27,7 +27,7 @@ export const MOCK_PAIRING_CODE = '000000';
 
 /** One sample response per JSON route. */
 export function routeFixtures(now = new Date()): {
-  [N in Exclude<RouteName, 'photo'>]: ResponseOf<N>;
+  [N in JsonRouteName]: ResponseOf<N>;
 } {
   const s = settings();
   const today = startOfDay(now);
@@ -62,6 +62,7 @@ export function routeFixtures(now = new Date()): {
     },
     homeState: home,
     homeCall: { ok: true, entity: home.entities[0]! },
+    homeAnnounce: { ok: true, targets: home.announceTargets.map((t) => t.id) },
     media: { players },
     mediaCall: { ok: true, player: players[0]! },
     lists: { lists: allLists },
@@ -144,6 +145,7 @@ export function wsFixtures(now = new Date()) {
       type: 'home.doorbell',
       payload: { cameraEntityId: 'camera.front_door', at: toLocalIso(now), durationSeconds: 30 },
     },
+    { type: 'home.presence', payload: { presence: home.presence } },
     { type: 'media.state', payload: { player: { ...mediaPlayers(now)[0]!, state: 'paused' } } },
     { type: 'list.changed', payload: { listId: 'list-grocery' } },
     { type: 'chores.changed', payload: {} },

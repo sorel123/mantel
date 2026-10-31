@@ -1,0 +1,901 @@
+/* Home screen (WS3). Styles follow design/mockup.html; everything is scoped under .home. */
+.home {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+.home .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.home .ico {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.home button:disabled {
+  cursor: default;
+}
+
+/* ---- top row: presence, scenes, announce ---- */
+.hm-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+.hm-presence {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  max-width: 420px;
+}
+.hm-presence .who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  min-width: 0;
+}
+.hm-presence .who b {
+  color: var(--ink);
+  font-size: 15px;
+}
+.hm-presence .who span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-avs {
+  display: flex;
+  flex: none;
+}
+.hm-av {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: -6px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: var(--pc);
+  box-shadow: 0 0 0 2px var(--surface);
+  transition:
+    opacity var(--slow) var(--ease),
+    filter var(--slow) var(--ease);
+}
+.hm-av:first-child {
+  margin-left: 0;
+}
+.hm-av.away {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.hm-scenes {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+.hm-scenes::-webkit-scrollbar {
+  display: none;
+}
+.hm-scene {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 18px 0 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  transition:
+    background var(--std) var(--ease),
+    color var(--std) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.hm-scene:active {
+  transform: scale(0.96);
+}
+.hm-scene.on {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.hm-announce-btn {
+  color: var(--accent);
+}
+
+/* ---- main: room grid and the right rail ---- */
+.hm-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.hm-main.no-rail {
+  grid-template-columns: minmax(0, 1fr);
+}
+.hm-rooms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 28px;
+  margin: -2px;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  /* Fade the last row so it reads as scrollable. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+.hm-main.no-rail .hm-rooms {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.hm-rooms::-webkit-scrollbar {
+  display: none;
+}
+.hm-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.hm-empty {
+  grid-column: 1 / -1;
+  padding: 32px;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  color: var(--ink-2);
+  text-align: center;
+}
+.hm-empty button {
+  height: var(--tap);
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+/* ---- room cards ---- */
+.hm-room {
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hm-rh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.hm-rh .nm {
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.hm-rh .st {
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-light {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 6px;
+}
+.hm-light.na {
+  opacity: 0.45;
+}
+.hm-lr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  font-size: 15px;
+  text-align: left;
+}
+.hm-lr span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hm-sw {
+  width: 50px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  position: relative;
+  transition: background var(--fast) var(--ease);
+  flex: none;
+}
+.hm-sw::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform var(--fast) var(--ease);
+}
+.hm-sw.on {
+  background: var(--accent);
+}
+.hm-sw.on::after {
+  transform: translateX(20px);
+}
+.hm-bri {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 30px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--accent) var(--v), var(--surface-2) var(--v));
+  margin: 0;
+  transition: opacity var(--std) var(--ease);
+  touch-action: none;
+}
+.hm-bri::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 22px;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 0;
+}
+.hm-bri::-moz-range-thumb {
+  width: 10px;
+  height: 22px;
+  border-radius: 5px;
+  background: #fff;
+  border: 0;
+}
+.hm-light.off .hm-bri,
+.hm-bri:disabled {
+  opacity: 0.35;
+}
+.hm-lock {
+  height: var(--tap);
+  margin: 4px 0;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--surface-2);
+  transition:
+    background var(--std) var(--ease),
+    color var(--std) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.hm-lock:active {
+  transform: scale(0.98);
+}
+.hm-lock.locked {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.hm-lock .ico {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+.hm-cover {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--tap);
+  font-size: 15px;
+}
+.hm-cover > span {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+.hm-cover em {
+  font-style: normal;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.hm-cover .ico {
+  width: 20px;
+  height: 20px;
+  color: var(--ink-2);
+}
+.hm-cover button {
+  height: 44px;
+  min-width: 84px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-weight: 700;
+  transition: transform var(--fast) var(--ease);
+}
+.hm-cover button:active {
+  transform: scale(0.96);
+}
+.hm-sens {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14.5px;
+  padding-top: 8px;
+}
+/* Under controls, sensors sit at the foot of the card as in the mockup. */
+.hm-light ~ .hm-sens,
+.hm-lock ~ .hm-sens,
+.hm-cover ~ .hm-sens {
+  margin-top: auto;
+}
+.hm-sens div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.hm-sens span {
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-sens b {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.hm-sens .na {
+  opacity: 0.5;
+}
+.hm-sens .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  background: var(--good);
+}
+.hm-sens .na .dot {
+  background: var(--ink-3);
+}
+.hm-sens .dot.warn {
+  background: var(--warn);
+}
+
+/* ---- thermostats ---- */
+.hm-climate {
+  grid-row: span 2;
+}
+.hm-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.hm-tabs button {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.hm-tabs button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hm-tabs button b {
+  font-size: 15px;
+  color: var(--ink);
+}
+.hm-tabs button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.hm-therm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  padding-top: 6px;
+}
+.hm-dial {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+.hm-dial svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(135deg);
+}
+.hm-dial circle {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.hm-dial .trk {
+  stroke: var(--surface-2);
+}
+.hm-dial .val {
+  stroke: var(--accent);
+  transition:
+    stroke-dashoffset var(--std) var(--ease),
+    stroke var(--std) var(--ease);
+}
+.hm-dial.heat .val {
+  stroke: var(--warn);
+}
+.hm-dial .rd {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.hm-dial .rd b {
+  font: 400 46px/1 var(--display);
+  letter-spacing: -0.02em;
+}
+.hm-dial .rd b.range {
+  font-size: 34px;
+}
+.hm-dial .rd span {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  display: block;
+  margin-top: 2px;
+}
+.hm-pm {
+  display: flex;
+  gap: 12px;
+}
+.hm-pm button {
+  width: 64px;
+  height: var(--tap);
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-size: 24px;
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+  transition:
+    transform var(--fast) var(--ease),
+    opacity var(--std) var(--ease);
+}
+.hm-pm button:active {
+  transform: scale(0.94);
+}
+.hm-pm button:disabled {
+  opacity: 0.35;
+}
+.hm-modes {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.hm-modes button {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.hm-modes button[aria-checked='true'] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+/* ---- cameras ---- */
+.hm-cams {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: none;
+}
+.hm-cam {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface-2);
+  transition: transform var(--fast) var(--ease);
+}
+.hm-cam:active {
+  transform: scale(0.98);
+}
+.hm-cam img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hm-cam-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.hm-cam-name {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.hm-thumbs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.hm-thumbs .hm-cam {
+  border-radius: 12px;
+}
+
+/* ---- now playing ---- */
+.hm-np {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: none;
+}
+.hm-np-idle {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.hm-np-pick {
+  display: flex;
+  gap: 4px;
+}
+.hm-np-pick button {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.hm-np-pick button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.hm-np-body {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.hm-np-art {
+  width: 76px;
+  height: 76px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  flex: none;
+}
+.hm-np-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hm-np-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hm-np-src {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-np-title {
+  font: 500 22px/1.15 var(--display);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-np-sub {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-np-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.hm-np-prog .bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.hm-np-prog .bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--std) linear;
+}
+.hm-np-ctl {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.hm-np-ctl button {
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  transition: transform var(--fast) var(--ease);
+}
+.hm-np-ctl button:active {
+  transform: scale(0.94);
+}
+.hm-np-ctl button.main {
+  width: 64px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 999px;
+}
+.hm-np-ctl .ico {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+.hm-np-ctl button.main .ico {
+  fill: currentColor;
+}
+
+/* ---- dialogs: confirm, announce ---- */
+.hm-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 16, 0.28);
+  z-index: 30;
+  animation: hm-fade var(--std) var(--ease) both;
+}
+.hm-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 31;
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: hm-pop var(--std) var(--ease) both;
+}
+.hm-confirm {
+  width: 400px;
+  text-align: center;
+}
+.hm-dialog h3 {
+  margin: 0;
+  font: 500 26px/1.15 var(--display);
+}
+.hm-dialog p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.hm-confirm .btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.hm-confirm .btns button {
+  flex: 1;
+  height: var(--tap);
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--surface-2);
+}
+.hm-confirm .btns .go {
+  background: var(--warn);
+  color: #fff;
+}
+.hm-announce {
+  width: 560px;
+}
+.hm-announce-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hm-announce-head .x {
+  width: var(--tap);
+  height: var(--tap);
+  margin: -12px -12px -12px 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.hm-chips,
+.hm-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hm-chips button {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.hm-chips button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+.hm-presets button {
+  flex: 1 1 calc(50% - 8px);
+  height: var(--tap);
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-weight: 600;
+  font-size: 15px;
+  transition: transform var(--fast) var(--ease);
+}
+.hm-presets button:active {
+  transform: scale(0.97);
+}
+.hm-announce-own {
+  display: flex;
+  gap: 8px;
+}
+.hm-announce-own input {
+  flex: 1;
+  height: var(--tap);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0 16px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+.hm-announce-own button {
+  height: var(--tap);
+  padding: 0 22px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.hm-announce-own button:disabled,
+.hm-presets button:disabled {
+  opacity: 0.45;
+}
+
+.hm-notice {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  z-index: 5;
+  max-width: 80%;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  animation: hm-rise var(--std) var(--ease) both;
+}
+
+@keyframes hm-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes hm-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.96);
+  }
+}
+@keyframes hm-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}

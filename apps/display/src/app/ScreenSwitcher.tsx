@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRef, type ComponentType, type PointerEvent } from 'react';
 import { EASE, STD, motionOr, useMotionPreference } from './motion';
+import { ScreenBoundary } from './ScreenBoundary';
 
 export interface SwitcherScreen {
   id: string;
@@ -74,7 +75,9 @@ export function ScreenSwitcher({
           exit="exit"
           transition={motionOr(reduced, { duration: STD, ease: EASE })}
         >
-          <screen.Component />
+          <ScreenBoundary name={screen.id}>
+            <screen.Component />
+          </ScreenBoundary>
         </motion.section>
       </AnimatePresence>
     </div>
