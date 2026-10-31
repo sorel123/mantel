@@ -15,6 +15,8 @@ const CalendarEnv = z.object({
   ICLOUD_USERNAME: z.string().optional(),
   ICLOUD_APP_PASSWORD: z.string().optional(),
   ICLOUD_CALDAV_URL: z.string().url().default('https://caldav.icloud.com/'),
+  /** iCal links (Google's secret address, any .ics feed), separated by spaces or new lines. */
+  ICAL_URLS: z.string().optional(),
   /** Seconds between syncs. Push-enabled Google calendars use the slower safety-net interval. */
   CALENDAR_POLL_SECONDS: z.coerce.number().int().min(30).default(180),
   CALENDAR_PUSH_POLL_SECONDS: z.coerce.number().int().min(60).default(900),

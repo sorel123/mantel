@@ -5,6 +5,12 @@ import type { CalendarPrefs, CalendarSetupState } from './contract';
 import { Chips, Result, Section, TextInput } from './controls';
 import { IntegrationCard } from './Integrations';
 
+const SOURCE_LABEL: Record<string, string> = {
+  google: 'Google',
+  icloud: 'iCloud',
+  ical: 'Calendar link',
+};
+
 const when = (iso: string | null) =>
   iso
     ? new Date(iso).toLocaleString([], {
@@ -150,7 +156,7 @@ export function CalendarsSection({
       hint={
         wizard
           ? 'Connect at least one account. You can add the other later.'
-          : 'Connect Google and iCloud, then choose what shows on the wall and whose it is.'
+          : 'Connect Google, iCloud or a calendar link, then choose what shows on the wall and whose it is.'
       }
       action={
         !wizard && state ? (
@@ -196,7 +202,8 @@ export function CalendarsSection({
         </div>
         {state && cals.length === 0 && (
           <p className="set-hint">
-            No calendars yet. Connect Google or iCloud above, then Sync now.
+            No calendars yet. Paste a calendar link or connect Google or iCloud above, then Sync
+            now.
           </p>
         )}
         {cals.length > 0 && (
@@ -231,7 +238,7 @@ export function CalendarsSection({
                       onChange={(name) => set(c.id, { name })}
                     />
                     <span className="set-hint">
-                      {c.source === 'google' ? 'Google' : 'iCloud'}
+                      {SOURCE_LABEL[c.source]}
                       {c.readOnly ? ' · read-only' : ''}
                       {c.primary ? ' · primary' : ''}
                     </span>
@@ -295,8 +302,13 @@ export function CalendarsSection({
             </button>
             {state && (
               <span className="set-hint">
-                Google synced {when(state.google.lastSync)}
-                {state.icloud.configured ? ` · iCloud synced ${when(state.icloud.lastSync)}` : ''}
+                {[
+                  state.google.configured && `Google synced ${when(state.google.lastSync)}`,
+                  state.icloud.configured && `iCloud synced ${when(state.icloud.lastSync)}`,
+                  state.ical?.configured && `Links synced ${when(state.ical.lastSync)}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </span>
             )}
           </div>

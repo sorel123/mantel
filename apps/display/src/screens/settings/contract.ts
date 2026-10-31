@@ -18,6 +18,8 @@ export interface CalendarSetupState {
     push: boolean;
     pushActive: boolean;
   };
+  /** Calendar links (iCal feeds). Missing from servers before the ical plugin. */
+  ical?: { configured: boolean; connected: boolean; lastSync: string | null; error: string | null };
   icloud: {
     configured: boolean;
     connected: boolean;
@@ -30,7 +32,7 @@ export interface CalendarSetupState {
   calendars: Array<{
     id: string;
     name: string;
-    source: 'google' | 'icloud';
+    source: 'google' | 'icloud' | 'ical';
     color: string;
     personIds: string[];
     readOnly: boolean;

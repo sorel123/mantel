@@ -1,6 +1,6 @@
 # Calendars
 
-The wall shows Google and iCloud calendars together. The server syncs them into SQLite every few minutes, so the display never waits on Google or Apple and keeps working through an outage.
+The wall shows Google and iCloud calendars, and any iCal link, together. The server syncs them into SQLite every few minutes, so the display never waits on Google or Apple and keeps working through an outage.
 
 ## What it does
 
@@ -15,7 +15,17 @@ The wall shows Google and iCloud calendars together. The server syncs them into 
 
 All of this happens once, on any computer on the home network, in **Settings › Calendars** (`http://<server>:8787/settings#calendars`). The page asks for the admin PIN or the 6-digit pairing code from the server log first; the old `/api/calendar/setup` address redirects there.
 
-### Google
+### The easy way: a calendar link
+
+No Cloud console and no account sign-in. Each Google calendar has a private read-only link:
+
+1. On a computer open [Google Calendar settings](https://calendar.google.com/calendar/r/settings), click the calendar under **Settings for my calendars**, and scroll to **Integrate calendar**.
+2. Copy **Secret address in iCal format** (it ends in `basic.ics`).
+3. In **Settings › Calendars**, paste it on the **Calendar link (iCal)** card, press **Test**, then **Save**. Add one link per family member's calendar (three boxes, and **More links** under Advanced for the rest).
+
+Any `.ics` or `webcal://` link works the same way: an Outlook published calendar, a school or sports-team feed, a shared iCloud calendar's public link. Links are read-only, so quick add writes to iCloud or to a Google account connected the full way below. If you press **Reset** on the secret address in Google, paste the new one. `ICAL_URLS` (links separated by spaces) is the environment fallback.
+
+### Google (two-way, for quick add)
 
 1. In the [Google Cloud console](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com), create a project and enable the **Google Calendar API**.
 2. In **Google Auth Platform**, set the audience to **External**, then press **Publish app**. Publishing matters: while an app is in "Testing", Google expires its sign-in after 7 days. Google will show an "unverified app" warning when you sign in; for an app only your household uses, that is expected and you can continue.
