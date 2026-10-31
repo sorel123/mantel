@@ -289,7 +289,14 @@ export function isRing(
 const DOORBELL_DEBOUNCE_MS = 15_000;
 const CALL_SETTLE_MS = 1500;
 
-export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): HomeProvider {
+export interface RealHome extends HomeProvider {
+  /** Close the Home Assistant socket and the allow-list watcher (the plugin registry calls this before a rebuild). */
+  stop(): void;
+  /** The connection, for status reporting; absent when HA_URL and HA_TOKEN are not set. */
+  client?: HaClient;
+}
+
+export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): RealHome {
   if (!env.HA_URL || !env.HA_TOKEN) {
     log.info('home: HA_URL and HA_TOKEN are not set; Home Assistant routes answer 501');
     const off = () =>
@@ -303,6 +310,7 @@ export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): HomePr
       media: off,
       mediaCall: off,
       mediaArtwork: off,
+      stop: () => {},
     };
   }
   const client = new HaClient({ url: env.HA_URL, token: env.HA_TOKEN });
@@ -312,7 +320,14 @@ export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): HomePr
   );
   const provider = createHomeProvider(ctx, client, () => file.get(), env.HA_STREAM_MAX_SECONDS);
   client.start();
-  return provider;
+  return {
+    ...provider,
+    client,
+    stop: () => {
+      client.stop();
+      file.close();
+    },
+  };
 }
 
 /** Everything but the wiring, so tests can hand in a client pointed at a fake HA. */
