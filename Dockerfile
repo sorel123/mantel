@@ -1,4 +1,7 @@
-# One container serves the API, the WebSocket and the built display. WS6 refines this.
+# One container serves the API, the WebSocket and the built display on one port.
+# Build: docker build -t mantel .   Run: see docker-compose.yml or deploy/unraid/mantel.xml.
+
+# ---- build: install, compile both apps, then prune to production server deps ----
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 RUN corepack enable
@@ -13,16 +16,27 @@ COPY . .
 RUN pnpm --filter @mantel/display build && pnpm --filter @mantel/server build
 RUN pnpm --filter @mantel/server deploy --prod --legacy /out
 
+# ---- runtime: Node, production deps, the server bundle and the static display ----
 FROM node:22-bookworm-slim
+ARG REVISION=dev
+LABEL org.opencontainers.image.title="Mantel" \
+      org.opencontainers.image.description="Family wall display: calendars, weather, photos, lists and Home Assistant controls" \
+      org.opencontainers.image.source="https://github.com/sorel123/mantel" \
+      org.opencontainers.image.revision="${REVISION}"
 ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
     PORT=8787 \
     DATA_DIR=/data \
-    DISPLAY_DIST=/app/display
+    DISPLAY_DIST=/app/display \
+    TZ=America/Los_Angeles
 WORKDIR /app
 COPY --from=build /out /app
 COPY --from=build /app/apps/server/dist /app/dist
 COPY --from=build /app/apps/display/dist /app/display
+# SQLite, caches and config files (HA allow-list) live here; map it to appdata on Unraid.
 VOLUME /data
 EXPOSE 8787
-HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://localhost:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# Node is PID 1 and handles SIGTERM itself (see apps/server/src/index.ts).
 CMD ["node", "dist/index.js"]

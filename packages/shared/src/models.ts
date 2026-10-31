@@ -325,6 +325,8 @@ export const ScreenSchedule = z.object({
   onAt: ClockTime,
   /** Brightness steps through the day; the most recent step at or before now applies. */
   brightness: z.array(BrightnessStep),
+  /** Every display reloads itself at this time each night to pick up new builds. Default 04:00. */
+  reloadAt: ClockTime.optional(),
 });
 export type ScreenSchedule = z.infer<typeof ScreenSchedule>;
 
@@ -369,6 +371,36 @@ export const Settings = z.object({
   flags: FeatureFlags,
 });
 export type Settings = z.infer<typeof Settings>;
+
+/* ---------- displays (WS6) ---------- */
+
+/** A paired display. Revoking one signs it out at once; it must pair again with a new code. */
+export const Device = z.object({
+  id: Id,
+  name: z.string(),
+  createdAt: IsoDateTime,
+  lastSeenAt: IsoDateTime.nullable(),
+  revokedAt: IsoDateTime.nullable(),
+  /** True for the device making the request. */
+  current: z.boolean(),
+});
+export type Device = z.infer<typeof Device>;
+
+/**
+ * What the screen should be doing right now according to the schedule. Kiosk helpers
+ * (the Surface brightness task, Home Assistant automations) poll this instead of
+ * re-implementing the schedule.
+ */
+export const DisplayState = z.object({
+  at: IsoDateTime,
+  /** `off` between `offFrom` and `onAt`. */
+  screen: z.enum(['on', 'off']),
+  /** True between `ambientFrom` and `offFrom`: go to Ambient when idle and stay there. */
+  ambient: z.boolean(),
+  /** 0 to 100 from the brightness steps; 0 while the screen is off. */
+  brightness: z.number().min(0).max(100),
+});
+export type DisplayState = z.infer<typeof DisplayState>;
 
 export const PanelSize = z.object({
   width: z.number().int().positive(),

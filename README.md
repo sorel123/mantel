@@ -39,7 +39,7 @@ Each workstream changes only its own folders, plus additions to `packages/shared
 | 3 Home Assistant           | `src/screens/home/`, `src/features/doorbell/`                   | `providers/real/home*`, `providers/mock/home.ts`, home and media block in `routes/`   |
 | 4 Weather, commute, photos | `src/features/weather/`, `src/features/photos/`                 | `providers/real/{weather,commute,photos}*`, `providers/mock/{weather,photos}.ts`      |
 | 5 Lists & chores           | `src/screens/lists/`, `/add` page                               | `providers/real/lists*`, `providers/mock/lists.ts`, lists block in `routes/`          |
-| 6 Deployment & kiosk       | settings page                                                   | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
+| 6 Deployment & kiosk       | `src/screens/settings/` (the `/settings` page)                  | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
 
 Shared plumbing (`src/lib/api.ts`, `src/lib/events.ts`, `src/lib/bootstrap.tsx`, `server/src/contract.ts`, `server/src/app.ts`) belongs to the scaffold; change it only when a workstream truly needs to, and say so in the PR.
 
@@ -57,27 +57,31 @@ The server validates every request against the route table and, outside producti
 
 ### REST (under `/api`, JSON, header `x-mantel-device-key` on every call except pairing and health)
 
-| Route                                                                          | Purpose                                                         |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `POST /pair`                                                                   | Exchange the 6-digit code from the server log for a device key  |
-| `GET /bootstrap`                                                               | People, calendars, settings, theme, panel size, feature flags   |
-| `GET /calendar?from&to`                                                        | Normalised events from Google and iCloud with people and colour |
-| `POST /calendar/quick`                                                         | Create a quick event                                            |
-| `GET /countdowns`                                                              | Upcoming tagged events with days remaining                      |
-| `GET /meals?week`                                                              | Meal plan for the week (weeks start Monday)                     |
-| `GET /weather`                                                                 | Current, hourly, daily, sun, UV, air quality, pollen, alerts    |
-| `GET /commute`                                                                 | Leave-by times; empty outside the weekday morning window        |
-| `GET /photos/next?n`                                                           | Next n photos sized for the panel, with dominant colour         |
-| `GET /photos/:id`                                                              | Image bytes                                                     |
-| `GET /home/state`                                                              | Allowed areas, entities, states and presence                    |
-| `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity              |
-| `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                     |
-| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                        |
-| `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                         |
-| `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back        |
-| `POST /chores`, `DELETE /chores/:id`                                           | Add or retire a chore                                           |
-| `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags                   |
-| `GET /health`                                                                  | Liveness and last sync times (no key needed)                    |
+| Route                                                                          | Purpose                                                               |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `POST /pair`                                                                   | Exchange the 6-digit code from the server log for a device key        |
+| `GET /bootstrap`                                                               | People, calendars, settings, theme, panel size, feature flags         |
+| `GET /calendar?from&to`                                                        | Normalised events from Google and iCloud with people and colour       |
+| `POST /calendar/quick`                                                         | Create a quick event                                                  |
+| `GET /countdowns`                                                              | Upcoming tagged events with days remaining                            |
+| `GET /meals?week`                                                              | Meal plan for the week (weeks start Monday)                           |
+| `GET /weather`                                                                 | Current, hourly, daily, sun, UV, air quality, pollen, alerts          |
+| `GET /commute`                                                                 | Leave-by times; empty outside the weekday morning window              |
+| `GET /photos/next?n`                                                           | Next n photos sized for the panel, with dominant colour               |
+| `GET /photos/:id`                                                              | Image bytes                                                           |
+| `GET /home/state`                                                              | Allowed areas, entities, states and presence                          |
+| `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity                    |
+| `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                           |
+| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                              |
+| `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                               |
+| `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back              |
+| `POST /chores`, `DELETE /chores/:id`                                           | Add or retire a chore                                                 |
+| `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags; a PUT reloads displays |
+| `GET /devices`, `PATCH /devices/:id`, `DELETE /devices/:id`                    | Paired displays: list, rename, revoke                                 |
+| `GET /pairing-code`                                                            | The current pairing code, so a paired display can pair another        |
+| `GET /display/state`                                                           | What the screen should do now: on/off, ambient, brightness            |
+| `POST /display/reload`                                                         | Tell every display to reload                                          |
+| `GET /health`                                                                  | Liveness and last sync times (no key needed)                          |
 
 Errors are `{ "error": { "code", "message" } }` with codes `bad_request`, `unauthorized`, `forbidden`, `not_found`, `not_implemented` (501, a real integration not built yet), `upstream_error`, `internal`.
 
@@ -134,7 +138,7 @@ All configuration is environment variables; see [`.env.example`](.env.example). 
 docker compose up --build       # http://localhost:8787, data in ./data
 ```
 
-The image builds the display and serves it from the server on one port. Unraid template, kiosk setup for iPad and Surface, and the settings page arrive with workstream 6.
+The image builds the display and serves it from the server on one port. Merges to `main` publish it as `ghcr.io/sorel123/mantel:latest`. [`deploy/README.md`](deploy/README.md) walks from the Unraid template to a paired iPad or Surface in kiosk mode; the settings page is at `/settings`.
 
 ## Conventions
 

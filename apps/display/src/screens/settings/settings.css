@@ -1,0 +1,365 @@
+/* Settings page (WS6). A scrolling document, unlike the fixed wall panel. */
+.set-page {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  transition: background var(--slow) var(--ease);
+}
+.set-main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px 24px 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.set-page input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.set-center {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+}
+.set-msg {
+  padding: 28px;
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+.set-msg p {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.set-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.set-head .eyebrow {
+  margin-bottom: 8px;
+}
+
+.set-sec {
+  padding: 24px 26px 10px;
+}
+.set-sec-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+}
+.set-hint {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.set-err {
+  color: var(--warn);
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.set-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: var(--tap);
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.set-label {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+.set-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.set-pair .set-hint {
+  margin: 0;
+}
+
+.set-input {
+  height: 48px;
+  min-width: 0;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 500 16px/1 var(--body);
+  transition: border-color var(--fast) var(--ease);
+}
+.set-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.set-input[type='time'] {
+  width: 150px;
+}
+.set-input[type='number'] {
+  width: 128px;
+}
+.set-field > .set-input[type='text'] {
+  width: 300px;
+}
+.set-color {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: none;
+  overflow: hidden;
+  cursor: pointer;
+  flex: none;
+}
+.set-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.set-color::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+.set-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--tap);
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    opacity var(--fast) var(--ease);
+}
+.set-btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.set-btn.danger {
+  background: var(--warn);
+  color: #fff;
+}
+.set-btn.quiet {
+  background: none;
+  color: var(--ink-2);
+  padding: 0 12px;
+}
+.set-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.set-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+}
+.set-seg button {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.set-seg button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.set-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.set-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  min-width: 56px;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+.set-chips button i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--chip);
+}
+.set-chips button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+/* Matches the mockup's light switch. */
+.set-page .sw {
+  width: 50px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  position: relative;
+  transition: background var(--fast) var(--ease);
+  flex: none;
+  /* Keep the hit area at the tap size around the small switch. */
+  box-shadow: 0 0 0 13px transparent;
+}
+.set-page .sw::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform var(--fast) var(--ease);
+}
+.set-page .sw.on {
+  background: var(--accent);
+}
+.set-page .sw.on::after {
+  transform: translateX(20px);
+}
+
+.set-sub {
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.set-row > .set-input[type='text'] {
+  flex: 1;
+  min-width: 120px;
+}
+.set-row > .set-input[maxlength='2'] {
+  flex: 0 0 64px;
+  min-width: 0;
+  text-align: center;
+}
+.set-item {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.set-range {
+  flex: 1;
+  min-width: 140px;
+  height: 48px;
+  accent-color: var(--accent);
+}
+.set-num {
+  width: 48px;
+  text-align: right;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.set-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: 2px;
+}
+.set-code {
+  font: 500 34px/1 var(--display);
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.set-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  width: min(832px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 22px;
+  border-radius: 999px;
+}
+.set-bar-msg {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .set-main {
+    padding: 24px 14px 150px;
+  }
+  .set-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .set-sec {
+    padding: 20px 18px 8px;
+  }
+  .set-sec-head,
+  .set-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .set-field > .set-input[type='text'] {
+    width: 100%;
+  }
+  .set-bar {
+    border-radius: 24px;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+}
