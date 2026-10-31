@@ -19,7 +19,7 @@ import { chores, lists } from './lists.js';
 import { calendars, people } from './people.js';
 import { photos } from './photos.js';
 import { settings } from './settings.js';
-import { commute, weather } from './weather.js';
+import { commute, weather, weatherForPlace, weatherPlaces, weatherQuip } from './weather.js';
 
 export * from './calendar.js';
 export * from './home.js';
@@ -75,6 +75,9 @@ export function routeFixtures(now = new Date()): {
     countdowns: { countdowns: countdowns(now) },
     meals: meals(now),
     weather: weather(now),
+    weatherPlace: weatherForPlace(now, weatherPlaces[0]!),
+    weatherSearch: { places: weatherPlaces },
+    weatherQuip: { quip: weatherQuip(now) },
     commute: commute(now, { force: true }),
     photosNext: {
       photos: photos(DEFAULT_PANEL).map((p) => ({ ...p, url: `/api/photos/${p.id}` })),
@@ -186,6 +189,21 @@ export function wsFixtures(now = new Date()) {
     { type: 'list.changed', payload: { listId: 'list-grocery' } },
     { type: 'chores.changed', payload: {} },
     { type: 'weather.updated', payload: { weather: weather(now) } },
+    {
+      type: 'weather.alert',
+      payload: {
+        locationName: 'Home',
+        alert: {
+          id: 'alert-wind',
+          event: 'High Wind Warning',
+          severity: 'severe',
+          headline: 'High Wind Warning until 6 PM',
+          description: 'South winds 30 to 40 mph with gusts up to 60 mph. Secure loose objects.',
+          starts: toLocalIso(now),
+          ends: toLocalIso(addDays(today, 1)),
+        },
+      },
+    },
     { type: 'display.reload', payload: {} },
     { type: 'display.wake', payload: { reason: 'presence' } },
     { type: 'display.sleep', payload: { reason: 'schedule' } },

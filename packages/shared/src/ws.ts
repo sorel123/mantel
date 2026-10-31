@@ -4,7 +4,8 @@
  * uses WebSocket ping frames.
  */
 import { z } from 'zod';
-import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence, WeatherSnapshot } from './models.js';
+import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence } from './models.js';
+import { WeatherAlertPayload, WeatherSnapshotExtended } from './weather-extended.js';
 
 const event = <T extends string, P extends z.ZodType>(type: T, payload: P) =>
   z.object({ type: z.literal(type), payload });
@@ -29,7 +30,12 @@ export const MediaStateEvent = event('media.state', z.object({ player: MediaPlay
 export const ListChanged = event('list.changed', z.object({ listId: Id }));
 /** The chore chart changed (a tap, an undo, or a chore added or removed); the display refetches. */
 export const ChoresChanged = event('chores.changed', z.object({}));
-export const WeatherUpdated = event('weather.updated', z.object({ weather: WeatherSnapshot }));
+export const WeatherUpdated = event(
+  'weather.updated',
+  z.object({ weather: WeatherSnapshotExtended }),
+);
+/** A warning just became active for the household's location; the display wakes and shows it. */
+export const WeatherAlertEvent = event('weather.alert', WeatherAlertPayload);
 export const DisplayReload = event('display.reload', z.object({}));
 export const DisplayWake = event(
   'display.wake',
@@ -49,6 +55,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   ListChanged,
   ChoresChanged,
   WeatherUpdated,
+  WeatherAlertEvent,
   DisplayReload,
   DisplayWake,
   DisplaySleep,

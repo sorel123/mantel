@@ -1,16 +1,29 @@
 /**
- * Open-Meteo forecast and air-quality APIs (no key needed), normalised to `WeatherSnapshot`.
- * https://open-meteo.com/en/docs and https://open-meteo.com/en/docs/air-quality-api
+ * Open-Meteo forecast, air-quality and geocoding APIs (no key needed), normalised to the
+ * shared weather contract. https://open-meteo.com/en/docs and https://open-meteo.com/en/docs/air-quality-api
  *
  * Requests use `timeformat=unixtime` with the household timezone, so daily values are
  * aggregated over local days while every timestamp stays unambiguous.
  */
 import type { Units, WeatherCondition, WeatherSnapshot } from '@mantel/shared';
+import {
+  moonPhaseAt,
+  placeId,
+  type WeatherDayDetail,
+  type WeatherHourDetail,
+  type WeatherPlace,
+  type WeatherSnapshotExtended,
+} from '@mantel/shared';
 import { z } from 'zod';
 import { dateInZone, isoInZone } from './weather-time.js';
 
 export const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 export const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+export const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+
+/** Hours and days the snapshot carries. Open-Meteo gives up to 16 days; ten is plenty for a wall. */
+export const HOURS = 48;
+export const DAYS = 10;
 
 type Pollen = NonNullable<WeatherSnapshot['pollen']>;
 type PollenLevel = Pollen['tree'];
@@ -108,8 +121,11 @@ export function pollenLevel(group: keyof Pollen, grains: number): PollenLevel {
 
 const num = z.number().nullable().optional();
 const series = z.array(z.number().nullable());
+/** Variables added in this pass may be missing from an older cached response; keep them optional. */
+const maybeSeries = series.optional();
 
 export const ForecastJson = z.object({
+  timezone: z.string().optional(),
   current: z.object({
     time: z.number(),
     temperature_2m: num,
@@ -126,6 +142,14 @@ export const ForecastJson = z.object({
     is_day: series,
     precipitation_probability: series,
     uv_index: series,
+    precipitation: maybeSeries,
+    wind_speed_10m: maybeSeries,
+    wind_gusts_10m: maybeSeries,
+    wind_direction_10m: maybeSeries,
+    relative_humidity_2m: maybeSeries,
+    dew_point_2m: maybeSeries,
+    surface_pressure: maybeSeries,
+    visibility: maybeSeries,
   }),
   daily: z.object({
     time: z.array(z.number()),
@@ -136,6 +160,9 @@ export const ForecastJson = z.object({
     sunrise: series,
     sunset: series,
     uv_index_max: series,
+    wind_speed_10m_max: maybeSeries,
+    precipitation_sum: maybeSeries,
+    daylight_duration: maybeSeries,
   }),
 });
 export type ForecastJson = z.infer<typeof ForecastJson>;
@@ -152,6 +179,23 @@ export const AirQualityJson = z.object({
   }),
 });
 export type AirQualityJson = z.infer<typeof AirQualityJson>;
+
+export const GeocodingJson = z.object({
+  results: z
+    .array(
+      z.object({
+        name: z.string(),
+        latitude: z.number(),
+        longitude: z.number(),
+        country: z.string().optional(),
+        admin1: z.string().optional(),
+        timezone: z.string().optional(),
+        population: z.number().optional(),
+      }),
+    )
+    .optional(),
+});
+export type GeocodingJson = z.infer<typeof GeocodingJson>;
 
 export interface WeatherQuery {
   latitude: number;
@@ -178,6 +222,14 @@ export function forecastUrl(q: WeatherQuery): string {
       'is_day',
       'precipitation_probability',
       'uv_index',
+      'precipitation',
+      'wind_speed_10m',
+      'wind_gusts_10m',
+      'wind_direction_10m',
+      'relative_humidity_2m',
+      'dew_point_2m',
+      'surface_pressure',
+      'visibility',
     ].join(','),
     daily: [
       'weather_code',
@@ -187,10 +239,13 @@ export function forecastUrl(q: WeatherQuery): string {
       'sunrise',
       'sunset',
       'uv_index_max',
+      'wind_speed_10m_max',
+      'precipitation_sum',
+      'daylight_duration',
     ].join(','),
     timezone: q.timeZone,
     timeformat: 'unixtime',
-    forecast_days: '7',
+    forecast_days: String(DAYS),
     ...(q.units === 'imperial'
       ? { temperature_unit: 'fahrenheit', wind_speed_unit: 'mph', precipitation_unit: 'inch' }
       : { wind_speed_unit: 'kmh' }),
@@ -216,12 +271,27 @@ export function airQualityUrl(q: WeatherQuery): string {
   return `${AIR_QUALITY_URL}?${params}`;
 }
 
+export function geocodingUrl(query: string, count = 8): string {
+  const params = new URLSearchParams({
+    name: query,
+    count: String(count),
+    language: 'en',
+    format: 'json',
+  });
+  return `${GEOCODING_URL}?${params}`;
+}
+
 /* ---------- normalising ---------- */
 
 const pct = (v: number | null | undefined) => Math.min(100, Math.max(0, Math.round(v ?? 0)));
 const round = (v: number | null | undefined) => Math.round(v ?? 0);
+const tenth = (v: number | null | undefined) => Math.round((v ?? 0) * 10) / 10;
+const hundredth = (v: number | null | undefined) => Math.round((v ?? 0) * 100) / 100;
+const at = (s: Array<number | null> | undefined, i: number) => s?.[i] ?? undefined;
+const def = <T>(v: number | null | undefined, f: (n: number) => T): T | undefined =>
+  v === null || v === undefined ? undefined : f(v);
 
-export type ForecastPart = Omit<WeatherSnapshot, 'airQuality' | 'pollen' | 'alerts'>;
+export type ForecastPart = Omit<WeatherSnapshotExtended, 'airQuality' | 'pollen' | 'alerts'>;
 
 export function normaliseForecast(
   json: ForecastJson,
@@ -231,6 +301,7 @@ export function normaliseForecast(
   const nowSec = q.now.getTime() / 1000;
   const h = json.hourly;
   const d = json.daily;
+  const metric = q.units === 'metric';
 
   // The hour we are in, for values Open-Meteo only gives hourly (precipitation chance, UV).
   let currentHour = 0;
@@ -238,27 +309,42 @@ export function normaliseForecast(
     if (t <= nowSec) currentHour = i;
   });
 
-  const hourly = h.time
+  const hourly: WeatherHourDetail[] = h.time
     .map((t, i) => ({ t, i }))
     .filter(({ t }) => t > nowSec)
-    .slice(0, 24)
+    .slice(0, HOURS)
     .map(({ t, i }) => ({
       time: iso(t),
       temp: round(h.temperature_2m[i]),
       condition: describeCode(h.weather_code[i]).condition,
       isDay: h.is_day[i] === 1,
       precipChance: pct(h.precipitation_probability[i]),
+      precipAmount: def(at(h.precipitation, i), (v) => Math.max(0, hundredth(v))),
+      windSpeed: def(at(h.wind_speed_10m, i), (v) => Math.max(0, round(v))),
+      windGust: def(at(h.wind_gusts_10m, i), (v) => Math.max(0, round(v))),
+      windDirection: def(at(h.wind_direction_10m, i), (v) => Math.min(360, Math.max(0, round(v)))),
+      humidity: def(at(h.relative_humidity_2m, i), pct),
+      dewPoint: def(at(h.dew_point_2m, i), round),
+      pressure: def(at(h.surface_pressure, i), (v) => Math.max(0, round(v))),
+      // Open-Meteo gives visibility in metres whatever the units.
+      visibility: def(at(h.visibility, i), (v) =>
+        Math.max(0, tenth(metric ? v / 1000 : v / 1609.344)),
+      ),
+      uv: def(h.uv_index[i], (v) => Math.max(0, tenth(v))),
     }));
 
-  const daily = d.time.slice(0, 7).map((t, i) => ({
+  const daily: WeatherDayDetail[] = d.time.slice(0, DAYS).map((t, i) => ({
     date: dateInZone(new Date(t * 1000), q.timeZone),
     high: round(d.temperature_2m_max[i]),
     low: round(d.temperature_2m_min[i]),
-    condition: describeCode(d.weather_code[i]).condition,
+    ...describeCode(d.weather_code[i], { isDay: true }),
     precipChance: pct(d.precipitation_probability_max[i]),
     sunrise: iso(d.sunrise[i] ?? t),
     sunset: iso(d.sunset[i] ?? t),
-    uvMax: Math.max(0, Math.round((d.uv_index_max[i] ?? 0) * 10) / 10),
+    uvMax: Math.max(0, tenth(d.uv_index_max[i])),
+    windMax: def(at(d.wind_speed_10m_max, i), (v) => Math.max(0, round(v))),
+    precipSum: def(at(d.precipitation_sum, i), (v) => Math.max(0, hundredth(v))),
+    daylightHours: def(at(d.daylight_duration, i), (v) => Math.max(0, tenth(v / 3600))),
   }));
 
   const c = json.current;
@@ -271,6 +357,8 @@ export function normaliseForecast(
     updatedAt: isoInZone(q.now, q.timeZone),
     locationName: q.locationName,
     units: q.units,
+    coordinates: { latitude: q.latitude, longitude: q.longitude },
+    timezone: json.timezone ?? q.timeZone,
     current: {
       temp: round(c.temperature_2m),
       feelsLike: round(c.apparent_temperature ?? c.temperature_2m),
@@ -285,6 +373,7 @@ export function normaliseForecast(
     sunrise: today?.sunrise ?? isoInZone(q.now, q.timeZone),
     sunset: today?.sunset ?? isoInZone(q.now, q.timeZone),
     uv: { index: uvIndex, category: uvCategory(uvIndex) },
+    moon: moonPhaseAt(q.now),
   };
 }
 
@@ -317,4 +406,35 @@ export function normaliseAirQuality(json: AirQualityJson): {
         : null,
     pollen,
   };
+}
+
+/** Geocoding results as places, biggest first (Open-Meteo already ranks by relevance). */
+export function normaliseGeocoding(json: GeocodingJson): WeatherPlace[] {
+  const seen = new Set<string>();
+  const out: WeatherPlace[] = [];
+  for (const r of json.results ?? []) {
+    const id = placeId(r.latitude, r.longitude);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({
+      id,
+      name: r.name,
+      region: r.admin1 || undefined,
+      country: r.country || undefined,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      timezone: r.timezone || undefined,
+    });
+  }
+  return out;
+}
+
+/** "47.6062, -122.3321" pasted from a map: a place with no name yet. */
+export function parseCoordinates(q: string): { latitude: number; longitude: number } | null {
+  const m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(q);
+  if (!m) return null;
+  const latitude = Number(m[1]);
+  const longitude = Number(m[2]);
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  return { latitude, longitude };
 }

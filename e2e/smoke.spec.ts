@@ -32,6 +32,49 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
 
+  // The weather card opens its sheet, every tab renders, and a place can be looked up.
+  await page.getByRole('button', { name: 'Open the forecast' }).click();
+  const wx = page.getByRole('dialog', { name: /^Weather,/ });
+  await expect(wx.getByRole('tab', { name: 'Hourly' })).toHaveAttribute('aria-selected', 'true');
+  await expect(wx.getByRole('img', { name: /Temperature and rain/ })).toBeVisible();
+  await wx.getByRole('tab', { name: '10-day' }).click();
+  await expect(
+    wx.getByRole('list', { name: 'Ten-day forecast' }).getByRole('listitem'),
+  ).toHaveCount(10);
+  await wx.getByRole('tab', { name: 'Details' }).click();
+  await expect(wx.getByText('Dew point')).toBeVisible();
+  await wx.getByRole('tab', { name: 'Alerts' }).click();
+  await expect(wx.getByText(/^No alerts for/)).toBeVisible();
+  await wx.getByRole('searchbox', { name: 'Search for a place' }).fill('Seattle');
+  await wx.getByRole('option', { name: /Seattle/ }).click();
+  await expect(wx.getByRole('heading', { name: 'Seattle' })).toBeVisible();
+  await wx.getByRole('button', { name: 'Close' }).click();
+  await expect(wx).toBeHidden();
+
+  // A pushed warning shows a banner until dismissed.
+  const warned = await request.post('/api/dev/emit', {
+    data: {
+      type: 'weather.alert',
+      payload: {
+        locationName: 'Home',
+        alert: {
+          id: 'smoke-wind',
+          event: 'High Wind Warning',
+          severity: 'severe',
+          headline: 'High Wind Warning until 6 PM',
+          description: 'Gusts up to 60 mph.',
+          starts: new Date().toISOString(),
+          ends: null,
+        },
+      },
+    },
+  });
+  expect(warned.ok()).toBe(true);
+  const banner = page.getByRole('alert');
+  await expect(banner.getByText('High Wind Warning')).toBeVisible();
+  await banner.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(banner).toBeHidden();
+
   // The grocery card opens the Lists screen.
   await page.getByRole('button', { name: /list$/ }).first().click();
   await expect(page.locator('.screen[data-screen="lists"]')).toBeVisible();

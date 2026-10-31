@@ -1,4 +1,4 @@
-import { WeatherSnapshot } from '@mantel/shared';
+import { WeatherSnapshotExtended, type Settings } from '@mantel/shared';
 import { describe, expect, it } from 'vitest';
 import { realWeather, WEATHER_TTL_MS } from './weather.js';
 import { loadWs4Env } from './weather-env.js';
@@ -6,7 +6,10 @@ import { normaliseGooglePollen, normaliseNws } from './weather-extras.js';
 import {
   describeCode,
   forecastUrl,
+  geocodingUrl,
   normaliseAirQuality,
+  normaliseGeocoding,
+  parseCoordinates,
   pollenLevel,
   uvCategory,
 } from './weather-openmeteo.js';
@@ -44,6 +47,14 @@ function forecastJson() {
       is_day: hours.map((_, i) => (i % 24 >= 7 && i % 24 < 18 ? 1 : 0)),
       precipitation_probability: hours.map((_, i) => (i === 7 ? 20 : i % 24 >= 18 ? 70 : null)),
       uv_index: hours.map((_, i) => (i === 7 ? 0.4 : 3.2)),
+      precipitation: hours.map((_, i) => (i % 24 >= 18 ? 0.123 : 0)),
+      wind_speed_10m: hours.map((_, i) => 4 + (i % 5)),
+      wind_gusts_10m: hours.map((_, i) => 9 + (i % 5)),
+      wind_direction_10m: hours.map(() => 225),
+      relative_humidity_2m: hours.map(() => 61.4),
+      dew_point_2m: hours.map(() => 40.6),
+      surface_pressure: hours.map(() => 1013.7),
+      visibility: hours.map(() => 16093.44),
     },
     daily: {
       time: days,
@@ -54,9 +65,33 @@ function forecastJson() {
       sunrise: days.map((d) => d + 7 * 3600 + 22 * 60),
       sunset: days.map((d) => d + 17 * 3600 + 58 * 60),
       uv_index_max: [3.16, 1, 2, 4, 4, 3, 1],
+      wind_speed_10m_max: [12.4, 18, 9, 7, 6, 11, 22],
+      precipitation_sum: [0, 0.35, 0, 0, 0, 0, 0.8],
+      daylight_duration: days.map(() => 38160),
     },
   };
 }
+
+const geocodingJson = {
+  results: [
+    {
+      name: 'Seattle',
+      latitude: 47.60621,
+      longitude: -122.33207,
+      country: 'United States',
+      admin1: 'Washington',
+      timezone: 'America/Los_Angeles',
+      population: 737015,
+    },
+    { name: 'Seattle', latitude: 47.60621, longitude: -122.33207, country: 'United States' },
+    {
+      name: 'Seattle Hill-Silver Firs',
+      latitude: 47.8679,
+      longitude: -122.1536,
+      country: 'United States',
+    },
+  ],
+};
 
 const airJson = (pollen: number | null) => ({
   current: {
@@ -120,6 +155,7 @@ function upstream(opts: { pollen?: number | null; failForecast?: boolean } = {})
         ? json(airJson(opts.pollen === undefined ? 20 : opts.pollen))
         : undefined,
     (url) => (url.host === 'api.weather.gov' ? json(nwsJson) : undefined),
+    (url) => (url.host === 'geocoding-api.open-meteo.com' ? json(geocodingJson) : undefined),
     (url) =>
       url.host === 'pollen.googleapis.com'
         ? json({
@@ -188,6 +224,25 @@ describe('Open-Meteo mapping', () => {
     expect(metric.searchParams.get('temperature_unit')).toBeNull();
   });
 
+  it('reads geocoding results and pasted coordinates', () => {
+    const places = normaliseGeocoding(geocodingJson);
+    expect(places).toHaveLength(2);
+    expect(places[0]).toMatchObject({
+      id: '47.6062,-122.3321',
+      name: 'Seattle',
+      region: 'Washington',
+      country: 'United States',
+      timezone: 'America/Los_Angeles',
+    });
+    expect(new URL(geocodingUrl('Sea')).searchParams.get('name')).toBe('Sea');
+    expect(parseCoordinates('47.6062, -122.3321')).toEqual({
+      latitude: 47.6062,
+      longitude: -122.3321,
+    });
+    expect(parseCoordinates('Seattle')).toBeNull();
+    expect(parseCoordinates('95, 10')).toBeNull();
+  });
+
   it('treats all-null pollen as no pollen data', () => {
     expect(normaliseAirQuality(airJson(null))).toEqual({
       airQuality: { aqi: 32, category: 'Good' },
@@ -224,7 +279,7 @@ describe('real weather provider', () => {
     const ctx = testContext(NOW);
     const fetch = upstream();
     const w = await realWeather(ctx, { env: loadWs4Env({}), fetch }).weather();
-    expect(() => WeatherSnapshot.parse(w)).not.toThrow();
+    expect(() => WeatherSnapshotExtended.parse(w)).not.toThrow();
     expect(w.current).toMatchObject({
       temp: 54,
       feelsLike: 51,
@@ -233,8 +288,28 @@ describe('real weather provider', () => {
       isDay: true,
       precipChance: 20,
     });
-    expect(w.hourly).toHaveLength(24);
+    expect(w.hourly).toHaveLength(48);
     expect(w.hourly[0]!.time).toBe('2026-10-31T08:00:00-07:00');
+    expect(w.hourly[0]).toMatchObject({
+      windSpeed: 4 + (8 % 5),
+      windDirection: 225,
+      humidity: 61,
+      dewPoint: 41,
+      pressure: 1014,
+      visibility: 10,
+      precipAmount: 0,
+    });
+    expect(w.hourly.find((h) => h.time.startsWith('2026-10-31T18'))!.precipAmount).toBe(0.12);
+    expect(w.daily[0]).toMatchObject({
+      windMax: 12,
+      precipSum: 0,
+      daylightHours: 10.6,
+      summary: 'Partly cloudy',
+    });
+    expect(w.daily[1]).toMatchObject({ precipSum: 0.35, summary: 'Light rain' });
+    expect(w.moon?.phase).toBeDefined();
+    expect(w.coordinates).toEqual({ latitude: 37.7749, longitude: -122.4194 });
+    expect(w.timezone).toBe(TZ);
     expect(w.hourly.find((h) => h.time.startsWith('2026-10-31T18'))!.condition).toBe('rain');
     expect(w.daily.map((d) => d.date)).toEqual([
       '2026-10-31',
@@ -299,5 +374,75 @@ describe('real weather provider', () => {
       fetch: upstream({ failForecast: true }),
     });
     await expect(fresh.weather()).rejects.toMatchObject({ code: 'upstream_error' });
+  });
+
+  it('serves other places and searches for them', async () => {
+    const ctx = testContext(NOW);
+    const fetch = upstream();
+    const provider = realWeather(ctx, { env: loadWs4Env({}), fetch });
+    const seattle = await provider.place({ lat: 47.6062, lon: -122.3321, name: 'Seattle' });
+    expect(seattle.locationName).toBe('Seattle');
+    expect(seattle.coordinates).toEqual({ latitude: 47.6062, longitude: -122.3321 });
+    expect(seattle.alerts).toEqual([]);
+    expect(seattle.pollen).toBeNull();
+    await provider.place({ lat: 47.6062, lon: -122.3321 });
+    const forecastCalls = fetch.mock.calls.filter(
+      ([u]) => new URL(String(u)).host === 'api.open-meteo.com',
+    );
+    expect(forecastCalls).toHaveLength(1);
+    expect(new URL(String(forecastCalls[0]![0])).searchParams.get('timezone')).toBe('auto');
+
+    const { places } = await provider.search('Seattle');
+    expect(places[0]?.name).toBe('Seattle');
+    const typed = await provider.search('47.6, -122.3');
+    expect(typed.places).toEqual([
+      { id: '47.6000,-122.3000', name: '47.6, -122.3', latitude: 47.6, longitude: -122.3 },
+    ]);
+  });
+
+  it('wakes the display for a new warning, but not for one already running at install', async () => {
+    const ctx = testContext(NOW);
+    const fetch = upstream();
+    const provider = realWeather(ctx, { env: loadWs4Env({}), fetch });
+    await provider.weather();
+    // The Red Flag Warning was active on the first fetch: no wake-up for that.
+    expect(ctx.emit).not.toHaveBeenCalled();
+
+    const later = new Date(NOW.getTime() + WEATHER_TTL_MS + 1000);
+    ctx.setNow(later);
+    nwsJson.features.push({
+      properties: {
+        id: 'urn:oid:new-tornado',
+        event: 'Tornado Warning',
+        severity: 'Extreme',
+        headline: 'Tornado Warning until 8 AM PDT',
+        description: 'Take cover now.',
+        onset: '2026-10-31T07:30:00-07:00',
+        ends: '2026-10-31T08:00:00-07:00',
+      },
+    });
+    try {
+      await provider.weather();
+    } finally {
+      nwsJson.features.pop();
+    }
+    const types = (
+      ctx.emit as unknown as { mock: { calls: Array<[{ type: string }]> } }
+    ).mock.calls.map(([e]) => e.type);
+    expect(types).toEqual(['weather.alert', 'display.wake']);
+  });
+
+  it('quips from the library when the personality is on and no key is set', async () => {
+    const off = realWeather(testContext(NOW), { env: loadWs4Env({}), fetch: upstream() });
+    expect(await off.quip(async () => [])).toEqual({ quip: null });
+
+    const ctx = testContext(NOW, {
+      weather: { savedPlaces: [], personality: 'snarky' },
+    } as unknown as Partial<Settings>);
+    const provider = realWeather(ctx, { env: loadWs4Env({}), fetch: upstream() });
+    const { quip } = await provider.quip(async () => []);
+    expect(quip).toMatchObject({ personality: 'snarky', source: 'library' });
+    expect(quip!.text.length).toBeGreaterThan(10);
+    expect(quip!.text).not.toContain('{');
   });
 });

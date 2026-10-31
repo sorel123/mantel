@@ -6,7 +6,7 @@
  * Ownership: calendar (WS2), home + media (WS3), weather + commute + photos (WS4),
  * lists + chores (WS5). Settings and devices belong to the scaffold and WS6.
  */
-import type { BodyOf, ResponseOf, Settings, WsEventInput } from '@mantel/shared';
+import type { BodyOf, CalendarEvent, ResponseOf, Settings, WsEventInput } from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { DeviceAuth } from '../auth.js';
 import type { Config } from '../config.js';
@@ -35,6 +35,11 @@ export interface CalendarProvider {
 
 export interface WeatherProvider {
   weather(): Promise<ResponseOf<'weather'>>;
+  /** The same snapshot for another place (saved places and the sheet's search). */
+  place(query: { lat: number; lon: number; name?: string }): Promise<ResponseOf<'weatherPlace'>>;
+  search(q: string): Promise<ResponseOf<'weatherSearch'>>;
+  /** Today's quip; `events` loads the day's calendar when a line is written by Claude. */
+  quip(events: () => Promise<CalendarEvent[]>): Promise<ResponseOf<'weatherQuip'>>;
   commute(): Promise<ResponseOf<'commute'>>;
 }
 
