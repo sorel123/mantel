@@ -8,19 +8,44 @@
  */
 import { z } from 'zod';
 import {
+  AdminPinRequest,
+  AdminPinResponse,
+  AuthorizeUrlResponse,
+  ExportRequest,
+  GeocodeRequest,
+  GeocodeResponse,
+  HealthDetails,
+  ImportRequest,
+  ImportResponse,
+  IntegrationPatch,
+  IntegrationResponse,
+  IntegrationsResponse,
+  OAuthCallbackRequest,
+  PutSetupStateRequest,
+  SettingsBundle,
+  SetupState,
+  TestRequest,
+  TestResult,
+} from './integrations.js';
+import { PluginsResponse } from './plugins.js';
+import {
+  Appearance,
   Calendar,
   CalendarEvent,
   Chore,
   ChoreCadence,
   Countdown,
   Device,
+  DeviceOverrides,
   DisplayState,
   FeatureFlags,
   HomeArea,
   HomeEntity,
   Id,
+  IntegrationToggles,
   IsoDate,
   IsoDateTime,
+  Layout,
   LeaveBy,
   List,
   ListItem,
@@ -31,6 +56,7 @@ import {
   Person,
   Photo,
   Presence,
+  ScreenConfig,
   ScreenSchedule,
   Settings,
   StarTally,
@@ -81,10 +107,20 @@ const NoBody = z.undefined();
 
 /* ---------- request and response schemas ---------- */
 
-export const PairRequest = z.object({
-  code: z.string().regex(/^\d{6}$/),
-  name: z.string().min(1).max(60).optional(),
-});
+/** Pair with the rotating 6-digit code from the log (or a paired display), or with the admin PIN. */
+export const PairRequest = z
+  .object({
+    code: z
+      .string()
+      .regex(/^\d{6}$/)
+      .optional(),
+    pin: z
+      .string()
+      .regex(/^\d{4,8}$/)
+      .optional(),
+    name: z.string().min(1).max(60).optional(),
+  })
+  .refine((r) => r.code || r.pin, { message: 'give a pairing code or the admin PIN' });
 export const PairResponse = z.object({ deviceId: Id, deviceKey: z.string().min(16) });
 
 export const BootstrapResponse = z.object({
@@ -98,16 +134,17 @@ export const BootstrapResponse = z.object({
     location: Location,
     units: Units,
     schedule: ScreenSchedule,
+    appearance: Appearance,
+    layout: Layout,
+    screens: z.array(ScreenConfig),
+    defaultScreen: Id,
+    integrations: IntegrationToggles,
   }),
   theme: ThemeMode,
   panel: PanelSize,
   flags: FeatureFlags,
-  /**
-   * Which integrations are turned on. The display hides a whole screen or layer when its
-   * integration is off (Home Assistant: the Home screen and the doorbell pop-over). Missing
-   * means everything is on, so older servers keep working.
-   */
-  integrations: z.record(z.string(), z.object({ enabled: z.boolean() })).optional(),
+  /** The requesting display's record, with its per-display overrides. Null in mock mode without a pairing. */
+  device: Device.nullable(),
 });
 
 export const CalendarQuery = z.object({ from: IsoDateTime, to: IsoDateTime });
@@ -225,7 +262,13 @@ export const HealthResponse = z.object({
 });
 
 export const DevicesResponse = z.object({ devices: z.array(Device) });
-export const RenameDeviceRequest = z.object({ name: z.string().trim().min(1).max(60) });
+/** Rename, and/or set per-display overrides (`null` clears one). At least one field. */
+export const RenameDeviceRequest = DeviceOverrides.extend({
+  name: z.string().trim().min(1).max(60),
+})
+  .partial()
+  .refine((r) => Object.keys(r).length > 0, { message: 'nothing to change' });
+export const PatchDeviceRequest = RenameDeviceRequest;
 export const DeviceResponse = z.object({ device: Device });
 export const PairingCodeResponse = z.object({
   /** The code `POST /pair` accepts right now, for pairing another display from this one. */
@@ -647,6 +690,115 @@ export const routes = {
     body: NoBody,
     response: HealthResponse,
     auth: false,
+  }),
+
+  /* ---- v2 workstream A: plugins, integrations, admin PIN, setup, backup, geocode ---- */
+  plugins: route({
+    method: 'GET',
+    path: '/plugins',
+    query: NoQuery,
+    body: NoBody,
+    response: PluginsResponse,
+    auth: true,
+  }),
+  integrations: route({
+    method: 'GET',
+    path: '/integrations',
+    query: NoQuery,
+    body: NoBody,
+    response: IntegrationsResponse,
+    auth: true,
+  }),
+  integrationPut: route({
+    method: 'PUT',
+    path: '/integrations/:id',
+    query: NoQuery,
+    body: IntegrationPatch,
+    response: IntegrationResponse,
+    auth: true,
+  }),
+  integrationTest: route({
+    method: 'POST',
+    path: '/integrations/:id/test',
+    query: NoQuery,
+    body: TestRequest,
+    response: TestResult,
+    auth: true,
+  }),
+  integrationAuthorizeUrl: route({
+    method: 'GET',
+    path: '/integrations/:id/authorize-url',
+    query: NoQuery,
+    body: NoBody,
+    response: AuthorizeUrlResponse,
+    auth: true,
+  }),
+  integrationCallback: route({
+    method: 'POST',
+    path: '/integrations/:id/callback',
+    query: NoQuery,
+    body: OAuthCallbackRequest,
+    response: IntegrationResponse,
+    auth: true,
+  }),
+  healthDetails: route({
+    method: 'GET',
+    path: '/health/details',
+    query: NoQuery,
+    body: NoBody,
+    response: HealthDetails,
+    auth: true,
+  }),
+  /** No device key needed: on first run there is none yet. Changing a PIN needs the current one. */
+  adminPin: route({
+    method: 'POST',
+    path: '/admin/pin',
+    query: NoQuery,
+    body: AdminPinRequest,
+    response: AdminPinResponse,
+    auth: false,
+  }),
+  /** No device key needed, so a fresh browser can learn whether this is the first run. */
+  setupState: route({
+    method: 'GET',
+    path: '/setup/state',
+    query: NoQuery,
+    body: NoBody,
+    response: SetupState,
+    auth: false,
+  }),
+  setupStatePut: route({
+    method: 'PUT',
+    path: '/setup/state',
+    query: NoQuery,
+    body: PutSetupStateRequest,
+    response: SetupState,
+    auth: true,
+  }),
+  /** POST rather than GET so the passphrase never sits in a URL or a log. */
+  settingsExport: route({
+    method: 'POST',
+    path: '/settings/export',
+    query: NoQuery,
+    body: ExportRequest,
+    response: SettingsBundle,
+    auth: true,
+  }),
+  settingsImport: route({
+    method: 'POST',
+    path: '/settings/import',
+    query: NoQuery,
+    body: ImportRequest,
+    response: ImportResponse,
+    auth: true,
+  }),
+  geocode: route({
+    method: 'POST',
+    path: '/geocode',
+    query: NoQuery,
+    body: GeocodeRequest,
+    response: GeocodeResponse,
+    auth: true,
   }),
 } as const;
 

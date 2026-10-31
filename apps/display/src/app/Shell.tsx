@@ -162,9 +162,9 @@ function DisplayInner() {
   const screens = useMemo(
     () =>
       allScreens.filter(
-        (s) => s.id !== 'home' || boot.integrations?.homeassistant?.enabled !== false,
+        (s) => s.id !== 'home' || boot.settings.integrations?.homeassistant?.enabled !== false,
       ),
-    [boot.integrations],
+    [boot.settings.integrations],
   );
   const now = useNow();
   const [current, setCurrent] = useState<ScreenId>('today');

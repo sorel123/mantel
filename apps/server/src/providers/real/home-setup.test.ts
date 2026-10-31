@@ -72,7 +72,8 @@ describe('connection store', () => {
   it('falls back to the environment until something is saved, and reports the source', () => {
     const db = openDb(':memory:');
     const env = { HA_URL: 'http://ha.local:8123', HA_TOKEN: 'env-token' };
-    const store = new HomeConnectionStore(db, env);
+    let enabled: boolean | undefined = undefined;
+    const store = new HomeConnectionStore(db, env, () => enabled);
     expect(store.get()).toEqual({
       enabled: true,
       url: 'http://ha.local:8123',
@@ -88,8 +89,9 @@ describe('connection store', () => {
     // Survives a restart; the switch is separate from the credentials.
     const again = new HomeConnectionStore(db, env);
     expect(again.get().url).toBe('http://10.0.0.5:8123');
-    again.patch({ enabled: false });
-    expect(again.get().enabled).toBe(false);
+    // The switch comes from settings, not from this store.
+    enabled = false;
+    expect(new HomeConnectionStore(db, env, () => enabled).get().enabled).toBe(false);
     // Clearing the token falls back to the environment one.
     again.patch({ token: '' });
     expect(again.get().token).toBe('env-token');
@@ -227,6 +229,7 @@ describe('realHome controller', () => {
   let events: WsEventInput[];
   let ctx: ProviderContext;
   let home: ReturnType<typeof realHome>;
+  let haEnabled = true;
 
   beforeEach(async () => {
     ha = new FakeHa();
@@ -248,18 +251,23 @@ describe('realHome controller', () => {
     ha.set('light.living_room_lamp', 'on', { friendly_name: 'Living Room Lamp' });
     await ha.listen();
     events = [];
+    haEnabled = true;
     ctx = {
       db: openDb(':memory:'),
       emit: (e: WsEventInput) => events.push(e),
       now: () => new Date(),
       markSynced: () => {},
-      settings: () => fixtureSettings(),
+      settings: () => {
+        const s = fixtureSettings();
+        return { ...s, integrations: { ...s.integrations, homeassistant: { enabled: haEnabled } } };
+      },
     } as unknown as ProviderContext;
     home = realHome(ctx, { HA_ALLOWLIST: './nope.yaml', HA_STREAM_MAX_SECONDS: 5 });
   });
 
   afterEach(async () => {
-    await home.setup.setConnection({ enabled: false });
+    haEnabled = false;
+    await home.setup.setConnection({});
     await ha.close();
   });
 
@@ -293,7 +301,9 @@ describe('realHome controller', () => {
     expect(status.state).toBe('error');
     expect(status.summary).toMatch(/refused the token/);
 
-    const off = await home.setup.setConnection({ enabled: false });
+    // The switch is a settings field; the provider notices on its next call.
+    haEnabled = false;
+    const off = await home.setup.setConnection({});
     expect(off).toMatchObject({ state: 'disabled', enabled: false });
     await expect(home.state()).rejects.toMatchObject({ code: 'disabled' });
     await expect(home.setup.discover()).rejects.toMatchObject({ code: 'disabled' });

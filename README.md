@@ -15,7 +15,7 @@ MOCK=1 pnpm dev          # or: pnpm dev:mock
 - Display: http://localhost:5173 (Vite, proxies `/api` and `/ws` to the server)
 - Server: http://localhost:8787 (`/api/health` needs no key)
 
-`MOCK=1` serves fixture data for every integration (calendar, weather, photos, Home Assistant, lists) and needs no accounts or pairing. Mock state is in memory: toggling a light or checking an item works and pushes WebSocket events, and resets on restart.
+`MOCK=1` serves fixture data for every integration (calendar, weather, photos, Home Assistant, lists) and needs no accounts or pairing. Mock state is in memory: toggling a light or checking an item works and pushes WebSocket events, and resets on restart. Add `MOCK_EMPTY=1` to see the display as a fresh install with nothing connected: every card shows its empty state (`app/EmptyState.tsx`) with a button into the matching Settings section.
 
 Other scripts: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm format`. CI runs all of them, then the smoke test, plus a container build on every PR.
 

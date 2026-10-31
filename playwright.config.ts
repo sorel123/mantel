@@ -5,6 +5,17 @@ import { defineConfig } from '@playwright/test';
  * does: `pnpm build` first, then `pnpm e2e`. Mock mode, in-memory database, no accounts.
  */
 const port = 8790;
+/** A second server with `MOCK_EMPTY=1`: nothing set up, so the empty states show. */
+export const emptyPort = 8791;
+
+const serverEnv = {
+  MOCK: '1',
+  HOST: '127.0.0.1',
+  DATA_DIR: ':memory:',
+  DISPLAY_DIST: './apps/display/dist',
+  NODE_ENV: 'production',
+  LOG_LEVEL: 'warn',
+};
 
 export default defineConfig({
   testDir: 'e2e',
@@ -24,18 +35,18 @@ export default defineConfig({
     { name: 'ipad', use: { viewport: { width: 1180, height: 820 } } },
     { name: 'surface', use: { viewport: { width: 1440, height: 960 } } },
   ],
-  webServer: {
-    command: 'node apps/server/dist/index.js',
-    url: `http://127.0.0.1:${port}/api/health`,
-    reuseExistingServer: !process.env.CI,
-    env: {
-      MOCK: '1',
-      PORT: String(port),
-      HOST: '127.0.0.1',
-      DATA_DIR: ':memory:',
-      DISPLAY_DIST: './apps/display/dist',
-      NODE_ENV: 'production',
-      LOG_LEVEL: 'warn',
+  webServer: [
+    {
+      command: 'node apps/server/dist/index.js',
+      url: `http://127.0.0.1:${port}/api/health`,
+      reuseExistingServer: !process.env.CI,
+      env: { ...serverEnv, PORT: String(port) },
     },
-  },
+    {
+      command: 'node apps/server/dist/index.js',
+      url: `http://127.0.0.1:${emptyPort}/api/health`,
+      reuseExistingServer: !process.env.CI,
+      env: { ...serverEnv, PORT: String(emptyPort), MOCK_EMPTY: '1' },
+    },
+  ],
 });

@@ -84,10 +84,12 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       entity_category: null,
     })),
   };
-  const connection = new HomeConnectionStore(ctx.db, {
-    HA_URL: 'http://homeassistant.local:8123',
-    HA_TOKEN: 'mock-token',
-  });
+  const connection = new HomeConnectionStore(
+    ctx.db,
+    { HA_URL: 'http://homeassistant.local:8123', HA_TOKEN: 'mock-token' },
+    () => ctx.settings().integrations?.homeassistant?.enabled,
+  );
+  let wasEnabled = connection.get().enabled;
   const store = new HomeConfigStore(ctx.db, { fallback: homeConfig(ctx.now()) }, () =>
     ctx.emit({ type: 'display.reload', payload: {} }),
   );
@@ -133,9 +135,10 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       };
     },
     async setConnection(patch) {
-      const before = connection.get().enabled;
       connection.patch(patch);
-      if (before !== connection.get().enabled) ctx.emit({ type: 'display.reload', payload: {} });
+      const now = connection.get().enabled;
+      if (now !== wasEnabled) ctx.emit({ type: 'display.reload', payload: {} });
+      wasEnabled = now;
       return setup.connection();
     },
     async test(req) {

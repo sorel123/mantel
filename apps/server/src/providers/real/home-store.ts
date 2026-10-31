@@ -80,17 +80,22 @@ export interface HomeConnection {
 }
 
 interface StoredConnection {
-  enabled?: boolean;
   url?: string;
   token?: string;
 }
 
+/**
+ * The address and token. The on/off switch itself is `settings.integrations.homeassistant.enabled`
+ * (workstream A's schema), read through `enabledFrom` so one flag rules the Home screen, the
+ * provider and the integrations card alike.
+ */
 export class HomeConnectionStore {
   private stored: StoredConnection;
 
   constructor(
     private readonly db: Db,
     private readonly env: Pick<HaEnv, 'HA_URL' | 'HA_TOKEN'>,
+    private readonly enabledFrom: () => boolean | undefined = () => undefined,
   ) {
     this.stored = kvGet<StoredConnection>(db, CONNECTION_KEY) ?? {};
   }
@@ -101,16 +106,16 @@ export class HomeConnectionStore {
     const token = this.stored.token || this.env.HA_TOKEN || '';
     return {
       // Off only when someone turned it off; a fresh install with HA env is on.
-      enabled: this.stored.enabled ?? true,
+      enabled: this.enabledFrom() ?? true,
       url,
       token,
       source: saved ? 'settings' : url || token ? 'env' : 'none',
     };
   }
 
-  patch(p: { enabled?: boolean; url?: string; token?: string }): HomeConnection {
+  /** Save the address and/or token. `enabled` is not stored here: the routes write it to settings. */
+  patch(p: { url?: string; token?: string }): HomeConnection {
     const next: StoredConnection = { ...this.stored };
-    if (p.enabled !== undefined) next.enabled = p.enabled;
     if (p.url !== undefined) next.url = p.url.replace(/\/+$/, '');
     // An empty token clears the saved one (falling back to the environment, if any).
     if (p.token !== undefined) next.token = p.token;

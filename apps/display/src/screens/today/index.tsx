@@ -8,8 +8,15 @@ import { addDays, startOfDay, toIsoDate } from '@mantel/shared';
 import { Component, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
+import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useNav } from '../../app/nav';
-import { LeaveByChip, WeatherCard, matchLeaveBy, useCommute } from '../../features/weather';
+import {
+  LeaveByChip,
+  WeatherCard,
+  matchLeaveBy,
+  useCommute,
+  useWeather,
+} from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
 import { useDaySheet } from '../month/DaySheet';
@@ -37,6 +44,7 @@ export function TodayScreen() {
   const { events } = useEvents(today, addDays(today, 4));
   const openDay = useDaySheet();
   const nav = useNav();
+  const weather = useWeather();
 
   return (
     <div className="cal today">
@@ -49,7 +57,15 @@ export function TodayScreen() {
           </div>
         </div>
         <Guard name="weather">
-          <WeatherCard now={now} />
+          {weather.error && !weather.data ? (
+            <div className="card weather">
+              <EmptyState icon={EmptyIcon.weather} action="Set your location" section="home">
+                No weather yet. Tell Mantel where home is.
+              </EmptyState>
+            </div>
+          ) : (
+            <WeatherCard now={now} />
+          )}
         </Guard>
         <Guard name="grocery">
           <GroceryPeek onOpen={() => nav.go('lists')} />
@@ -237,7 +253,13 @@ function Agenda({
       )}
       {boot.flags.countdowns && <Countdowns />}
       <div className="tl" ref={tl}>
-        {rows}
+        {boot.calendars.length === 0 ? (
+          <EmptyState icon={EmptyIcon.calendar} action="Connect a calendar" section="calendars">
+            No calendars connected yet.
+          </EmptyState>
+        ) : (
+          rows
+        )}
       </div>
       {boot.flags.meals && <Tonight meals={meals.get(toIsoDate(today))} />}
       <div className="upcoming">

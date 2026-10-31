@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useBootstrap } from '../../lib/bootstrap';
 import { ChoreChart, Star } from './ChoreChart';
 import { useChores, useLists } from './data';
@@ -38,17 +39,23 @@ export function ListsScreen() {
       )}
       {tab === 'lists' || !showChores ? (
         lists ? (
-          <div className="lgrid">
-            {lists.map((l) => (
-              <ListCard
-                key={l.id}
-                list={l}
-                people={boot.people}
-                onToggle={toggle}
-                onAdd={(text) => void add(l.id, text)}
-              />
-            ))}
-          </div>
+          lists.length === 0 ? (
+            <EmptyState icon={EmptyIcon.list} action="Set up lists" section="lists">
+              No lists yet. Make a grocery list, a to-do list, or chores for the kids.
+            </EmptyState>
+          ) : (
+            <div className="lgrid">
+              {lists.map((l) => (
+                <ListCard
+                  key={l.id}
+                  list={l}
+                  people={boot.people}
+                  onToggle={toggle}
+                  onAdd={(text) => void add(l.id, text)}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <div className="lstate">{error ? `Lists unavailable: ${error}` : 'Loading lists'}</div>
         )

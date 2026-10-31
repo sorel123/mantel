@@ -441,10 +441,49 @@
 }
 
 /* ---------- empty state ---------- */
+/* A quiet line ("Nothing planned."), or with `.state` the `EmptyState` block: icon, line, button. */
 .empty {
   color: var(--ink-2);
   font-size: 15px;
   padding: 8px 4px;
+}
+.empty.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 28px 20px;
+  flex: 1;
+  min-height: 0;
+}
+.empty.state.compact {
+  gap: 10px;
+  padding: 16px 12px;
+}
+.empty-icon svg {
+  width: 36px;
+  height: 36px;
+  stroke: var(--ink-3);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.empty.state.compact .empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.empty-line {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 15.5px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.empty.state .btn {
+  text-decoration: none;
 }
 
 /* ---------- scrolling inside a card ---------- */
