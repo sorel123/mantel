@@ -1,65 +1,29 @@
-import type { ListItem } from '@mantel/shared';
+import { addDays, startOfWeek, toIsoDate } from '@mantel/shared';
 import { chores, lists } from '@mantel/shared/fixtures';
-import { notFound } from '../../errors.js';
+import { openDb } from '../../db/index.js';
+import { storeLists } from '../real/lists.js';
 import type { ListsProvider, ProviderContext } from '../types.js';
 
+/**
+ * The real store on a private in-memory database, seeded with the mockup's lists and chore
+ * chart. Everything works (checks, adds, stars, undo) and resets on restart.
+ */
 export function mockLists(ctx: ProviderContext): ListsProvider {
-  const all = lists();
-  const choreState = chores(ctx.now());
-  let seq = 0;
+  const provider = storeLists(ctx, openDb(':memory:'));
+  const { store, choreStore } = provider;
 
-  const findItem = (id: string) => {
-    for (const list of all) {
-      const index = list.items.findIndex((i) => i.id === id);
-      if (index >= 0) return { list, index, item: list.items[index]! };
-    }
-    throw notFound(`item ${id}`);
-  };
+  for (const list of lists()) {
+    store.createList(list.name, list.id);
+    for (const item of list.items) store.addItem(list.id, item, { id: item.id, done: item.done });
+  }
 
-  return {
-    async lists() {
-      return { lists: structuredClone(all) };
-    },
-    async addItem(listId, { text, personId }) {
-      const list = all.find((l) => l.id === listId);
-      if (!list) throw notFound(`list ${listId}`);
-      const item: ListItem = {
-        id: `${listId}-new-${seq++}`,
-        text,
-        done: false,
-        ...(personId ? { personId } : {}),
-      };
-      list.items.push(item);
-      ctx.emit({ type: 'list.changed', payload: { listId } });
-      return { item };
-    },
-    async patchItem(itemId, patch) {
-      const { list, item } = findItem(itemId);
-      if (patch.text !== undefined) item.text = patch.text;
-      if (patch.done !== undefined) item.done = patch.done;
-      if (patch.personId === null) delete item.personId;
-      else if (patch.personId !== undefined) item.personId = patch.personId;
-      ctx.emit({ type: 'list.changed', payload: { listId: list.id } });
-      return { item };
-    },
-    async deleteItem(itemId) {
-      const { list, index } = findItem(itemId);
-      list.items.splice(index, 1);
-      ctx.emit({ type: 'list.changed', payload: { listId: list.id } });
-      return { ok: true };
-    },
-    async chores() {
-      return structuredClone(choreState);
-    },
-    async choreDone(choreId, personId) {
-      const chore = choreState.chores.find((c) => c.id === choreId);
-      if (!chore) throw notFound(`chore ${choreId}`);
-      chore.doneCount += 1;
-      const who = personId ?? chore.personId;
-      const tally = choreState.stars.find((s) => s.personId === who);
-      if (tally) tally.stars += chore.stars;
-      else choreState.stars.push({ personId: who, stars: chore.stars });
-      return { chore, stars: choreState.stars };
-    },
-  };
+  const now = ctx.now();
+  const monday = startOfWeek(now);
+  for (const c of chores(now).chores) {
+    choreStore.create(c, c.id);
+    c.week?.forEach((n, i) => {
+      for (let k = 0; k < n; k++) choreStore.done(c.id, c.personId, toIsoDate(addDays(monday, i)));
+    });
+  }
+  return provider;
 }

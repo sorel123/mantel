@@ -279,19 +279,25 @@ export const List = z.object({
 });
 export type List = z.infer<typeof List>;
 
+export const ChoreCadence = z.enum(['daily', 'weekly']);
+export type ChoreCadence = z.infer<typeof ChoreCadence>;
+
 export const Chore = z.object({
   id: Id,
   title: z.string(),
   personId: Id,
-  cadence: z.enum(['daily', 'weekly']),
+  cadence: ChoreCadence,
   stars: z.number().int().nonnegative(),
   /** Completions in the current period (today for daily, this week for weekly). */
   doneCount: z.number().int().nonnegative(),
   /** Completions needed per period. */
   target: z.number().int().positive(),
+  /** Completions on each day of the current week, Monday first (7 entries). Drives the chart. */
+  week: z.array(z.number().int().nonnegative()).length(7).optional(),
 });
 export type Chore = z.infer<typeof Chore>;
 
+/** Stars earned this week (the tally resets every Monday). */
 export const StarTally = z.object({
   personId: Id,
   stars: z.number().int().nonnegative(),

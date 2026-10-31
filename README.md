@@ -72,8 +72,10 @@ The server validates every request against the route table and, outside producti
 | `GET /home/state`                                                              | Allowed areas, entities, states and presence                    |
 | `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity              |
 | `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                     |
-| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists, backed by Reminders or the built-in store                |
-| `GET /chores`, `POST /chores/:id/done`                                         | Chore chart and stars                                           |
+| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                        |
+| `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                         |
+| `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back        |
+| `POST /chores`, `DELETE /chores/:id`                                           | Add or retire a chore                                           |
 | `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags                   |
 | `GET /health`                                                                  | Liveness and last sync times (no key needed)                    |
 
@@ -81,7 +83,7 @@ Errors are `{ "error": { "code", "message" } }` with codes `bad_request`, `unaut
 
 ### WebSocket (`/ws?key=<device key>`)
 
-`calendar.changed {from, to}` · `home.state {entity}` · `home.doorbell {cameraEntityId, at, durationSeconds}` · `media.state {player}` · `list.changed {listId}` · `weather.updated {weather}` · `display.reload {}` · `display.wake {reason}` · `display.sleep {reason}`
+`calendar.changed {from, to}` · `home.state {entity}` · `home.doorbell {cameraEntityId, at, durationSeconds}` · `media.state {player}` · `list.changed {listId}` · `chores.changed {}` · `weather.updated {weather}` · `display.reload {}` · `display.wake {reason}` · `display.sleep {reason}`
 
 In the display, `useServerEvent('home.doorbell', handler)` subscribes; the socket reconnects with backoff. `display.reload` is handled by the shell.
 
@@ -105,6 +107,18 @@ Add, don't rename. New fields should be optional or have a default so other work
 - `src/routes/index.ts` — registers every contract route with `handle(name, handler)`, which parses query and body, checks the device key and validates the response.
 - `src/db/` — SQLite via Drizzle. Add tables to `schema.ts` and a `CREATE TABLE IF NOT EXISTS` to `db/index.ts`.
 - `src/auth.ts` — pairing codes and device keys (only hashes are stored).
+
+## Lists and chores
+
+Lists live in the server's SQLite database. A fresh install starts with Grocery, Chores and To-do; items checked off leave the wall the next day and are deleted after 30 days.
+
+Apple Reminders is not synced yet. iCloud stopped serving Reminders over CalDAV with iOS 13, so a server can't reach them with an app-specific password. A later sync (the native iPad shell or a Mac helper, both using EventKit) hooks into `ListStore.onChange` and the `remote_id` columns.
+
+The chore chart counts completions per day. Each tap earns the chore's stars, a chore stops counting at its daily or weekly target, and tapping a finished chore takes the last tap back. Star tallies cover the current week, so they start again every Monday with no job to run.
+
+**Phones:** open `http://<server>:8787/add` on a phone, pair it once with the code from the server log, and add it to the home screen. It adds to any list (with who it's for), ticks or removes items, creates lists, and sets up chores for the kids.
+
+The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`.
 
 ## Pairing a display
 
