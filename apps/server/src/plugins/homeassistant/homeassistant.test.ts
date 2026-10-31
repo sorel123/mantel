@@ -40,8 +40,11 @@ describe('Home Assistant saved over the API connects live', () => {
     await ha.close();
   });
 
-  it('answers 501 before, connected after, and off when disabled, all without a restart', async () => {
+  it('answers 501 before, connected after, and 503 when disabled, all without a restart', async () => {
     expect((await call('GET', '/home/state')).status).toBe(501);
+    expect(
+      ((await (await call('GET', '/home/connection')).json()) as { state: string }).state,
+    ).toBe('not_set_up');
     let status = (await (await call('GET', '/integrations')).json()) as {
       integrations: Array<{ id: string; state: string }>;
     };
@@ -57,6 +60,12 @@ describe('Home Assistant saved over the API connects live', () => {
     expect(app.deps.registry.status('homeassistant').summary).toContain(ha.url);
     expect((await call('GET', '/home/state')).status).toBe(200);
     expect(app.deps.secrets.get('homeassistant', 'token')).toBe(TOKEN);
+    const conn = (await (await call('GET', '/home/connection')).json()) as {
+      state: string;
+      source: string;
+      url: string;
+    };
+    expect(conn).toMatchObject({ state: 'connected', source: 'settings', url: ha.url });
 
     // A wrong token on Test is reported in a sentence, and nothing was saved.
     const test = (await (
@@ -70,7 +79,11 @@ describe('Home Assistant saved over the API connects live', () => {
     expect(((await off.json()) as { integration: { state: string } }).integration.state).toBe(
       'disabled',
     );
-    expect((await call('GET', '/home/state')).status).toBe(501);
+    // Off is a refusal of its own (503 `disabled`), so the display can hide the Home screen.
+    expect((await call('GET', '/home/state')).status).toBe(503);
+    expect(
+      ((await (await call('GET', '/home/connection')).json()) as { state: string }).state,
+    ).toBe('disabled');
     status = (await (await call('GET', '/integrations')).json()) as typeof status;
     expect(status.integrations.find((i) => i.id === 'homeassistant')?.state).toBe('disabled');
   });

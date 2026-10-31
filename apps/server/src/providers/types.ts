@@ -9,10 +9,14 @@
 import type {
   BodyOf,
   CalendarEvent,
+  HomeConfig,
+  HomeConnectionStatus,
+  HomeDiscovery,
   IntegrationConfig,
   IntegrationId,
   ResponseOf,
   Settings,
+  ValueSource,
   WsEventInput,
 } from '@mantel/shared';
 import type { Hono } from 'hono';
@@ -42,6 +46,8 @@ export interface IntegrationValues {
   enabled: boolean;
   config: IntegrationConfig;
   secrets: Record<string, string>;
+  /** Where each field came from (`store` or `env`); absent when no registry is attached. */
+  sources?: Record<string, ValueSource>;
 }
 
 /** An integration's live values, or "enabled with nothing set" when no registry is attached. */
@@ -91,7 +97,27 @@ export interface HomeBytes {
   body: Uint8Array | string | ReadableStream<Uint8Array>;
 }
 
+/** The settings page's side of Home Assistant: connection, discovery and the stored allow-list. */
+/**
+ * The setup side of the Home provider. The address and token themselves belong to the plugin
+ * registry (`PUT /api/integrations/homeassistant`, which rebuilds the provider); this is what
+ * the Settings page reads and the allow-list it edits.
+ */
+export interface HomeSetup {
+  connection(): HomeConnectionStatus;
+  /** Resolve once the client is connected or has failed, or after `ms`. */
+  ready(ms: number): Promise<void>;
+  discover(): Promise<HomeDiscovery>;
+  config(): HomeConfig;
+  putConfig(config: unknown): HomeConfig;
+  importYaml(text: string): HomeConfig;
+  exportYaml(): string;
+  /** False when Home Assistant is turned off in settings; `/home/*` then answers `disabled`. */
+  enabled(): boolean;
+}
+
 export interface HomeProvider {
+  setup: HomeSetup;
   state(): Promise<ResponseOf<'homeState'>>;
   call(req: BodyOf<'homeCall'>): Promise<ResponseOf<'homeCall'>>;
   announce(req: BodyOf<'homeAnnounce'>): Promise<ResponseOf<'homeAnnounce'>>;

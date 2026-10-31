@@ -22,7 +22,7 @@ import { NavProvider } from './nav';
 import { OverlayProvider, useOverlay } from './overlay';
 import { Pairing } from './Pairing';
 import { msToNextMinute, scheduleAt, type Phase } from './schedule';
-import { screens, type ScreenId } from './screens';
+import { screens as allScreens, type ScreenId } from './screens';
 import { ScreenSwitcher } from './ScreenSwitcher';
 import { SkinDecor } from './SkinDecor';
 
@@ -181,6 +181,14 @@ function Display() {
 function DisplayInner() {
   const boot = useBootstrap();
   const overlay = useOverlay();
+  // WS C: an integration turned off in Settings takes its screen out of the dock (Home for HA).
+  const screens = useMemo(
+    () =>
+      allScreens.filter(
+        (s) => s.id !== 'home' || boot.settings.integrations?.homeassistant?.enabled !== false,
+      ),
+    [boot.settings.integrations],
+  );
   const now = useNow();
   const [current, setCurrent] = useState<ScreenId>(() =>
     screens.some((s) => s.id === firstScreen) ? firstScreen : 'today',

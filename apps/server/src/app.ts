@@ -82,7 +82,7 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     settings: () => settings.get(),
     integration: (id) =>
       registry
-        ? { enabled: registry.enabled(id), ...registry.values(id) }
+        ? { enabled: registry.enabled(id), ...registry.resolve(id) }
         : { enabled: true, config: {}, secrets: {} },
   };
 

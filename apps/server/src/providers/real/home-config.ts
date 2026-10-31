@@ -1,22 +1,26 @@
 /**
- * Home Assistant settings: connection from the environment, and the allow-list of areas and
- * entities the display may see and control from a YAML file (see config/home.example.yaml).
- * Nothing in Home Assistant is visible to the display unless this file names it.
+ * Home Assistant settings: the environment fallbacks, and the allow-list of areas and entities
+ * the display may see and control. The schema lives in `@mantel/shared` (`home-setup.ts`) so
+ * the settings page edits the same shape; this file adds the YAML form (`config/home.yaml`,
+ * see config/home.example.yaml) used for import and export.
  */
-import { existsSync, readFileSync, watch, type FSWatcher } from 'node:fs';
-import { resolve } from 'node:path';
-import type { HomeEntityKind } from '@mantel/shared';
-import { parse as parseYaml } from 'yaml';
+import {
+  DEFAULT_AREA_DOMAINS,
+  HOME_DOMAIN_KIND,
+  HomeConfig,
+  type HomeConfigInput,
+  type HomeEntityRef,
+} from '@mantel/shared';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { z } from 'zod';
-import { log } from '../../log.js';
 
 /** Environment variables for this integration (also listed in .env.example). */
 const HaEnv = z.object({
-  /** Base URL of Home Assistant as the server sees it. */
+  /** Base URL of Home Assistant as the server sees it. Used until one is saved in Settings. */
   HA_URL: z.string().url().optional(),
-  /** Long-lived access token (HA profile page, Security tab). */
+  /** Long-lived access token (HA profile page, Security tab). Used until one is saved in Settings. */
   HA_TOKEN: z.string().min(1).optional(),
-  /** Path to the allow-list YAML. */
+  /** A `home.yaml` to import once when the database has no allow-list yet. */
   HA_ALLOWLIST: z.string().default('./config/home.yaml'),
   /** Hard cap on one live camera stream, in seconds. */
   HA_STREAM_MAX_SECONDS: z.coerce.number().int().positive().default(120),
@@ -32,105 +36,18 @@ export function loadHaEnv(env: NodeJS.ProcessEnv = process.env): HaEnv {
   });
 }
 
-const EntityId = z
-  .string()
-  .regex(/^[a-z_]+\.[a-z0-9_]+$/, 'expected an entity id like light.kitchen');
+export { HomeConfig };
+export type { HomeConfig as HomeConfigType } from '@mantel/shared';
+export type EntityRef = HomeEntityRef;
+export type { DoorbellConfig, HomeAreaConfig } from '@mantel/shared';
 
-/** An entity in the allow-list: just the id, or the id with overrides. */
-const EntityRef = z.union([
-  EntityId.transform((id) => ({ id })),
-  z.object({
-    id: EntityId,
-    /** Name on the display; defaults to the HA friendly name minus the area name. */
-    name: z.string().min(1).optional(),
-    /** Shown but never controlled from the wall. */
-    read_only: z.boolean().optional(),
-  }),
-]);
-export type EntityRef = { id: string; name?: string; read_only?: boolean };
-
-const Area = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  /** Also include every entity Home Assistant has in this area (by area id or name). */
-  ha_area: z.string().min(1).optional(),
-  /** Domains pulled in through `ha_area`. Sensors are left out unless listed, there are too many. */
-  domains: z
-    .array(z.string())
-    .default(['light', 'switch', 'fan', 'input_boolean', 'climate', 'lock', 'cover', 'camera']),
-  entities: z.array(EntityRef).default([]),
-  /** Entities to drop from the `ha_area` expansion. */
-  exclude: z.array(EntityId).default([]),
-});
-
-const Doorbell = z.object({
-  /** The camera whose live view pops over the display. */
-  camera: EntityId,
-  /**
-   * What fires the pop-over: a Ring `event.*_ding` entity, a `binary_sensor` that turns on, or
-   * any entity whose state changes.
-   */
-  trigger: EntityId,
-  /** For `event.*` triggers, only these event types count (default: any). */
-  event_types: z.array(z.string()).optional(),
-  seconds: z.number().int().positive().max(300).default(30),
-});
-
-export const HomeConfig = z.object({
-  areas: z.array(Area).default([]),
-  /** Scene chips across the top of the Home screen, in order. `script.*` works too. */
-  scenes: z.array(EntityRef).default([]),
-  doorbells: z.array(Doorbell).default([]),
-  /**
-   * Mantel person id to HA `person.*` entity. When omitted, each person in settings is matched
-   * to `person.<id>` or to the person entity with the same name.
-   */
-  presence: z.array(z.object({ person: z.string().min(1), entity: EntityId })).optional(),
-  /** Wake the screen when someone gets home; sleep it when the last person leaves. */
-  presence_display: z
-    .object({
-      wake_on_arrival: z.boolean().default(true),
-      sleep_when_away: z.boolean().default(true),
-    })
-    .default({ wake_on_arrival: true, sleep_when_away: true }),
-  /** Now-playing players. When omitted, every entity from the Apple TV integration. */
-  media_players: z.array(EntityRef).optional(),
-  /** Alexa announcements through the Alexa Media Player custom integration. */
-  alexa: z
-    .object({
-      service: z
-        .string()
-        .regex(/^notify\.[a-z0-9_]+$/)
-        .default('notify.alexa_media'),
-      targets: z.array(z.object({ id: EntityId, name: z.string().min(1) })).min(1),
-    })
-    .optional(),
-});
-export type HomeConfig = z.infer<typeof HomeConfig>;
-export type HomeAreaConfig = z.infer<typeof Area>;
-export type DoorbellConfig = z.infer<typeof Doorbell>;
+export const DOMAIN_KIND = HOME_DOMAIN_KIND;
 
 export const EMPTY_CONFIG: HomeConfig = HomeConfig.parse({});
 
-/** HA domain to the display's entity kind. Domains not listed here are never exposed. */
-export const DOMAIN_KIND: Record<string, HomeEntityKind> = {
-  light: 'light',
-  switch: 'switch',
-  fan: 'switch',
-  input_boolean: 'switch',
-  climate: 'climate',
-  lock: 'lock',
-  cover: 'cover',
-  sensor: 'sensor',
-  binary_sensor: 'sensor',
-  camera: 'camera',
-  scene: 'scene',
-  script: 'scene',
-};
-
-export function parseHomeConfig(text: string): HomeConfig {
-  const raw: unknown = parseYaml(text) ?? {};
-  const parsed = HomeConfig.safeParse(raw);
+/** Parse a config object (from the API or a YAML file) with readable error text. */
+export function normalizeHomeConfig(raw: unknown): HomeConfig {
+  const parsed = HomeConfig.safeParse(raw ?? {});
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
@@ -146,64 +63,54 @@ export function parseHomeConfig(text: string): HomeConfig {
   return parsed.data;
 }
 
+export function parseHomeConfig(text: string): HomeConfig {
+  let raw: unknown;
+  try {
+    raw = parseYaml(text) ?? {};
+  } catch (err) {
+    throw new Error(
+      `invalid Home Assistant allow-list: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (typeof raw !== 'object' || Array.isArray(raw))
+    throw new Error('invalid Home Assistant allow-list: expected a YAML mapping at the top');
+  return normalizeHomeConfig(raw);
+}
+
+const sameDomains = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((d, i) => d === b[i]);
+
+/** An entity ref as the YAML writes it: a bare id when there are no overrides. */
+const refOut = (ref: HomeEntityRef) =>
+  ref.name === undefined && ref.read_only === undefined ? ref.id : ref;
+
 /**
- * Loads the allow-list and reloads it when the file changes, keeping the last good version if
- * an edit does not parse. A missing file means nothing is allowed (presence and Apple TV still
- * work, they are discovered).
+ * The config as `home.yaml` text, leaving out defaults so the file reads like the example.
+ * Parsing the result gives back an equal config.
  */
-export class HomeConfigFile {
-  private current: HomeConfig = EMPTY_CONFIG;
-  private watcher: FSWatcher | undefined;
-  private timer: NodeJS.Timeout | undefined;
-  readonly path: string;
-
-  constructor(
-    path: string,
-    private readonly onChange: () => void = () => {},
-  ) {
-    this.path = resolve(path);
-    this.load();
-    if (existsSync(this.path)) {
-      try {
-        this.watcher = watch(this.path, () => {
-          clearTimeout(this.timer);
-          this.timer = setTimeout(() => this.load() && this.onChange(), 250);
-          this.timer.unref();
-        });
-        this.watcher.unref();
-      } catch (err) {
-        log.warn('home: cannot watch allow-list for changes', { err: String(err) });
-      }
-    }
-  }
-
-  get(): HomeConfig {
-    return this.current;
-  }
-
-  private load(): boolean {
-    if (!existsSync(this.path)) {
-      log.warn(
-        `home: no allow-list at ${this.path}; nothing from Home Assistant is shown. Copy config/home.example.yaml to start.`,
-      );
-      return false;
-    }
-    try {
-      this.current = parseHomeConfig(readFileSync(this.path, 'utf8'));
-      log.info(
-        `home: allow-list loaded (${this.current.areas.length} areas, ${this.current.scenes.length} scenes)`,
-      );
-      return true;
-    } catch (err) {
-      log.error(
-        `home: ${err instanceof Error ? err.message : String(err)}; keeping the last good one`,
-      );
-      return false;
-    }
-  }
-
-  close() {
-    clearTimeout(this.timer);
-    this.watcher?.close();
-  }
+export function homeConfigToYaml(config: HomeConfig): string {
+  const out: HomeConfigInput = {
+    areas: config.areas.map((a) => ({
+      id: a.id,
+      name: a.name,
+      ...(a.ha_area ? { ha_area: a.ha_area } : {}),
+      ...(sameDomains(a.domains, DEFAULT_AREA_DOMAINS) ? {} : { domains: a.domains }),
+      ...(a.exclude.length ? { exclude: a.exclude } : {}),
+      ...(a.entities.length ? { entities: a.entities.map(refOut) } : {}),
+    })),
+  };
+  if (config.scenes.length) out.scenes = config.scenes.map(refOut);
+  if (config.doorbells.length)
+    out.doorbells = config.doorbells.map((d) => ({
+      camera: d.camera,
+      trigger: d.trigger,
+      ...(d.event_types ? { event_types: d.event_types } : {}),
+      ...(d.seconds === 30 ? {} : { seconds: d.seconds }),
+    }));
+  if (config.presence) out.presence = config.presence;
+  if (!config.presence_display.wake_on_arrival || !config.presence_display.sleep_when_away)
+    out.presence_display = config.presence_display;
+  if (config.media_players) out.media_players = config.media_players.map(refOut);
+  if (config.alexa) out.alexa = config.alexa;
+  return `# Mantel Home Assistant allow-list. Import it on the Settings page or edit by hand.\n${stringifyYaml(out)}`;
 }

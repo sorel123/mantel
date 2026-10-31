@@ -7,6 +7,7 @@
 import type {
   AnnounceTarget,
   HomeArea,
+  HomeConnectionStatus,
   HomeEntity,
   MediaAction,
   MediaPlayer,
@@ -15,16 +16,18 @@ import type {
 } from '@mantel/shared';
 import { HttpError, notImplemented } from '../../errors.js';
 import { log } from '../../log.js';
-import type { HomeBytes, HomeProvider, ProviderContext } from '../types.js';
+import type { HomeBytes, HomeProvider, HomeSetup, ProviderContext } from '../types.js';
 import { HaClient, HaError, type HaRegistry, type HaState } from './home-client.js';
 import {
   DOMAIN_KIND,
-  HomeConfigFile,
+  homeConfigToYaml,
   loadHaEnv,
   type EntityRef,
   type HaEnv,
   type HomeConfig,
 } from './home-config.js';
+import { mapDiscovery } from './home-discover.js';
+import { HomeConfigStore } from './home-store.js';
 
 /** HA attributes the display uses; everything else stays on the server. */
 const ATTRS = [
@@ -289,46 +292,192 @@ export function isRing(
 const DOORBELL_DEBOUNCE_MS = 15_000;
 const CALL_SETTLE_MS = 1500;
 
+export const disabledError = () =>
+  new HttpError('disabled', 'Home Assistant is turned off in Settings');
+
+/** The connection the provider was built with, as the status line describes it. */
+export interface HomeConnection {
+  enabled: boolean;
+  url: string;
+  token: string;
+  source: 'settings' | 'env' | 'none';
+}
+
+/** One sentence for the connection card, from the connection and the client's state. */
+export function connectionStatus(
+  conn: HomeConnection,
+  client: HaClient | null,
+  entityCount?: number,
+): HomeConnectionStatus {
+  const base = {
+    enabled: conn.enabled,
+    url: conn.url,
+    hasToken: !!conn.token,
+    source: conn.source,
+  };
+  if (!conn.enabled)
+    return { ...base, state: 'disabled', summary: 'Turned off. The Home screen is hidden.' };
+  if (!conn.url || !conn.token)
+    return {
+      ...base,
+      state: 'not_set_up',
+      summary: !conn.url
+        ? 'Not set up yet. Enter the address of Home Assistant and a token.'
+        : 'Almost there: paste a long-lived access token.',
+    };
+  if (!client) return { ...base, state: 'connecting', summary: 'Starting the connection…' };
+  if (client.connected)
+    return {
+      ...base,
+      state: 'connected',
+      summary: `Connected to Home Assistant${client.haVersion ? ` ${client.haVersion}` : ''}${
+        entityCount !== undefined ? ` (${entityCount} entities)` : ''
+      }.`,
+      ...(client.lastOkAt ? { lastOkAt: client.lastOkAt } : {}),
+      ...(entityCount !== undefined ? { entityCount } : {}),
+    };
+  if (client.lastError)
+    return {
+      ...base,
+      state: 'error',
+      summary: client.lastError,
+      lastError: client.lastError,
+      ...(client.lastOkAt ? { lastOkAt: client.lastOkAt } : {}),
+    };
+  return {
+    ...base,
+    state: 'connecting',
+    summary: client.hasStates
+      ? 'Lost the connection to Home Assistant; reconnecting…'
+      : `Connecting to ${conn.url}…`,
+    ...(client.lastOkAt ? { lastOkAt: client.lastOkAt } : {}),
+  };
+}
+
+/** Where the address and token came from, as the plugin registry reports it. */
+export function connectionSource(ctx: ProviderContext, env: HaEnv): HomeConnection['source'] {
+  if (!env.HA_URL && !env.HA_TOKEN) return 'none';
+  const sources = ctx.integration?.('homeassistant').sources;
+  if (!sources) return 'env';
+  return sources.url === 'store' || sources.token === 'store' ? 'settings' : 'env';
+}
+
 export interface RealHome extends HomeProvider {
-  /** Close the Home Assistant socket and the allow-list watcher (the plugin registry calls this before a rebuild). */
+  /** Close the Home Assistant socket (the plugin registry calls this before a rebuild). */
   stop(): void;
-  /** The connection, for status reporting; absent when HA_URL and HA_TOKEN are not set. */
+  /** The connection, for status reporting; absent until an address and token are set. */
   client?: HaClient;
 }
 
-export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): RealHome {
-  if (!env.HA_URL || !env.HA_TOKEN) {
-    log.info('home: HA_URL and HA_TOKEN are not set; Home Assistant routes answer 501');
-    const off = () =>
-      Promise.reject(notImplemented('Home Assistant (set HA_URL and HA_TOKEN to connect)'));
-    return {
-      state: off,
-      call: off,
-      announce: off,
-      cameraSnapshot: off,
-      cameraStream: off,
-      media: off,
-      mediaCall: off,
-      mediaArtwork: off,
-      stop: () => {},
-    };
-  }
-  const client = new HaClient({ url: env.HA_URL, token: env.HA_TOKEN });
+export interface RealHomeOptions {
+  /** The stored allow-list, shared across rebuilds so edits survive a reconnect. */
+  store?: HomeConfigStore;
+}
+
+/**
+ * The real provider. The address and token arrive in `env` from the Home Assistant plugin,
+ * which rebuilds this when they change; the on/off switch is read from settings on every
+ * call so `/home/*` answers `disabled` the moment it is turned off. The allow-list lives in
+ * SQLite and applies without a reconnect.
+ */
+export function realHome(
+  ctx: ProviderContext,
+  env: HaEnv = loadHaEnv(),
+  opts: RealHomeOptions = {},
+): RealHome {
   // A changed allow-list can add or drop whole cards, so displays reload to pick it up.
-  const file = new HomeConfigFile(env.HA_ALLOWLIST, () =>
-    ctx.emit({ type: 'display.reload', payload: {} }),
-  );
-  const provider = createHomeProvider(ctx, client, () => file.get(), env.HA_STREAM_MAX_SECONDS);
-  client.start();
-  return {
-    ...provider,
-    client,
-    stop: () => {
-      client.stop();
-      file.close();
+  const store =
+    opts.store ??
+    new HomeConfigStore(ctx.db, { importFrom: env.HA_ALLOWLIST }, () =>
+      ctx.emit({ type: 'display.reload', payload: {} }),
+    );
+  const enabled = () => ctx.settings().integrations?.homeassistant?.enabled ?? true;
+
+  let client: HaClient | undefined;
+  let inner: HomeLive | null = null;
+  if (env.HA_URL && env.HA_TOKEN) {
+    client = new HaClient({ url: env.HA_URL, token: env.HA_TOKEN });
+    inner = createHomeProvider(ctx, client, () => store.get(), env.HA_STREAM_MAX_SECONDS);
+    client.start();
+  } else {
+    log.info('home: no Home Assistant address and token yet; set them on the Settings page');
+  }
+
+  const connection = (): HomeConnection => ({
+    enabled: enabled(),
+    url: env.HA_URL ?? '',
+    token: env.HA_TOKEN ?? '',
+    source: connectionSource(ctx, env),
+  });
+  const live = (): HomeLive => {
+    if (!enabled()) throw disabledError();
+    if (!inner) throw notImplemented('Home Assistant (add its address and token in Settings)');
+    return inner;
+  };
+
+  const setup: HomeSetup = {
+    enabled,
+    connection: () =>
+      connectionStatus(
+        connection(),
+        client ?? null,
+        client?.connected ? client.states.size : undefined,
+      ),
+    async ready(ms) {
+      const c = client;
+      if (c) await waitFor(() => c.connected || !!c.lastError, ms);
     },
+    async discover() {
+      if (!enabled()) throw disabledError();
+      const c = client;
+      if (!c) throw notImplemented('Home Assistant (add its address and token in Settings)');
+      if (!c.hasStates) {
+        await waitFor(() => c.connected || !!c.lastError, 4000);
+        if (!c.hasStates)
+          throw new HttpError(
+            'upstream_error',
+            c.lastError ?? 'Home Assistant is not reachable yet; try again in a moment',
+          );
+      }
+      return mapDiscovery(c.registry, c.states, {
+        haVersion: c.haVersion,
+        temperatureUnit: c.temperatureUnit,
+      });
+    },
+    config: () => store.get(),
+    putConfig: (raw) => store.put(raw),
+    importYaml: (text) => store.importYaml(text),
+    exportYaml: () => homeConfigToYaml(store.get()),
+  };
+
+  return {
+    setup,
+    ...(client ? { client } : {}),
+    stop: () => client?.stop(),
+    // `async` so a refusal is a rejected promise, never a throw into the caller.
+    state: async () => live().state(),
+    call: async (req) => live().call(req),
+    announce: async (req) => live().announce(req),
+    cameraSnapshot: async (id) => live().cameraSnapshot(id),
+    cameraStream: async (id, signal) => live().cameraStream(id, signal),
+    media: async () => live().media(),
+    mediaCall: async (req) => live().mediaCall(req),
+    mediaArtwork: async (id) => live().mediaArtwork(id),
   };
 }
+
+/** Resolve when `check` passes or after `ms`, polling gently. */
+export async function waitFor(check: () => boolean, ms: number): Promise<boolean> {
+  const start = Date.now();
+  while (!check()) {
+    if (Date.now() - start > ms) return false;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return true;
+}
+
+/** The provider minus its setup side: what a connected client serves. */
+export type HomeLive = Omit<HomeProvider, 'setup'>;
 
 /** Everything but the wiring, so tests can hand in a client pointed at a fake HA. */
 export function createHomeProvider(
@@ -336,7 +485,7 @@ export function createHomeProvider(
   client: HaClient,
   config: () => HomeConfig,
   streamMaxSeconds = 120,
-): HomeProvider {
+): HomeLive {
   let view: HomeView | null = null;
   let viewFor: HomeConfig | null = null;
   const lastRing = new Map<string, number>();

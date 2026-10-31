@@ -1,6 +1,8 @@
-# Home Assistant allow-list for Mantel. Copy to config/home.yaml (or wherever HA_ALLOWLIST
-# points) and edit. The display sees and controls only what this file names; edits are picked
-# up without a restart and the wall display reloads itself.
+# Home Assistant allow-list for Mantel, as a file. You do not need this: the Settings page
+# (Home Assistant section) builds the same thing by ticking rooms and devices, and stores it in
+# the database. This is its import/export shape, for backups, sharing, or editing by hand:
+# Import home.yaml / Download / Copy are at the bottom of that section. A home.yaml at
+# HA_ALLOWLIST is imported once, the first time the server starts with an empty database.
 #
 # Entity ids come from Home Assistant: Settings > Devices & services > Entities.
 

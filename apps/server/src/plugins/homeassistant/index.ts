@@ -1,36 +1,19 @@
 /**
- * Home Assistant plugin: URL and token from Settings; the provider (WebSocket client plus the
- * allow-list) is rebuilt when they change and stopped when the plugin is turned off.
+ * Home Assistant plugin: URL and token from Settings (the token in the encrypted secret store);
+ * the provider (WebSocket client plus the allow-list) is rebuilt when they change and stopped
+ * when the plugin is turned off. The allow-list store is made once here and shared across
+ * rebuilds, so the Settings page can edit rooms before a token is ever entered.
  */
 import type { TestResult } from '@mantel/shared';
-import { z } from 'zod';
-import { HttpError, notImplemented } from '../../errors.js';
 import { loadHaEnv } from '../../providers/real/home-config.js';
+import { testHaConnection } from '../../providers/real/home-discover.js';
+import { HomeConfigStore } from '../../providers/real/home-store.js';
 import { realHome, type RealHome } from '../../providers/real/home.js';
 import type { HomeProvider, ProviderContext } from '../../providers/types.js';
 import { live, type Live } from '../live.js';
 import { humanError } from '../registry.js';
 import type { Plugin, PluginStatusFields } from '../types.js';
 import { manifest } from './manifest.js';
-
-const ConfigJson = z.object({
-  version: z.string().optional(),
-  location_name: z.string().optional(),
-});
-
-const offline = (why: string): HomeProvider => {
-  const off = () => Promise.reject(notImplemented(why));
-  return {
-    state: off,
-    call: off,
-    announce: off,
-    cameraSnapshot: off,
-    cameraStream: off,
-    media: off,
-    mediaCall: off,
-    mediaArtwork: off,
-  };
-};
 
 export interface HomeAssistantPluginOptions {
   env?: NodeJS.ProcessEnv;
@@ -41,19 +24,40 @@ export function homeAssistantPlugin(opts: HomeAssistantPluginOptions = {}): Plug
   live: Live<HomeProvider>;
 } {
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
-  const liveHome = live<HomeProvider>(offline('Home Assistant (starting)'));
+  const liveHome = live<HomeProvider>({} as HomeProvider);
   let ctx: ProviderContext | null = null;
+  let store: HomeConfigStore | null = null;
   let instance: RealHome | null = null;
   let builtFrom = '';
   let configured = false;
   let currentUrl = '';
   let lastError: string | null = null;
 
+  const build = (env: ReturnType<typeof loadHaEnv>) => {
+    if (!ctx || !store) return;
+    instance?.stop();
+    instance = realHome(ctx, env, { store });
+    instance.client?.on('down', (reason) => {
+      lastError = `Lost the connection to Home Assistant: ${reason}`;
+    });
+    instance.client?.on('ready', () => {
+      lastError = null;
+    });
+    liveHome.set(instance);
+  };
+
   return {
     manifest,
     live: liveHome,
     start(c) {
       ctx = c;
+      const base = opts.env ?? process.env;
+      // A changed allow-list can add or drop whole cards, so displays reload to pick it up.
+      store = new HomeConfigStore(c.db, { importFrom: base.HA_ALLOWLIST }, () =>
+        c.emit({ type: 'display.reload', payload: {} }),
+      );
+      // Unconfigured (or turned off) the provider still serves the setup routes.
+      build(loadHaEnv({ HA_ALLOWLIST: base.HA_ALLOWLIST }));
     },
     stop() {
       instance?.stop();
@@ -61,23 +65,17 @@ export function homeAssistantPlugin(opts: HomeAssistantPluginOptions = {}): Plug
     },
     apply(config, secrets) {
       if (!ctx) return;
-      const url = config.url ? String(config.url) : undefined;
+      const url = config.url ? String(config.url).replace(/\/+$/, '') : undefined;
       const token = secrets.token;
       const key = JSON.stringify([url, token, config.streamMaxSeconds]);
       if (instance && key === builtFrom) return;
       builtFrom = key;
-      instance?.stop();
-      instance = null;
       configured = Boolean(url && token);
       currentUrl = url ?? '';
-      if (!configured) {
-        liveHome.set(offline('Home Assistant (add the address and a token in Settings)'));
-        return;
-      }
+      lastError = null;
       const base = opts.env ?? process.env;
       try {
-        instance = realHome(
-          ctx,
+        build(
           loadHaEnv({
             HA_URL: url,
             HA_TOKEN: token,
@@ -86,50 +84,18 @@ export function homeAssistantPlugin(opts: HomeAssistantPluginOptions = {}): Plug
               config.streamMaxSeconds === undefined ? undefined : String(config.streamMaxSeconds),
           }),
         );
-        instance.client?.on('down', (reason) => {
-          lastError = `Lost the connection to Home Assistant: ${reason}`;
-        });
-        instance.client?.on('ready', () => {
-          lastError = null;
-        });
-        liveHome.set(instance);
       } catch (err) {
         lastError = humanError(err);
-        liveHome.set(offline('Home Assistant (settings are not valid)'));
+        build(loadHaEnv({ HA_ALLOWLIST: base.HA_ALLOWLIST }));
       }
     },
     async test(config, secrets): Promise<TestResult> {
-      if (!config.url || !secrets.token)
-        return {
-          ok: false,
-          message: 'Enter the Home Assistant address and a long-lived token first.',
-        };
-      let base: string;
-      try {
-        base = new URL(String(config.url)).origin;
-      } catch {
-        return { ok: false, message: 'The address must start with http:// or https://.' };
-      }
-      try {
-        const res = await doFetch(`${base}/api/config`, {
-          headers: { authorization: `Bearer ${secrets.token}`, accept: 'application/json' },
-          signal: AbortSignal.timeout(8_000),
-        });
-        if (res.status === 401)
-          return {
-            ok: false,
-            message:
-              'Home Assistant refused the token. Create a new long-lived token and paste the whole thing.',
-          };
-        if (!res.ok) throw new HttpError('upstream_error', `Home Assistant answered ${res.status}`);
-        const info = ConfigJson.parse(await res.json());
-        return {
-          ok: true,
-          message: `Connected to ${info.location_name ?? 'Home Assistant'}${info.version ? ` (Home Assistant ${info.version})` : ''}.`,
-        };
-      } catch (err) {
-        return { ok: false, message: humanError(err) };
-      }
+      const r = await testHaConnection(
+        config.url ? String(config.url) : '',
+        secrets.token ?? '',
+        doFetch,
+      );
+      return { ok: r.ok, message: r.message };
     },
     status(): PluginStatusFields {
       if (!configured)
@@ -137,24 +103,25 @@ export function homeAssistantPlugin(opts: HomeAssistantPluginOptions = {}): Plug
           state: 'not_set_up',
           summary: 'Add the Home Assistant address and a token',
           lastOkAt: null,
-          lastError: null,
+          lastError,
         };
       const client = instance?.client;
       if (client?.connected) {
         return {
           state: 'connected',
           summary: `Connected to ${currentUrl}`,
-          lastOkAt: new Date().toISOString(),
+          lastOkAt: client.lastOkAt ?? new Date().toISOString(),
           lastError: null,
         };
       }
+      const why = client?.lastError ?? lastError;
       return {
         state: client?.hasStates ? 'connected' : 'error',
         summary: client?.hasStates
           ? 'Reconnecting to Home Assistant'
-          : (lastError ?? 'Not connected yet. Press Test to check the address and token.'),
-        lastOkAt: null,
-        lastError,
+          : (why ?? 'Not connected yet. Press Test to check the address and token.'),
+        lastOkAt: client?.lastOkAt ?? null,
+        lastError: why,
       };
     },
   };

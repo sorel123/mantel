@@ -1,0 +1,330 @@
+/* Home Assistant setup section (WS C). Builds on settings.css; tokens only. */
+.hs-connection {
+  display: grid;
+}
+.hs-status {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 12px 16px;
+  margin: 4px 0 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+.hs-status .hs-state,
+.hs-badge {
+  font-weight: 700;
+  color: var(--ink);
+}
+.hs-status.is-connected .hs-state,
+.hs-badge.is-connected {
+  color: var(--good);
+}
+.hs-status.is-error .hs-state,
+.hs-badge.is-error {
+  color: var(--warn);
+}
+.hs-badge.is-connected {
+  background: color-mix(in srgb, var(--good) 15%, transparent);
+}
+.hs-badge.is-error {
+  background: color-mix(in srgb, var(--warn) 15%, transparent);
+}
+.hs-badge.is-disabled,
+.hs-badge.is-not_set_up {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.hs-status .set-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+.set-field > .hs-token {
+  width: 300px;
+  letter-spacing: 0.08em;
+}
+.hs-actions {
+  padding: 10px 0 14px;
+  border-top: 1px solid var(--line);
+}
+.hs-result {
+  flex: 1;
+  min-width: 200px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.hs-result.ok {
+  color: var(--good);
+}
+.hs-result.bad {
+  color: var(--warn);
+}
+.hs-connection a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- picker ---- */
+.hs-picker {
+  border-top: 1px solid var(--line);
+}
+.hs-block {
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+  display: grid;
+  gap: 10px;
+}
+.hs-block-head {
+  padding: 14px 0 6px;
+  align-items: center;
+}
+.hs-block-head > .set-label {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+/* settings.css gives every .set-row the full width; this one sits beside the label. */
+.hs-block-head > .set-row.hs-inline {
+  width: auto;
+  flex: none;
+}
+.hs-sub {
+  margin: 14px 0 6px;
+}
+.hs-room-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.hs-room {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition:
+    background var(--fast) var(--ease),
+    opacity var(--fast) var(--ease);
+}
+.hs-room.dragging {
+  opacity: 0.5;
+}
+.hs-room.off {
+  background: transparent;
+}
+.hs-room-list.muted .hs-room-name {
+  color: var(--ink-2);
+}
+.hs-room-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 6px 12px 6px 8px;
+}
+.hs-room-head > .set-input[type='text'] {
+  flex: 1;
+  min-width: 120px;
+  max-width: 280px;
+}
+.hs-room-name {
+  flex: 1;
+  font-weight: 600;
+}
+.hs-grip {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: var(--tap);
+  color: var(--ink-3);
+  cursor: grab;
+  flex: none;
+}
+.hs-grip svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  fill: none;
+}
+.hs-count {
+  margin: 0;
+  white-space: nowrap;
+}
+.hs-order {
+  display: inline-flex;
+  flex: none;
+}
+.hs-order .set-btn {
+  padding: 0 10px;
+  min-width: 40px;
+}
+.hs-expand {
+  flex: none;
+  color: var(--accent);
+}
+.hs-room.open .hs-expand {
+  color: var(--ink);
+}
+.hs-room-body {
+  border-top: 1px solid var(--line);
+  padding: 8px 14px 14px;
+  display: grid;
+  gap: 4px;
+}
+.hs-entity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 4px 0;
+}
+.hs-entity.off .hs-entity-name > span {
+  color: var(--ink-2);
+}
+.hs-entity-name {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.hs-entity-name > .set-input {
+  height: 40px;
+  max-width: 320px;
+}
+.hs-entity-name > span {
+  font-weight: 600;
+  padding: 0 2px;
+}
+.hs-entity-name small {
+  margin: 0;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hs-ro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hs-ro.on {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--ink);
+}
+.hs-ro input {
+  accent-color: var(--accent);
+  width: 18px;
+  height: 18px;
+}
+.hs-add {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+}
+.hs-add > .set-input {
+  width: 100%;
+}
+.hs-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hs-candidates .set-btn {
+  height: 44px;
+  padding: 0 14px;
+  gap: 8px;
+  font-size: 14px;
+}
+.hs-candidates small {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.hs-empty {
+  padding: 12px 4px;
+}
+
+/* ---- doorbell, presence ---- */
+.hs-bell {
+  padding: 10px 0;
+  border-top: 0;
+}
+.hs-select {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 220px;
+}
+.hs-select .set-hint {
+  margin: 0;
+}
+.hs-select .set-input,
+.hs-person select.set-input {
+  width: 100%;
+  min-width: 0;
+}
+select.set-input {
+  appearance: auto;
+  cursor: pointer;
+}
+.hs-person {
+  flex-wrap: nowrap;
+}
+.hs-person select.set-input {
+  flex: 1;
+  max-width: 360px;
+}
+.hs-person-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 140px;
+  font-weight: 600;
+}
+.hs-person-name i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+.hs-yaml .set-row {
+  flex-wrap: wrap;
+}
+.hs-save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 14px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .set-field > .hs-token {
+    width: 100%;
+  }
+  .hs-room-head {
+    flex-wrap: wrap;
+  }
+  .hs-count {
+    flex-basis: 100%;
+    padding-left: 90px;
+  }
+}

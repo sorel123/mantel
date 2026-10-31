@@ -80,36 +80,39 @@ The server validates every request against the route table and, outside producti
 
 ### REST (under `/api`, JSON, header `x-mantel-device-key` on every call except pairing and health)
 
-| Route                                                                          | Purpose                                                               |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `POST /pair`                                                                   | Exchange the 6-digit code from the server log for a device key        |
-| `GET /bootstrap`                                                               | People, calendars, settings, theme, panel size, feature flags         |
-| `GET /calendar?from&to`                                                        | Normalised events from Google and iCloud with people and colour       |
-| `POST /calendar/quick`                                                         | Create a quick event                                                  |
-| `GET /countdowns`                                                              | Upcoming tagged events with days remaining                            |
-| `GET /meals?week`                                                              | Meal plan for the week (weeks start Monday)                           |
-| `GET /weather`                                                                 | Current, hourly, daily, sun, UV, air quality, pollen, alerts          |
-| `GET /commute`                                                                 | Leave-by times; empty outside the weekday morning window              |
-| `GET /photos/next?n`                                                           | Next n photos sized for the panel, with dominant colour               |
-| `GET /photos/:id`                                                              | Image bytes                                                           |
-| `GET /home/state`                                                              | Allowed areas, entities, states and presence                          |
-| `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity                    |
-| `POST /home/announce`                                                          | Alexa announcement on chosen Echos (needs the settings flag)          |
-| `GET /home/cameras/:id/snapshot`, `GET /home/cameras/:id/stream`               | Camera still and live view for `<img>` (`?key=` accepted)             |
-| `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                           |
-| `GET /media/:id/artwork`                                                       | Now-playing artwork for `<img>` (`?key=` accepted)                    |
-| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                              |
-| `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                               |
-| `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back              |
-| `POST /chores`, `DELETE /chores/:id`                                           | Add or retire a chore                                                 |
-| `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags; a PUT reloads displays |
-| `GET /devices`, `PATCH /devices/:id`, `DELETE /devices/:id`                    | Paired displays: list, rename, revoke                                 |
-| `GET /pairing-code`                                                            | The current pairing code, so a paired display can pair another        |
-| `GET /display/state`                                                           | What the screen should do now: on/off, ambient, brightness            |
-| `POST /display/reload`                                                         | Tell every display to reload                                          |
-| `GET /health`                                                                  | Liveness and last sync times (no key needed)                          |
+| Route                                                                          | Purpose                                                                |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `POST /pair`                                                                   | Exchange the 6-digit code from the server log for a device key         |
+| `GET /bootstrap`                                                               | People, calendars, settings, theme, panel size, feature flags          |
+| `GET /calendar?from&to`                                                        | Normalised events from Google and iCloud with people and colour        |
+| `POST /calendar/quick`                                                         | Create a quick event                                                   |
+| `GET /countdowns`                                                              | Upcoming tagged events with days remaining                             |
+| `GET /meals?week`                                                              | Meal plan for the week (weeks start Monday)                            |
+| `GET /weather`                                                                 | Current, hourly, daily, sun, UV, air quality, pollen, alerts           |
+| `GET /commute`                                                                 | Leave-by times; empty outside the weekday morning window               |
+| `GET /photos/next?n`                                                           | Next n photos sized for the panel, with dominant colour                |
+| `GET /photos/:id`                                                              | Image bytes                                                            |
+| `GET /home/state`                                                              | Allowed areas, entities, states and presence                           |
+| `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity                     |
+| `POST /home/announce`                                                          | Alexa announcement on chosen Echos (needs the settings flag)           |
+| `GET /home/cameras/:id/snapshot`, `GET /home/cameras/:id/stream`               | Camera still and live view for `<img>` (`?key=` accepted)              |
+| `GET /home/connection`, `PUT /home/connection`, `POST /home/connection/test`   | Home Assistant address, token and on/off switch; a PUT reconnects live |
+| `GET /home/discover`                                                           | Areas and entities Home Assistant has, for the room and device picker  |
+| `GET /home/config`, `PUT /home/config`, `.../import-yaml`, `.../export-yaml`   | The stored allow-list (same shape as `home.yaml`); a PUT applies live  |
+| `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                            |
+| `GET /media/:id/artwork`                                                       | Now-playing artwork for `<img>` (`?key=` accepted)                     |
+| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                               |
+| `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                                |
+| `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back               |
+| `POST /chores`, `DELETE /chores/:id`                                           | Add or retire a chore                                                  |
+| `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags; a PUT reloads displays  |
+| `GET /devices`, `PATCH /devices/:id`, `DELETE /devices/:id`                    | Paired displays: list, rename, revoke                                  |
+| `GET /pairing-code`                                                            | The current pairing code, so a paired display can pair another         |
+| `GET /display/state`                                                           | What the screen should do now: on/off, ambient, brightness             |
+| `POST /display/reload`                                                         | Tell every display to reload                                           |
+| `GET /health`                                                                  | Liveness and last sync times (no key needed)                           |
 
-Errors are `{ "error": { "code", "message" } }` with codes `bad_request`, `unauthorized`, `forbidden`, `not_found`, `not_implemented` (501, a real integration not built yet), `upstream_error`, `internal`.
+Errors are `{ "error": { "code", "message" } }` with codes `bad_request`, `unauthorized`, `forbidden`, `not_found`, `not_implemented` (501, a real integration not built yet), `upstream_error`, `internal`, `disabled` (503, the integration is turned off in Settings).
 
 ### WebSocket (`/ws?key=<device key>`)
 
@@ -176,7 +179,7 @@ The image builds the display and serves it from the server on one port. Merges t
 
 ## Home Assistant
 
-Lights, plugs, thermostats, cameras and the doorbell, Apple TV and presence all come through Home Assistant, filtered by an allow-list in `config/home.yaml`. Setup, what each integration gives you and the limits are in [`docs/home-assistant.md`](docs/home-assistant.md).
+Lights, plugs, thermostats, cameras and the doorbell, Apple TV and presence all come through Home Assistant. Set it up on the Settings page: address, token, a Test button, then tick rooms and devices from what Home Assistant has (`home.yaml` remains as an import/export format). What each integration gives you and the limits are in [`docs/home-assistant.md`](docs/home-assistant.md).
 
 ## Conventions
 

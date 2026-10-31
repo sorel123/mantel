@@ -6,7 +6,7 @@
 import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
 import { eventsInRange, countdowns, meals } from './calendar.js';
-import { homeState, mediaPlayers } from './home.js';
+import { homeConfig, homeConnection, homeDiscovery, homeState, mediaPlayers } from './home.js';
 import {
   geocodeCandidates,
   healthDetails,
@@ -87,6 +87,14 @@ export function routeFixtures(now = new Date()): {
     homeAnnounce: { ok: true, targets: home.announceTargets.map((t) => t.id) },
     media: { players },
     mediaCall: { ok: true, player: players[0]! },
+    homeConnection: homeConnection(now),
+    homeConnectionPut: homeConnection(now),
+    homeConnectionTest: { ok: true, message: 'Connected to Home Assistant 2026.10.2.' },
+    homeDiscover: homeDiscovery(now),
+    homeConfig: homeConfig(now),
+    homeConfigPut: homeConfig(now),
+    homeConfigImportYaml: homeConfig(now),
+    homeConfigExportYaml: { yaml: 'areas:\n  - id: living_room\n    name: Living room\n' },
     lists: { lists: allLists },
     listAddItem: { item: firstItem },
     itemPatch: { item: { ...firstItem, done: true } },

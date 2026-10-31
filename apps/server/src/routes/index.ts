@@ -1,6 +1,7 @@
 import {
   DEVICE_KEY_HEADER,
   fromIsoDate,
+  type HomeConfig,
   minutesInZone,
   scheduleStateAt,
   toLocalIso,
@@ -268,6 +269,51 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   });
   handle('media', async () => providers.home.media());
   handle('mediaCall', async ({ body }) => providers.home.mediaCall(body));
+
+  // Setup without YAML: the connection, what HA has, and the stored allow-list. `providers.home`
+  // is a live proxy the plugin swaps behind, so `setup` is read on each call.
+  const homeSetup = () => providers.home.setup;
+  handle('homeConnection', async () => homeSetup().connection());
+  handle('homeConnectionPut', async ({ body }) => {
+    // The address, token and switch belong to the plugin registry (the token goes to the
+    // encrypted secret store); saving there rebuilds the provider, so wait for its first try.
+    const before = registry.enabled('homeassistant');
+    await registry.update('homeassistant', {
+      ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
+      ...(body.url !== undefined ? { config: { url: body.url.replace(/\/+$/, '') } } : {}),
+      ...(body.token !== undefined ? { secrets: { token: body.token } } : {}),
+    });
+    const home = homeSetup();
+    if (body.url !== undefined || body.token !== undefined || body.enabled !== undefined)
+      await home.ready(4000);
+    // The Home screen appears or disappears with the switch.
+    if (before !== registry.enabled('homeassistant'))
+      hub.broadcast({ type: 'display.reload', payload: {} });
+    const status = home.connection();
+    if (status.state === 'connected') setup.markDone(stepFor(registry, 'homeassistant'));
+    return status;
+  });
+  handle('homeConnectionTest', async ({ body }) =>
+    registry.test('homeassistant', {
+      ...(body.url !== undefined ? { config: { url: body.url } } : {}),
+      ...(body.token !== undefined ? { secrets: { token: body.token } } : {}),
+    }),
+  );
+  handle('homeDiscover', async () => homeSetup().discover());
+  handle('homeConfig', async () => homeSetup().config());
+  const saveConfig = (run: () => HomeConfig) => {
+    try {
+      return run();
+    } catch (err) {
+      if (err instanceof HttpError) throw err;
+      throw new HttpError('bad_request', err instanceof Error ? err.message : String(err));
+    }
+  };
+  handle('homeConfigPut', async ({ body }) => saveConfig(() => homeSetup().putConfig(body)));
+  handle('homeConfigImportYaml', async ({ body }) =>
+    saveConfig(() => homeSetup().importYaml(body.yaml)),
+  );
+  handle('homeConfigExportYaml', async () => ({ yaml: homeSetup().exportYaml() }));
 
   // Byte routes for <img src>: the device key comes in the header or `?key=`.
   const image =

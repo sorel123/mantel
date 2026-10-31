@@ -72,6 +72,9 @@ function fakeServer() {
     }
     if (path === '/setup/state') return respond(200, fx.setupState);
     if (path === '/health/details') return respond(200, fx.healthDetails);
+    if (path === '/home/connection') return respond(200, fx.homeConnection);
+    if (path === '/home/config') return respond(200, fx.homeConfig);
+    if (path === '/home/discover') return respond(200, fx.homeDiscover);
     if (path === '/calendar/setup/state') return respond(200, calendarSetup());
     if (path === '/calendar/setup/prefs') return respond(200, calendarSetup());
     return respond(404, { error: { code: 'not_found', message: path } });
@@ -175,7 +178,12 @@ describe('Settings page', () => {
   it('mounts Home Assistant in its own section', async () => {
     fakeServer();
     open('homeassistant');
-    expect(await screen.findByRole('article', { name: 'Home Assistant' })).toBeTruthy();
+    // Workstream C's section: the connection card, then the rooms picker from discovery.
+    expect(await screen.findByLabelText('Home Assistant address')).toBeTruthy();
+    expect(
+      await screen.findByRole('switch', { name: 'Show Home Assistant on the wall' }),
+    ).toBeTruthy();
+    expect(await screen.findByRole('list', { name: 'Rooms on the Home screen' })).toBeTruthy();
   });
 
   it('fills the Google client id and secret from a dropped client JSON', async () => {

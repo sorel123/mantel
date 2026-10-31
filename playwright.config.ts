@@ -22,6 +22,9 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
+  // One server, one in-memory database: tests that change settings (Home Assistant on and
+  // off, rooms) must not overlap with the screen tests of the other viewport.
+  workers: 1,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://127.0.0.1:${port}`,

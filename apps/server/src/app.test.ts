@@ -63,7 +63,7 @@ describe('mock mode', () => {
     // v2 workstream A contract (fixtures until the implementation lands)
     plugins: ['/plugins'],
     integrations: ['/integrations'],
-    integrationPut: ['/integrations/homeassistant', { enabled: false }],
+    integrationPut: ['/integrations/homeassistant', { enabled: true }],
     integrationTest: ['/integrations/homeassistant/test'],
     integrationAuthorizeUrl: ['/integrations/google/authorize-url'],
     integrationCallback: [
