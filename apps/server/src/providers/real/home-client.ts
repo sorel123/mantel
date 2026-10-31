@@ -127,6 +127,9 @@ export class HaClient {
     clearTimeout(this.retryTimer);
     clearInterval(this.pingTimer);
     this.ws?.removeAllListeners();
+    // Terminating a socket that is still connecting emits 'error'; with no listener left
+    // that would be an uncaught exception.
+    this.ws?.on('error', () => {});
     this.ws?.terminate();
     this.ws = null;
     this._connected = false;
