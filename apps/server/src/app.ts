@@ -57,6 +57,8 @@ export function createApp(config: Config, overrides: { now?: () => Date } = {}) 
 
   const api = new Hono();
   registerRoutes(makeHandle(api, { auth, validateResponses: !config.isProd }), deps);
+  // Non-contract routes a provider needs (WS2: calendar setup page, OAuth and push callbacks).
+  providers.calendar.mount?.(api, auth);
 
   if (config.MOCK) {
     // Mock-only helpers so workstreams can demo server pushes: `curl -XPOST .../api/dev/emit -d '{...}'`.

@@ -7,6 +7,8 @@
  * lists + chores (WS5). Settings and devices belong to the scaffold and WS6.
  */
 import type { BodyOf, ResponseOf, Settings, WsEventInput } from '@mantel/shared';
+import type { Hono } from 'hono';
+import type { DeviceAuth } from '../auth.js';
 import type { Config } from '../config.js';
 import type { Db } from '../db/index.js';
 
@@ -27,6 +29,8 @@ export interface CalendarProvider {
   countdowns(): Promise<ResponseOf<'countdowns'>>;
   meals(week?: Date): Promise<ResponseOf<'meals'>>;
   calendars(): Promise<ResponseOf<'bootstrap'>['calendars']>;
+  /** Extra routes outside the contract: the calendar setup page and Google's OAuth and push callbacks. */
+  mount?(api: Hono, auth: DeviceAuth): void;
 }
 
 export interface WeatherProvider {

@@ -1,0 +1,266 @@
+/* Today (WS2). Layout and sizes from design/mockup.html. */
+.cal.today {
+  display: grid;
+  grid-template-columns: 392px minmax(0, 1fr);
+  gap: 28px;
+  flex: 1;
+  min-height: 0;
+}
+.today .col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+.today .datebox {
+  padding: 4px 6px 0;
+}
+.today .datebox .wd {
+  font: italic 500 24px/1 var(--display);
+  color: var(--ink-2);
+}
+.today .datebox .big {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 2px;
+}
+.today .datebox .dn {
+  font: 300 128px/0.9 var(--display);
+  letter-spacing: -0.04em;
+}
+.today .datebox .mo {
+  font: 400 34px/1 var(--display);
+  color: var(--ink-2);
+}
+
+.today .slot {
+  min-height: 120px;
+  background: transparent;
+  box-shadow: none;
+  border-style: dashed;
+}
+.today .gpeek {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* agenda */
+.today .agenda {
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+.today .agenda .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.today .agenda .head .l {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.today .agenda .head .r {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.today .agenda .head .cnt {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.today .agenda .add {
+  width: 48px;
+  height: 48px;
+  margin: -6px -6px -6px 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  transition: transform var(--fast) var(--ease);
+}
+.today .agenda .add:active {
+  transform: scale(0.94);
+}
+.today .agenda .add svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.4;
+}
+.today .countdowns {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  flex: none;
+}
+.today .countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px 6px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  flex: 0 1 auto;
+  color: var(--ink-2);
+  white-space: nowrap;
+  min-width: 0;
+}
+.today .countdown svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--pc);
+  fill: color-mix(in srgb, var(--pc) 30%, transparent);
+}
+.today .countdown b {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .tonight {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.today .tonight svg {
+  width: 20px;
+  height: 20px;
+  color: var(--warn);
+  align-self: center;
+  flex: none;
+}
+.today .tonight b {
+  font: 500 21px/1.1 var(--display);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .tonight b.none {
+  color: var(--ink-3);
+}
+.today .tonight .also {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .allday {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.today .tl {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  scroll-behavior: smooth;
+}
+.today .tl::-webkit-scrollbar {
+  display: none;
+}
+.today .nowline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 0 2px 2px;
+  flex: none;
+}
+.today .nowline::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.today .tl .ev {
+  flex: none;
+}
+.today .upcoming {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.today .upcoming .d {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 92px;
+  min-width: 0;
+  text-align: left;
+  transition:
+    background var(--slow) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.today .upcoming .d:active {
+  transform: scale(0.98);
+}
+.today .upcoming .dh {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.today .upcoming .dh b {
+  color: var(--ink);
+}
+.today .upcoming .r {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .upcoming .r i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pc);
+  flex: none;
+}
+.today .upcoming .r.meal {
+  margin-top: auto;
+  color: var(--ink-2);
+}
+.today .upcoming .r.meal svg {
+  width: 14px;
+  height: 14px;
+  color: var(--warn);
+  flex: none;
+}
+.today .upcoming .r.more,
+.today .upcoming .r.none {
+  color: var(--ink-3);
+}
+.today .tl + .upcoming {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
