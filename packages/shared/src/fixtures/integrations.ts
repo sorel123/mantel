@@ -220,8 +220,9 @@ export const pluginManifests: PluginManifest[] = [
     optional: true,
     docs: 'weather-commute-photos.md',
     directions: [
-      'Without a key, Mantel uses OpenStreetMap routing with no traffic.',
+      'Without a key, Mantel uses OpenStreetMap routing (OSRM) with no traffic.',
       'For live traffic, create a Google Maps Platform key with the Routes API enabled and paste it below.',
+      'An OpenRouteService key (free) is a middle option: your own quota, still no traffic.',
     ],
     fields: [
       field({
@@ -236,12 +237,24 @@ export const pluginManifests: PluginManifest[] = [
         env: 'GOOGLE_ROUTES_API_KEY',
       }),
       field({
+        key: 'openRouteServiceKey',
+        label: 'OpenRouteService key',
+        type: 'secret',
+        advanced: true,
+        getItHere: {
+          label: 'OpenRouteService dashboard',
+          url: 'https://openrouteservice.org/dev/#/signup',
+        },
+        help: 'Optional. Free, no traffic.',
+        env: 'OPENROUTESERVICE_API_KEY',
+      }),
+      field({
         key: 'osrmUrl',
         label: 'OSRM server',
         type: 'url',
         default: 'https://router.project-osrm.org',
         advanced: true,
-        env: 'OSRM_URL',
+        env: 'OSRM_BASE_URL',
       }),
     ],
     contributes: { todayCard: 'leave-by', events: ['commute.updated'] },
@@ -257,7 +270,7 @@ export const pluginManifests: PluginManifest[] = [
     optional: true,
     docs: 'weather-commute-photos.md',
     directions: [
-      'Create a Google Maps Platform key with the Pollen API enabled, or reuse the Routes key.',
+      'Create a Google Maps Platform key with the Pollen API enabled, or reuse the Leave-by key.',
     ],
     fields: [
       field({

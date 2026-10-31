@@ -88,6 +88,7 @@ export const AuthorizeUrlResponse = z.object({
   /** True when the redirect lands on localhost and the user pastes the address back. */
   pasteBack: z.boolean(),
 });
+export type AuthorizeUrlResponse = z.infer<typeof AuthorizeUrlResponse>;
 /** The whole address from the browser bar after the provider redirected (or just its `code`). */
 export const OAuthCallbackRequest = z.object({ url: z.string().min(1) });
 
