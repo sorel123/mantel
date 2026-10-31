@@ -63,7 +63,6 @@ import {
   ThemeMode,
   Units,
   Location,
-  WeatherSnapshot,
 } from './models.js';
 import {
   HomeConfig,
@@ -74,6 +73,13 @@ import {
   HomeTestResult,
   HomeYaml,
 } from './home-setup.js';
+import {
+  WeatherPlaceQuery,
+  WeatherQuipResponse,
+  WeatherSearchQuery,
+  WeatherSearchResponse,
+  WeatherSnapshotExtended,
+} from './weather-extended.js';
 
 export const API_PREFIX = '/api';
 export const WS_PATH = '/ws';
@@ -168,7 +174,7 @@ export const CountdownsResponse = z.object({ countdowns: z.array(Countdown) });
 export const MealsQuery = z.object({ week: IsoDate.optional() });
 export const MealsResponse = z.object({ weekStart: IsoDate, meals: z.array(Meal) });
 
-export const WeatherResponse = WeatherSnapshot;
+export const WeatherResponse = WeatherSnapshotExtended;
 
 export const CommuteResponse = z.object({
   /** Empty outside the weekday morning window. */
@@ -366,6 +372,32 @@ export const routes = {
     query: NoQuery,
     body: NoBody,
     response: WeatherResponse,
+    auth: true,
+  }),
+  /** The same snapshot for another place (the weather sheet's place search and saved places). */
+  weatherPlace: route({
+    method: 'GET',
+    path: '/weather/place',
+    query: WeatherPlaceQuery,
+    body: NoBody,
+    response: WeatherResponse,
+    auth: true,
+  }),
+  weatherSearch: route({
+    method: 'GET',
+    path: '/weather/search',
+    query: WeatherSearchQuery,
+    body: NoBody,
+    response: WeatherSearchResponse,
+    auth: true,
+  }),
+  /** Today's line about the weather, in the household's chosen personality. */
+  weatherQuip: route({
+    method: 'GET',
+    path: '/weather/quip',
+    query: NoQuery,
+    body: NoBody,
+    response: WeatherQuipResponse,
     auth: true,
   }),
   commute: route({

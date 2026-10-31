@@ -20,6 +20,9 @@ export function emptyProviders(base: Providers): Providers {
     },
     weather: {
       weather: () => notSetUp('Weather needs a home location in Settings'),
+      place: () => notSetUp('Weather needs a home location in Settings'),
+      search: async () => ({ places: [] }),
+      quip: async () => ({ quip: null }),
       commute: async () => ({ leaveBy: [] }),
     },
     photos: { ...base.photos, next: async () => ({ photos: [] }) },
