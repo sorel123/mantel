@@ -1,6 +1,7 @@
 import type { HomeEntity } from '@mantel/shared';
 import { useCallback, useEffect } from 'react';
 import { useNow } from '../../app/Clock';
+import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { SheetHeader, useOverlay } from '../../app/overlay';
 import { useBootstrap } from '../../lib/bootstrap';
 import { AnnounceSheet } from './Announce';
@@ -66,7 +67,15 @@ export function HomeScreen() {
       <h1 className="sr-only">Home</h1>
       {!data ? (
         <div className="card hm-empty">
-          {home.error ? (
+          {home.notSetUp ? (
+            <EmptyState
+              icon={EmptyIcon.home}
+              action="Connect Home Assistant"
+              section="homeassistant"
+            >
+              Home Assistant isn't connected yet.
+            </EmptyState>
+          ) : home.error ? (
             <>
               <p>Home Assistant isn't answering: {home.error}</p>
               <button onClick={() => void home.reload()}>Try again</button>

@@ -11,8 +11,14 @@ const Ws4Env = z.object({
   GOOGLE_POLLEN_API_KEY: z.string().optional(),
   /** Public iCloud Shared Album link, `https://www.icloud.com/sharedalbum/#B0aGW...`. Unset: no photos. */
   ICLOUD_SHARED_ALBUM_URL: z.string().optional(),
-  /** Contact (email or URL) for the NWS User-Agent, which api.weather.gov asks for. */
-  NWS_CONTACT: z.string().optional(),
+  /** Free OpenRouteService key: used for leave-by times when there is no Google key. */
+  OPENROUTESERVICE_API_KEY: z.string().optional(),
+  /** OSRM server for leave-by times when neither key is set; the public demo server by default. */
+  OSRM_BASE_URL: z.url().default('https://router.project-osrm.org'),
+  /** Nominatim server that turns destination addresses into coordinates for OSRM and OpenRouteService. */
+  NOMINATIM_BASE_URL: z.url().default('https://nominatim.openstreetmap.org'),
+  /** Contact (email or URL) for the NWS and Nominatim User-Agents; the repo when unset. */
+  NWS_CONTACT: z.string().default('https://github.com/sorel123/mantel'),
   /** Most photos to keep from the album, newest first. */
   PHOTO_LIMIT: z.coerce.number().int().positive().default(500),
 });

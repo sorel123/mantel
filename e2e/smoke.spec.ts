@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { emptyPort } from '../playwright.config';
 
 /** Fail the test on any uncaught error or console error from the display. */
 function watchConsole(page: Page): string[] {
@@ -105,4 +106,42 @@ test('the settings page and the phone page load', async ({ page }) => {
   await page.goto('/add');
   await expect(page.getByRole('heading', { name: 'Add to a list' })).toBeVisible();
   expect(problems).toEqual([]);
+});
+
+test('a fresh install shows an empty state with a Settings link on every screen', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto(`http://127.0.0.1:${emptyPort}/?mode=daylight`);
+  const dock = page.getByRole('navigation', { name: 'Screens' });
+  await expect(dock).toBeVisible();
+
+  // Today: no weather (no location yet) and no calendars.
+  await expect(page.getByText('No weather yet. Tell Mantel where home is.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Set your location' })).toHaveAttribute(
+    'href',
+    '/settings#home',
+  );
+  await expect(page.getByText('No calendars connected yet.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Connect a calendar' })).toHaveAttribute(
+    'href',
+    '/settings#calendars',
+  );
+
+  await dock.getByRole('button', { name: 'Lists' }).click();
+  await expect(page.getByText(/^No lists yet\./)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Set up lists' })).toHaveAttribute(
+    'href',
+    '/settings#lists',
+  );
+
+  await dock.getByRole('button', { name: 'Home' }).click();
+  await expect(page.getByText("Home Assistant isn't connected yet.")).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Connect Home Assistant' })).toHaveAttribute(
+    'href',
+    '/settings#homeassistant',
+  );
+
+  // The 501 answers for weather and Home Assistant are expected here; nothing else may fail.
+  expect(problems.filter((p) => !/Failed to load resource/.test(p))).toEqual([]);
 });

@@ -6,6 +6,7 @@ import type {
   MediaPlayer,
   Presence,
 } from '@mantel/shared';
+import { ApiRequestError } from '@mantel/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import { useConnection, useServerEvent } from '../../lib/events';
@@ -36,6 +37,8 @@ export function useHome(withMedia: boolean) {
   const [data, setData] = useState<HomeData | null>(null);
   const [players, setPlayers] = useState<MediaPlayer[]>([]);
   const [error, setError] = useState<string | null>(null);
+  /** True when the server says Home Assistant is not set up (501), as opposed to not answering. */
+  const [notSetUp, setNotSetUp] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const connection = useConnection();
   const wasOpen = useRef(false);
@@ -54,8 +57,10 @@ export function useHome(withMedia: boolean) {
       });
       setPlayers(media.players);
       setError(null);
+      setNotSetUp(false);
     } catch (err) {
       setError(message(err));
+      setNotSetUp(err instanceof ApiRequestError && err.status === 501);
     }
   }, [withMedia]);
 
@@ -143,5 +148,5 @@ export function useHome(withMedia: boolean) {
     return () => clearTimeout(t);
   }, [notice]);
 
-  return { data, players, error, notice, reload: load, call, mediaCall, announce };
+  return { data, players, error, notSetUp, notice, reload: load, call, mediaCall, announce };
 }

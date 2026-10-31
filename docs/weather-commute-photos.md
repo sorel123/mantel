@@ -16,11 +16,13 @@ Results are cached for 15 minutes in memory and in SQLite, so a restart answers 
 
 ## Leave-by times
 
-1. In [Google Cloud console](https://console.cloud.google.com/), create or pick a project with billing, enable **Routes API** (and **Pollen API** if you want pollen), and create an API key restricted to those APIs.
-2. Set `GOOGLE_ROUTES_API_KEY`.
-3. Add destinations in settings (name, address, people, arrive-by time, days). The route starts from the household location.
+Leave-by times work with no key at all. Add destinations in Settings (name, address, people, arrive-by time, days); the route starts from the household location.
 
-A destination shows on its days from three hours before its arrive-by time until that time, as "Leave by 7:41 · 14 min, +3 traffic", turning to "Leave now" once the time passes. Traffic is re-checked every five minutes while a display is asking. The `commute` feature flag turns it off. Cost: one Routes request per destination per five minutes inside the window, well inside Google's monthly free usage for a household.
+- **No key (default):** the address is looked up once with [Nominatim](https://nominatim.openstreetmap.org/) (OpenStreetMap) and remembered, and the drive time comes from [OSRM](https://project-osrm.org/)'s public demo server. These are typical times with no live traffic, refreshed hourly, and the chip never shows a traffic delay. The address field also takes coordinates pasted from Google Maps ("47.6062, -122.3321"), which skips the lookup. Run your own OSRM and point `OSRM_BASE_URL` at it if you prefer (the demo server is for light use).
+- **OpenRouteService (free key):** sign up at [openrouteservice.org](https://openrouteservice.org/dev/#/signup) and set `OPENROUTESERVICE_API_KEY`; it replaces OSRM. Still no live traffic.
+- **Google Routes (the upgrade, live traffic):** in [Google Cloud console](https://console.cloud.google.com/), create or pick a project with billing, enable **Routes API** (and **Pollen API** if you want pollen), create an API key restricted to those APIs, and set `GOOGLE_ROUTES_API_KEY`. Trips then show "+3 traffic" and are re-checked every five minutes. Cost: one request per destination per five minutes inside the window, well inside Google's monthly free usage for a household.
+
+A destination shows on its days from three hours before its arrive-by time until that time, as "Leave by 7:41 · 14 min" (plus ", +3 traffic" with Google), turning to "Leave now" once the time passes. Each trip carries `traffic: true|false` so the display knows which kind it is. The `commute` feature flag turns the feature off. The server logs which router it is using on the first request, and `NWS_CONTACT` (defaulting to this repo's URL) identifies Mantel to Nominatim and the NWS as their usage policies ask.
 
 ## Photos
 

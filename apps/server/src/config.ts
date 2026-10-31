@@ -12,6 +12,8 @@ const Env = z.object({
   HOST: z.string().default('0.0.0.0'),
   /** Serve fixtures for every integration instead of talking to real services. */
   MOCK: flag,
+  /** With MOCK: every integration answers as if nothing were set up yet, to see the empty states. */
+  MOCK_EMPTY: flag,
   /** Where SQLite and caches live. `:memory:` keeps nothing on disk. */
   DATA_DIR: z.string().default('./data'),
   /** Built display to serve at `/` (production). Unset in dev, where Vite serves it. */

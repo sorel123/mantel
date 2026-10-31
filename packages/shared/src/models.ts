@@ -173,6 +173,8 @@ export const LeaveBy = z.object({
   durationMinutes: z.number().nonnegative(),
   /** Extra minutes over the free-flow time. */
   delayMinutes: z.number(),
+  /** False when the time came from a router without live traffic (OSRM, OpenRouteService). */
+  traffic: z.boolean().optional(),
   personIds: z.array(Id),
   /** The calendar event this trip is for, if it was matched to one. */
   eventId: Id.optional(),
