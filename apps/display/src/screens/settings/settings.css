@@ -989,3 +989,13 @@ code {
     flex-direction: column;
   }
 }
+
+/* Weather quips: the chosen voice, read aloud before saving */
+.set-quip-sample {
+  margin: -4px 0 6px;
+  padding: 12px 16px;
+  border-radius: var(--radius, 14px);
+  background: var(--surface-2);
+  font-style: italic;
+  color: var(--ink-2);
+}

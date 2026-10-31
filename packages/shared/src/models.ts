@@ -416,8 +416,10 @@ export type WeatherPersonality = z.infer<typeof WeatherPersonality>;
 export const WeatherSettings = z.object({
   /** Other places to look up from the weather sheet. */
   savedPlaces: z.array(SavedPlace).default([]),
-  /** Quips: off, or the tone of voice. */
-  personality: WeatherPersonality.default('off'),
+  /** Quips: off, or the tone of voice. Friendly unless chosen otherwise. */
+  personality: WeatherPersonality.default('friendly'),
+  /** With a Claude key, the afternoon quip is a joke riffing on one of the day's headlines. */
+  newsJokes: z.boolean().default(false),
 });
 export type WeatherSettings = z.infer<typeof WeatherSettings>;
 
@@ -444,7 +446,7 @@ export const Settings = z.object({
   screens: z.array(ScreenConfig).default(() => structuredClone(DEFAULT_SCREENS)),
   /** The screen shown after a wake and after the display reloads. */
   defaultScreen: Id.default('today'),
-  weather: WeatherSettings.default({ savedPlaces: [], personality: 'off' }),
+  weather: WeatherSettings.default({ savedPlaces: [], personality: 'friendly', newsJokes: false }),
   integrations: IntegrationToggles.default({}),
 });
 export type Settings = z.infer<typeof Settings>;

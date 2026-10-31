@@ -22,6 +22,7 @@ import { AdvancedSection, IntegrationCard, IntegrationsSection } from './Integra
 import { ListsSection } from './ListsAdmin';
 import { AppearanceSection, HomeSetupSection, LayoutSection, Mount } from './Optional';
 import { ScreensSection } from './Screens';
+import { QuipsSection } from './Quips';
 import { Destinations, Features, People, Schedule } from './sections';
 import { Section } from './controls';
 import './settings.css';
@@ -55,6 +56,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     items: [
       { id: 'appearance', label: 'Appearance' },
       { id: 'layout', label: 'Layout' },
+      { id: 'quips', label: 'Weather quips' },
       { id: 'screens', label: 'Screens and dock' },
     ],
   },
@@ -259,7 +261,7 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'ical', 'homeassistant']}
+        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips']}
       />
     ),
     homeassistant: () => (
@@ -328,6 +330,15 @@ export function SettingsPage() {
           setSaving('idle');
           setDraft((d) => (d ? { ...d, screens, defaultScreen } : d));
         }}
+      />
+    ),
+    quips: () => (
+      <QuipsSection
+        value={draft.weather}
+        onChange={(v) => set('weather', v)}
+        plugin={integrations.plugins.find((p) => p.id === 'quips')}
+        status={integrations.statuses.quips}
+        onStatus={integrations.onStatus}
       />
     ),
     lists: () => <ListsSection people={draft.people} />,

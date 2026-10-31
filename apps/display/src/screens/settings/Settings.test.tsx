@@ -157,7 +157,7 @@ describe('Settings page', () => {
     expect(screen.queryByRole('article', { name: 'Google Calendar' })).toBeNull();
     expect(screen.queryByRole('article', { name: 'Home Assistant' })).toBeNull();
     for (const p of fx.plugins.plugins.filter(
-      (p) => p.category !== 'calendar' && p.id !== 'homeassistant',
+      (p) => p.category !== 'calendar' && p.id !== 'homeassistant' && p.id !== 'quips',
     ))
       expect(screen.getByRole('article', { name: p.name })).toBeTruthy();
 
@@ -173,6 +173,20 @@ describe('Settings page', () => {
     const put = calls.find((c) => c.method === 'PUT' && /^\/integrations\//.test(c.path))!;
     expect(put.path).toBe('/integrations/routes');
     expect(put.body).toMatchObject({ secrets: { googleKey: 'AIzaSyD-test-key' } });
+  });
+
+  it('picks the quip voice and offers news jokes once a Claude key is saved', async () => {
+    fakeServer();
+    open('quips');
+    const voice = await screen.findByRole('group', { name: 'Quip personality' });
+    expect(
+      within(voice).getByRole('button', { name: 'Friendly' }).getAttribute('aria-pressed'),
+    ).toBe('true');
+    fireEvent.click(within(voice).getByRole('button', { name: 'Snarky' }));
+    expect(screen.getByText(/weather for people who cannot commit/)).toBeTruthy();
+    // No key in the fixtures: the toggle explains what it needs.
+    expect(screen.getByText(/Needs a Claude API key/)).toBeTruthy();
+    expect(screen.getByRole('article', { name: 'Weather quips' })).toBeTruthy();
   });
 
   it('mounts Home Assistant in its own section', async () => {

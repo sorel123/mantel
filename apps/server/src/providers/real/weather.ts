@@ -21,7 +21,8 @@ import { HttpError } from '../../errors.js';
 import { log } from '../../log.js';
 import { integrationValues, type ProviderContext, type WeatherProvider } from '../types.js';
 import { realCommute } from './commute.js';
-import { quipContext, quipSeed, selectQuip, writeQuipWithClaude } from './quips.js';
+import { fetchHeadlines, DEFAULT_NEWS_FEED } from './headlines.js';
+import { quipBlock, quipContext, quipSeed, selectQuip, writeQuipWithClaude } from './quips.js';
 import type { Ws4Env } from './weather-env.js';
 import {
   googlePollenUrl,
@@ -43,7 +44,7 @@ import {
   parseCoordinates,
   type WeatherQuery,
 } from './weather-openmeteo.js';
-import { dateInZone } from './weather-time.js';
+import { dateInZone, zoned } from './weather-time.js';
 
 export const WEATHER_TTL_MS = 15 * 60_000;
 /** Other places are looked at, not lived in: a longer cache and a small cap. */
@@ -67,7 +68,7 @@ interface Cached {
 }
 
 interface CachedQuip {
-  /** `${date}:${personality}` the line was written for. */
+  /** `${date}:${personality}:${part of day}[:news]` the line was written for. */
   key: string;
   quip: WeatherQuip;
   /** When Claude was last tried and failed, so a broken key is retried hourly, not per request. */
@@ -303,18 +304,22 @@ export function realWeather(
 
   async function quip(loadEvents: () => Promise<CalendarEvent[]>) {
     const s = ctx.settings();
-    const personality = weatherPrefsOf(s).personality;
+    const prefs = weatherPrefsOf(s);
+    const personality = prefs.personality;
     if (personality === 'off') return { quip: null };
     const now = ctx.now();
     const snapshot = await weather();
     const ctxQ = quipContext(snapshot, now, s.timezone, personality);
     const day = dateInZone(now, s.timezone);
-    const dayKey = `${day}:${personality}`;
+    const block = quipBlock(zoned(now, s.timezone).hour);
 
-    // One Claude line per day, when the quips integration is on with a key and the last try did
-    // not fail within the hour.
+    // One Claude line per part of the day, when the quips integration is on with a key and the
+    // last try did not fail within the hour. With news jokes on, the afternoon line riffs on
+    // the day's headlines.
     const quips = integrationValues(ctx, 'quips');
     const apiKey = quips.enabled ? quips.secrets.claudeApiKey : undefined;
+    const news = Boolean(apiKey) && prefs.newsJokes && block === 'afternoon';
+    const dayKey = `${day}:${personality}:${block}${news ? ':news' : ''}`;
     if (apiKey) {
       if (quipCache?.key === dayKey && quipCache.quip.source === 'claude')
         return { quip: quipCache.quip };
@@ -324,7 +329,17 @@ export function realWeather(
         now.getTime() - quipCache.claudeFailedAt < 60 * 60_000;
       if (!recentlyFailed) {
         const events = await loadEvents().catch(() => []);
+        const feed = String(quips.config.newsFeed ?? '') || DEFAULT_NEWS_FEED;
+        const headlines = news
+          ? await fetchHeadlines(feed, doFetch).catch((err: unknown) => {
+              log.warn('quips: news feed unavailable, writing a weather line', {
+                err: String(err),
+              });
+              return [];
+            })
+          : [];
         const text = await writeQuipWithClaude({
+          headlines,
           apiKey,
           weather: snapshot,
           events,

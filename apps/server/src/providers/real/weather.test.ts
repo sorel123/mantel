@@ -475,8 +475,62 @@ describe('real weather provider', () => {
     expect(quiet.mock.calls.some(([u]) => String(u).includes('anthropic'))).toBe(false);
   });
 
+  it('writes a separate line each part of the day, and riffs on the news in the afternoon', async () => {
+    const prefs = {
+      weather: { savedPlaces: [], personality: 'snarky', newsJokes: true },
+    } as unknown as Partial<Settings>;
+    const bodies: string[] = [];
+    let n = 0;
+    const handler = (url: URL, init?: RequestInit) => {
+      if (url.hostname === 'feeds.npr.org')
+        return new Response(
+          '<rss><channel><title>NPR</title><item><title><![CDATA[Tesla demos a flying car at its factory]]></title></item></channel></rss>',
+        );
+      if (url.hostname !== 'api.anthropic.com') return undefined;
+      bodies.push(String(init?.body));
+      n++;
+      return json({
+        id: `msg_${n}`,
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-haiku-5-5',
+        content: [{ type: 'text', text: `Line number ${n}, fresh from the oven.` }],
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 10, output_tokens: 10 },
+      });
+    };
+    // 7:20 am in Los Angeles.
+    const ctx = testContext(NOW, prefs);
+    ctx.integration = () => ({ enabled: true, config: {}, secrets: { claudeApiKey: 'k' } });
+    const fetch = fakeFetch(handler, upstream());
+    const provider = realWeather(ctx, { env: loadWs4Env({}), fetch });
+    const morning = (await provider.quip(async () => [])).quip;
+    expect(morning?.text).toBe('Line number 1, fresh from the oven.');
+    expect(bodies[0]).not.toContain('<headlines>');
+    expect(fetch.mock.calls.some(([u]) => String(u).includes('npr.org'))).toBe(false);
+
+    // 2:20 pm: a new line, written from the headlines.
+    ctx.setNow(new Date(NOW.getTime() + 7 * 3600e3));
+    const afternoon = (await provider.quip(async () => [])).quip;
+    expect(afternoon?.text).toBe('Line number 2, fresh from the oven.');
+    expect(bodies[1]).toContain('Tesla demos a flying car');
+    expect(bodies[1]).toContain('Do not report or quote the headline');
+
+    // 6:20 pm: weather again.
+    ctx.setNow(new Date(NOW.getTime() + 11 * 3600e3));
+    await provider.quip(async () => []);
+    expect(bodies).toHaveLength(3);
+    expect(bodies[2]).not.toContain('<headlines>');
+  });
+
   it('quips from the library when the personality is on and no key is set', async () => {
-    const off = realWeather(testContext(NOW), { env: loadWs4Env({}), fetch: upstream() });
+    const off = realWeather(
+      testContext(NOW, {
+        weather: { savedPlaces: [], personality: 'off' },
+      } as unknown as Partial<Settings>),
+      { env: loadWs4Env({}), fetch: upstream() },
+    );
     expect(await off.quip(async () => [])).toEqual({ quip: null });
 
     const ctx = testContext(NOW, {
