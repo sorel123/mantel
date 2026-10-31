@@ -1,0 +1,133 @@
+/* Scaffold shell. WS1 replaces this with the mockup's full shell. */
+.stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  transition: background var(--slow) var(--ease);
+}
+.panel {
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+  transform-origin: center center;
+}
+.screen {
+  position: absolute;
+  inset: 0;
+  padding: 34px 36px 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.placeholder {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--ink-2);
+  padding: 32px;
+}
+.placeholder p {
+  margin: 8px 0 0;
+}
+.status {
+  display: flex;
+  gap: 18px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+.status i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--ink-3);
+}
+.status i.ok {
+  background: var(--good);
+}
+.status i.warn {
+  background: var(--warn);
+}
+.dock {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+}
+.dock button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--tap);
+  min-width: 112px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink-2);
+  transition:
+    color var(--std) var(--ease),
+    background var(--std) var(--ease);
+}
+.dock button[aria-current='page'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.dock svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dock .clock {
+  min-width: 0;
+  padding: 0 16px 0 10px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 500;
+  border-left: 1px solid var(--line);
+  border-radius: 0 999px 999px 0;
+}
+.pair {
+  max-width: 420px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pair input {
+  height: var(--tap);
+  font: 500 28px/1 var(--body);
+  letter-spacing: 0.3em;
+  text-align: center;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.pair button {
+  height: var(--tap);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.pair .err {
+  color: var(--warn);
+}

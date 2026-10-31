@@ -1,0 +1,414 @@
+/**
+ * The REST contract. All routes live under `/api`, speak JSON, and require the device-key
+ * header except `POST /api/pair` and `GET /api/health`.
+ *
+ * Each entry names the method, the path (Hono-style `:params`), and zod schemas for the
+ * query string, request body and response body. The server validates against these and the
+ * display's client is typed from them, so a route's shape changes in exactly one place.
+ */
+import { z } from 'zod';
+import {
+  Calendar,
+  CalendarEvent,
+  Chore,
+  Countdown,
+  FeatureFlags,
+  HomeArea,
+  HomeEntity,
+  Id,
+  IsoDate,
+  IsoDateTime,
+  LeaveBy,
+  List,
+  ListItem,
+  Meal,
+  MediaAction,
+  MediaPlayer,
+  PanelSize,
+  Person,
+  Photo,
+  Presence,
+  ScreenSchedule,
+  Settings,
+  StarTally,
+  ThemeMode,
+  Units,
+  Location,
+  WeatherSnapshot,
+} from './models.js';
+
+export const API_PREFIX = '/api';
+export const WS_PATH = '/ws';
+/** The panel the display lays out for (iPad landscape). The Surface runs at 1440 by 960. */
+export const DEFAULT_PANEL = { width: 1180, height: 820 };
+
+/** Header carrying the device key. Browsers cannot set headers on WebSockets, so `/ws` takes `?key=` instead. */
+export const DEVICE_KEY_HEADER = 'x-mantel-device-key';
+
+export const ApiError = z.object({
+  error: z.object({
+    code: z.enum([
+      'bad_request',
+      'unauthorized',
+      'forbidden',
+      'not_found',
+      'not_implemented',
+      'upstream_error',
+      'internal',
+    ]),
+    message: z.string(),
+  }),
+});
+export type ApiError = z.infer<typeof ApiError>;
+
+const Ok = z.object({ ok: z.literal(true) });
+const NoQuery = z.object({}).strict();
+const NoBody = z.undefined();
+
+/* ---------- request and response schemas ---------- */
+
+export const PairRequest = z.object({
+  code: z.string().regex(/^\d{6}$/),
+  name: z.string().min(1).max(60).optional(),
+});
+export const PairResponse = z.object({ deviceId: Id, deviceKey: z.string().min(16) });
+
+export const BootstrapResponse = z.object({
+  version: z.string(),
+  mock: z.boolean(),
+  serverTime: IsoDateTime,
+  timezone: z.string(),
+  people: z.array(Person),
+  calendars: z.array(Calendar),
+  settings: z.object({
+    location: Location,
+    units: Units,
+    schedule: ScreenSchedule,
+  }),
+  theme: ThemeMode,
+  panel: PanelSize,
+  flags: FeatureFlags,
+});
+
+export const CalendarQuery = z.object({ from: IsoDateTime, to: IsoDateTime });
+export const CalendarResponse = z.object({ events: z.array(CalendarEvent) });
+
+export const QuickEventRequest = z.object({
+  title: z.string().min(1),
+  start: IsoDateTime,
+  /** Defaults to one hour after start (or the next day for all-day events). */
+  end: IsoDateTime.optional(),
+  allDay: z.boolean().optional(),
+  /** Defaults to the family calendar configured on the server. */
+  calendarId: Id.optional(),
+  personIds: z.array(Id).optional(),
+});
+export const QuickEventResponse = z.object({ event: CalendarEvent });
+
+export const CountdownsResponse = z.object({ countdowns: z.array(Countdown) });
+
+/** `week` is any date in the wanted week; omitted means this week. Weeks start on Monday. */
+export const MealsQuery = z.object({ week: IsoDate.optional() });
+export const MealsResponse = z.object({ weekStart: IsoDate, meals: z.array(Meal) });
+
+export const WeatherResponse = WeatherSnapshot;
+
+export const CommuteResponse = z.object({
+  /** Empty outside the weekday morning window. */
+  leaveBy: z.array(LeaveBy),
+});
+
+export const PhotosNextQuery = z.object({ n: z.coerce.number().int().min(1).max(50).optional() });
+export const PhotoRef = Photo.extend({
+  /** Server-relative URL of the bytes, sized for the panel: `/api/photos/:id`. */
+  url: z.string(),
+});
+export type PhotoRef = z.infer<typeof PhotoRef>;
+export const PhotosNextResponse = z.object({ photos: z.array(PhotoRef) });
+
+export const HomeStateResponse = z.object({
+  areas: z.array(HomeArea),
+  entities: z.array(HomeEntity),
+  presence: z.array(Presence),
+});
+
+export const HomeCallRequest = z.object({
+  entityId: Id,
+  /** Service name without the domain: `turn_on`, `toggle`, `set_temperature`, `unlock`... The domain comes from the entity id. */
+  service: z.string().min(1),
+  data: z.record(z.string(), z.unknown()).optional(),
+});
+export const HomeCallResponse = z.object({ ok: z.literal(true), entity: HomeEntity.optional() });
+
+export const MediaResponse = z.object({ players: z.array(MediaPlayer) });
+export const MediaCallRequest = z.object({ playerId: Id, action: MediaAction });
+export const MediaCallResponse = z.object({ ok: z.literal(true), player: MediaPlayer });
+
+export const ListsResponse = z.object({ lists: z.array(List) });
+export const AddItemRequest = z.object({ text: z.string().min(1), personId: Id.optional() });
+export const ItemResponse = z.object({ item: ListItem });
+export const PatchItemRequest = z
+  .object({ text: z.string().min(1), done: z.boolean(), personId: Id.nullable() })
+  .partial();
+
+export const ChoresResponse = z.object({
+  weekStart: IsoDate,
+  chores: z.array(Chore),
+  stars: z.array(StarTally),
+});
+export const ChoreDoneResponse = z.object({ chore: Chore, stars: z.array(StarTally) });
+
+export const SettingsResponse = Settings;
+export const PutSettingsRequest = Settings;
+
+export const HealthResponse = z.object({
+  ok: z.boolean(),
+  version: z.string(),
+  mock: z.boolean(),
+  uptimeSeconds: z.number().nonnegative(),
+  /** Last successful sync per source (`calendar`, `weather`, `photos`, `home`, `lists`...), null if never. */
+  lastSync: z.record(z.string(), IsoDateTime.nullable()),
+});
+
+/* ---------- the route table ---------- */
+
+export interface RouteDef<
+  M extends 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' =
+    'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  P extends string = string,
+  Q extends z.ZodType = z.ZodType,
+  B extends z.ZodType = z.ZodType,
+  R extends z.ZodType | null = z.ZodType | null,
+> {
+  method: M;
+  path: P;
+  query: Q;
+  body: B;
+  /** `null` for routes that return bytes rather than JSON. */
+  response: R;
+  auth: boolean;
+}
+
+const route = <
+  M extends RouteDef['method'],
+  P extends string,
+  Q extends z.ZodType,
+  B extends z.ZodType,
+  R extends z.ZodType | null,
+>(
+  def: RouteDef<M, P, Q, B, R>,
+) => def;
+
+export const routes = {
+  pair: route({
+    method: 'POST',
+    path: '/pair',
+    query: NoQuery,
+    body: PairRequest,
+    response: PairResponse,
+    auth: false,
+  }),
+  bootstrap: route({
+    method: 'GET',
+    path: '/bootstrap',
+    query: NoQuery,
+    body: NoBody,
+    response: BootstrapResponse,
+    auth: true,
+  }),
+  calendar: route({
+    method: 'GET',
+    path: '/calendar',
+    query: CalendarQuery,
+    body: NoBody,
+    response: CalendarResponse,
+    auth: true,
+  }),
+  calendarQuick: route({
+    method: 'POST',
+    path: '/calendar/quick',
+    query: NoQuery,
+    body: QuickEventRequest,
+    response: QuickEventResponse,
+    auth: true,
+  }),
+  countdowns: route({
+    method: 'GET',
+    path: '/countdowns',
+    query: NoQuery,
+    body: NoBody,
+    response: CountdownsResponse,
+    auth: true,
+  }),
+  meals: route({
+    method: 'GET',
+    path: '/meals',
+    query: MealsQuery,
+    body: NoBody,
+    response: MealsResponse,
+    auth: true,
+  }),
+  weather: route({
+    method: 'GET',
+    path: '/weather',
+    query: NoQuery,
+    body: NoBody,
+    response: WeatherResponse,
+    auth: true,
+  }),
+  commute: route({
+    method: 'GET',
+    path: '/commute',
+    query: NoQuery,
+    body: NoBody,
+    response: CommuteResponse,
+    auth: true,
+  }),
+  photosNext: route({
+    method: 'GET',
+    path: '/photos/next',
+    query: PhotosNextQuery,
+    body: NoBody,
+    response: PhotosNextResponse,
+    auth: true,
+  }),
+  photo: route({
+    method: 'GET',
+    path: '/photos/:id',
+    query: NoQuery,
+    body: NoBody,
+    response: null,
+    auth: true,
+  }),
+  homeState: route({
+    method: 'GET',
+    path: '/home/state',
+    query: NoQuery,
+    body: NoBody,
+    response: HomeStateResponse,
+    auth: true,
+  }),
+  homeCall: route({
+    method: 'POST',
+    path: '/home/call',
+    query: NoQuery,
+    body: HomeCallRequest,
+    response: HomeCallResponse,
+    auth: true,
+  }),
+  media: route({
+    method: 'GET',
+    path: '/media',
+    query: NoQuery,
+    body: NoBody,
+    response: MediaResponse,
+    auth: true,
+  }),
+  mediaCall: route({
+    method: 'POST',
+    path: '/media/call',
+    query: NoQuery,
+    body: MediaCallRequest,
+    response: MediaCallResponse,
+    auth: true,
+  }),
+  lists: route({
+    method: 'GET',
+    path: '/lists',
+    query: NoQuery,
+    body: NoBody,
+    response: ListsResponse,
+    auth: true,
+  }),
+  listAddItem: route({
+    method: 'POST',
+    path: '/lists/:id/items',
+    query: NoQuery,
+    body: AddItemRequest,
+    response: ItemResponse,
+    auth: true,
+  }),
+  itemPatch: route({
+    method: 'PATCH',
+    path: '/items/:id',
+    query: NoQuery,
+    body: PatchItemRequest,
+    response: ItemResponse,
+    auth: true,
+  }),
+  itemDelete: route({
+    method: 'DELETE',
+    path: '/items/:id',
+    query: NoQuery,
+    body: NoBody,
+    response: Ok,
+    auth: true,
+  }),
+  chores: route({
+    method: 'GET',
+    path: '/chores',
+    query: NoQuery,
+    body: NoBody,
+    response: ChoresResponse,
+    auth: true,
+  }),
+  choreDone: route({
+    method: 'POST',
+    path: '/chores/:id/done',
+    query: NoQuery,
+    body: z.object({ personId: Id.optional() }).optional(),
+    response: ChoreDoneResponse,
+    auth: true,
+  }),
+  settings: route({
+    method: 'GET',
+    path: '/settings',
+    query: NoQuery,
+    body: NoBody,
+    response: SettingsResponse,
+    auth: true,
+  }),
+  settingsPut: route({
+    method: 'PUT',
+    path: '/settings',
+    query: NoQuery,
+    body: PutSettingsRequest,
+    response: SettingsResponse,
+    auth: true,
+  }),
+  health: route({
+    method: 'GET',
+    path: '/health',
+    query: NoQuery,
+    body: NoBody,
+    response: HealthResponse,
+    auth: false,
+  }),
+} as const;
+
+export type Routes = typeof routes;
+export type RouteName = keyof Routes;
+
+type Out<T> = T extends z.ZodType ? z.output<T> : never;
+type In<T> = T extends z.ZodType ? z.input<T> : never;
+
+export type ResponseOf<N extends RouteName> = Out<Routes[N]['response']>;
+export type BodyOf<N extends RouteName> = In<Routes[N]['body']>;
+export type QueryOf<N extends RouteName> = In<Routes[N]['query']>;
+
+/** `{ id: string }` for `/lists/:id/items`, `{}` for paths without params. */
+export type ParamsOf<N extends RouteName> = PathParams<Routes[N]['path']>;
+type PathParams<P extends string> = P extends `${string}:${infer Param}/${infer Rest}`
+  ? { [K in Param]: string } & PathParams<`/${Rest}`>
+  : P extends `${string}:${infer Param}`
+    ? { [K in Param]: string }
+    : Record<never, never>;
+
+/** Fill `:params` in a route path. */
+export function buildPath(path: string, params: Record<string, string> = {}): string {
+  return path.replace(/:([A-Za-z_]+)/g, (_, name: string) => {
+    const value = params[name];
+    if (value === undefined) throw new Error(`missing path param "${name}" for ${path}`);
+    return encodeURIComponent(value);
+  });
+}
