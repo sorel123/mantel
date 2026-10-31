@@ -1,9 +1,16 @@
-import { fromIsoDate, minutesInZone, scheduleStateAt, toLocalIso } from '@mantel/shared';
+import {
+  DEVICE_KEY_HEADER,
+  fromIsoDate,
+  minutesInZone,
+  scheduleStateAt,
+  toLocalIso,
+} from '@mantel/shared';
 import { DEFAULT_PANEL } from '@mantel/shared/fixtures';
-import type { Handle } from '../contract.js';
+import type { Handle, HandlerArgs } from '../contract.js';
 import { HttpError, notFound } from '../errors.js';
 import { log } from '../log.js';
 import type { AppDeps } from '../app.js';
+import type { HomeBytes } from '../providers/types.js';
 import { VERSION } from '../version.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
@@ -96,8 +103,42 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());
   handle('homeCall', async ({ body }) => providers.home.call(body));
+  handle('homeAnnounce', async ({ body }) => {
+    if (!settings.get().flags.alexaAnnouncements)
+      throw new HttpError('forbidden', 'Alexa announcements are turned off in settings');
+    return providers.home.announce(body);
+  });
   handle('media', async () => providers.home.media());
   handle('mediaCall', async ({ body }) => providers.home.mediaCall(body));
+
+  // Byte routes for <img src>: the device key comes in the header or `?key=`.
+  const image =
+    (
+      what: string,
+      load: (id: string, signal: AbortSignal) => Promise<HomeBytes | null>,
+      cache: string,
+    ) =>
+    async ({ c, query, params }: Pick<HandlerArgs<'cameraSnapshot'>, 'c' | 'query' | 'params'>) => {
+      if (!auth.verify(c.req.header(DEVICE_KEY_HEADER) ?? query.key))
+        throw new HttpError('unauthorized', 'missing or invalid device key');
+      const bytes = await load(params.id ?? '', c.req.raw.signal);
+      if (!bytes) throw notFound(`${what} ${params.id}`);
+      return new Response(bytes.body, {
+        headers: { 'content-type': bytes.contentType, 'cache-control': cache },
+      });
+    };
+  handle(
+    'cameraSnapshot',
+    image('camera', (id) => providers.home.cameraSnapshot(id), 'no-store'),
+  );
+  handle(
+    'cameraStream',
+    image('camera', (id, signal) => providers.home.cameraStream(id, signal), 'no-store'),
+  );
+  handle(
+    'mediaArtwork',
+    image('artwork', (id) => providers.home.mediaArtwork(id), 'private, max-age=300'),
+  );
 
   /* ---- WS4: weather, commute, photos ---- */
   handle('weather', async () => providers.weather.weather());

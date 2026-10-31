@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_PANEL } from '@mantel/shared';
+import { DoorbellLayer } from '../features/doorbell';
 import { useBootstrap, useBootstrapState } from '../lib/bootstrap';
 import { connectEvents, useConnection } from '../lib/events';
 import { useFitScale } from '../lib/fit';
@@ -108,6 +109,7 @@ function Screens() {
         ))}
         <span className="clock tnum">{formatClock(now)}</span>
       </nav>
+      <DoorbellLayer />
     </>
   );
 }

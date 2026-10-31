@@ -45,11 +45,24 @@ export interface PhotoProvider {
   bytes(id: string): Promise<PhotoBytes | null>;
 }
 
+/** Image bytes or a live stream (MJPEG) for camera and artwork routes. */
+export interface HomeBytes {
+  contentType: string;
+  body: Uint8Array | string | ReadableStream<Uint8Array>;
+}
+
 export interface HomeProvider {
   state(): Promise<ResponseOf<'homeState'>>;
   call(req: BodyOf<'homeCall'>): Promise<ResponseOf<'homeCall'>>;
+  announce(req: BodyOf<'homeAnnounce'>): Promise<ResponseOf<'homeAnnounce'>>;
+  /** null when the camera is not allowed or unknown. */
+  cameraSnapshot(entityId: string): Promise<HomeBytes | null>;
+  /** Live view; `signal` aborts when the display closes it. null when not allowed. */
+  cameraStream(entityId: string, signal: AbortSignal): Promise<HomeBytes | null>;
   media(): Promise<ResponseOf<'media'>>;
   mediaCall(req: BodyOf<'mediaCall'>): Promise<ResponseOf<'mediaCall'>>;
+  /** null when the player has no artwork right now. */
+  mediaArtwork(playerId: string): Promise<HomeBytes | null>;
 }
 
 export interface ListsProvider {
