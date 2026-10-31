@@ -169,6 +169,7 @@ describe('settings-first server (real mode, fresh data dir)', () => {
       [
         'google',
         'homeassistant',
+        'ical',
         'icloud',
         'photos',
         'pollen',

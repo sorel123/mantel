@@ -9,6 +9,7 @@ import type { Plugin } from './types.js';
 import {
   googleManifest,
   homeAssistantManifest,
+  icalManifest,
   icloudManifest,
   photosManifest,
   pollenManifest,
@@ -19,6 +20,7 @@ import {
 
 export const builtInManifests: PluginManifest[] = [
   googleManifest,
+  icalManifest,
   icloudManifest,
   homeAssistantManifest,
   photosManifest,

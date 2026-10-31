@@ -7,6 +7,7 @@ import { realLists } from '../providers/real/lists.js';
 import { CalendarService } from './calendar-service.js';
 import { googlePlugin } from './google/index.js';
 import { homeAssistantPlugin } from './homeassistant/index.js';
+import { icalPlugin } from './ical/index.js';
 import { icloudPlugin } from './icloud/index.js';
 import { photosPlugin } from './photos/index.js';
 import { pollenPlugin } from './pollen/index.js';
@@ -34,6 +35,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
   const photos = photosPlugin(opts.fetch ? { fetch: opts.fetch } : {});
   const plugins: Plugin[] = [
     googlePlugin(calendar),
+    icalPlugin(calendar, opts.fetch),
     icloudPlugin(calendar, opts.fetch),
     home,
     photos,
@@ -58,6 +60,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
 /** Every built-in manifest, for the mock registry and for tests. */
 export { manifest as googleManifest } from './google/manifest.js';
 export { manifest as icloudManifest } from './icloud/manifest.js';
+export { manifest as icalManifest } from './ical/manifest.js';
 export { manifest as homeAssistantManifest } from './homeassistant/manifest.js';
 export { manifest as photosManifest } from './photos/manifest.js';
 export { manifest as routesManifest } from './routes/manifest.js';

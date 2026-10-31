@@ -28,7 +28,7 @@ export const Person = z.object({
 });
 export type Person = z.infer<typeof Person>;
 
-export const CalendarSource = z.enum(['google', 'icloud']);
+export const CalendarSource = z.enum(['google', 'icloud', 'ical']);
 export type CalendarSource = z.infer<typeof CalendarSource>;
 
 export const Calendar = z.object({

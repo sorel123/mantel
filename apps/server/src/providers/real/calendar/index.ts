@@ -4,7 +4,7 @@
  * wall never waits on an upstream service. Google pushes changes when the server has a public
  * https address; otherwise, and for iCloud, the server polls.
  */
-import type { CalendarEvent } from '@mantel/shared';
+import type { CalendarEvent, CalendarSource } from '@mantel/shared';
 import { addDays, startOfDay, startOfWeek, toIsoDate, toLocalIso } from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { DeviceAuth } from '../../../auth.js';
@@ -12,6 +12,7 @@ import { HttpError } from '../../../errors.js';
 import { log } from '../../../log.js';
 import type { CalendarProvider, ProviderContext } from '../../types.js';
 import { CalDavSource } from './caldav.js';
+import { FeedSource, feedUrls } from './feed.js';
 import { loadCalendarEnv, type CalendarEnv } from './env.js';
 import { GoogleAuth, GoogleSource, type PushChannel } from './google.js';
 import { countdownsFrom, isEnabled, isMeals, mealsFrom, toCalendar, toEvent } from './normalize.js';
@@ -45,6 +46,7 @@ export class RealCalendar implements CalendarProvider {
   readonly googleAuth: GoogleAuth;
   readonly google: GoogleSource;
   readonly icloud: CalDavSource;
+  readonly feeds: FeedSource;
   readonly redirect: { uri: string; pasteBack: boolean };
   private readonly sources: Source[];
   private running: Promise<void> | null = null;
@@ -53,8 +55,11 @@ export class RealCalendar implements CalendarProvider {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private pushTimer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
-  readonly status: Record<'google' | 'icloud', { lastSync: string | null; error: string | null }> =
-    { google: { lastSync: null, error: null }, icloud: { lastSync: null, error: null } };
+  readonly status: Record<CalendarSource, { lastSync: string | null; error: string | null }> = {
+    google: { lastSync: null, error: null },
+    icloud: { lastSync: null, error: null },
+    ical: { lastSync: null, error: null },
+  };
 
   constructor(
     private readonly ctx: ProviderContext,
@@ -76,7 +81,11 @@ export class RealCalendar implements CalendarProvider {
       password: this.env.ICLOUD_APP_PASSWORD,
       ...(opts.fetch ? { fetch: opts.fetch } : {}),
     });
-    this.sources = [this.google, this.icloud];
+    this.feeds = new FeedSource({
+      urls: feedUrls([this.env.ICAL_URLS]),
+      ...(opts.fetch ? { fetch: opts.fetch } : {}),
+    });
+    this.sources = [this.google, this.icloud, this.feeds];
     if (opts.autoStart !== false) this.start();
   }
 
@@ -98,7 +107,7 @@ export class RealCalendar implements CalendarProvider {
   private schedule() {
     clearTimeout(this.timer);
     if (this.stopped) return;
-    const pushOnly = this.pushActive() && !this.icloud.ready();
+    const pushOnly = this.pushActive() && !this.icloud.ready() && !this.feeds.ready();
     const seconds = pushOnly ? this.env.CALENDAR_PUSH_POLL_SECONDS : this.env.CALENDAR_POLL_SECONDS;
     this.timer = setTimeout(() => {
       void this.sync().finally(() => this.schedule());
@@ -152,9 +161,10 @@ export class RealCalendar implements CalendarProvider {
     return this.synced(prefs).map((c) => toCalendar(c, prefs, people));
   }
 
-  sourceStatus(kind: 'google' | 'icloud'): SourceStatus {
-    const configured = kind === 'google' ? this.googleAuth.configured() : this.icloud.ready();
-    const connected = kind === 'google' ? this.googleAuth.connected() : this.icloud.ready();
+  sourceStatus(kind: CalendarSource): SourceStatus {
+    const source = this.sources.find((s) => s.kind === kind)!;
+    const configured = kind === 'google' ? this.googleAuth.configured() : source.ready();
+    const connected = kind === 'google' ? this.googleAuth.connected() : source.ready();
     return { configured, connected, ...this.status[kind] };
   }
 
@@ -231,7 +241,7 @@ export class RealCalendar implements CalendarProvider {
     const at = new Date().toISOString();
     for (const kind of okSources) {
       if (failed.has(kind)) continue;
-      this.status[kind as 'google' | 'icloud'] = { lastSync: at, error: null };
+      this.status[kind as CalendarSource] = { lastSync: at, error: null };
     }
     if (okSources.size) this.ctx.markSynced('calendar');
     if (lo <= hi) {

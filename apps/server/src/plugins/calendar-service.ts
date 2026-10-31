@@ -33,6 +33,7 @@ export class CalendarService {
   private instance: RealCalendar | null = null;
   private google: Record<string, string | undefined> = {};
   private icloud: Record<string, string | undefined> = {};
+  private ical: Record<string, string | undefined> = {};
   private builtFrom = '';
   private ctx: ProviderContext | null = null;
 
@@ -62,6 +63,11 @@ export class CalendarService {
     this.rebuild();
   }
 
+  setIcal(values: Record<string, string | undefined>) {
+    this.ical = values;
+    this.rebuild();
+  }
+
   private envRecord(): NodeJS.ProcessEnv {
     const base = this.opts.env ?? process.env;
     const pass = [
@@ -72,7 +78,8 @@ export class CalendarService {
     ];
     const out: NodeJS.ProcessEnv = {};
     for (const k of pass) if (base[k]) out[k] = base[k];
-    for (const [k, v] of Object.entries({ ...this.google, ...this.icloud })) if (v) out[k] = v;
+    for (const [k, v] of Object.entries({ ...this.google, ...this.icloud, ...this.ical }))
+      if (v) out[k] = v;
     return out;
   }
 

@@ -127,6 +127,53 @@ export const pluginManifests: PluginManifest[] = [
     contributes: { events: ['calendar.changed'] },
   },
   {
+    id: 'ical',
+    name: 'Calendar link (iCal)',
+    description:
+      'The easy way: paste Google Calendar’s secret iCal address, or any .ics link. Read-only, no Cloud console.',
+    category: 'calendar',
+    step: 'calendars',
+    connect: 'fields',
+    optional: true,
+    docs: 'calendars.md',
+    directions: [
+      'On a computer, open [Google Calendar settings](https://calendar.google.com/calendar/r/settings). Under Settings for my calendars, click the calendar to share.',
+      'Scroll to Integrate calendar and copy Secret address in iCal format (it ends in basic.ics).',
+      'Paste it below, one link per box, and press Test. Repeat for each family member’s calendar.',
+      'Links are read-only: quick add writes to iCloud or a Google account connected with Google Calendar above. Any .ics link works too (Outlook, school, sports team).',
+    ],
+    fields: [
+      field({
+        key: 'url1',
+        label: 'Calendar link',
+        type: 'secret',
+        required: true,
+        placeholder: 'https://calendar.google.com/calendar/ical/…/private-…/basic.ics',
+        help: 'Google: Settings → your calendar → Integrate calendar → Secret address in iCal format.',
+        getItHere: {
+          label: 'Google Calendar settings',
+          url: 'https://calendar.google.com/calendar/r/settings',
+        },
+        env: 'ICAL_URLS',
+      }),
+      field({
+        key: 'url2',
+        label: 'Second calendar link',
+        type: 'secret',
+        placeholder: 'Optional',
+      }),
+      field({ key: 'url3', label: 'Third calendar link', type: 'secret', placeholder: 'Optional' }),
+      field({
+        key: 'url4',
+        label: 'More links',
+        type: 'secret',
+        advanced: true,
+        help: 'Several links separated by spaces or new lines.',
+      }),
+    ],
+    contributes: { events: ['calendar.changed'] },
+  },
+  {
     id: 'homeassistant',
     name: 'Home Assistant',
     description: 'Lights, locks, thermostats, cameras and the doorbell, picked room by room.',
@@ -373,6 +420,7 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       sources: { clientId: 'store', clientSecret: 'store' },
     },
     { ...base('icloud'), summary: 'Add an Apple ID to see iCloud calendars' },
+    { ...base('ical'), summary: 'Paste a Google secret iCal address or any .ics link' },
     {
       ...base('homeassistant'),
       state: 'connected',

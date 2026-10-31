@@ -58,6 +58,7 @@ export function setupState(cal: RealCalendar, ctx: ProviderContext) {
       pushActive: cal.pushActive(),
     },
     icloud: { ...cal.sourceStatus('icloud'), username: cal.env.ICLOUD_USERNAME ?? null },
+    ical: cal.sourceStatus('ical'),
     people: people.map((p) => ({ id: p.id, name: p.name, color: p.color })),
     defaultCalendarId: cal.defaultCalendar(prefs)?.id ?? null,
     calendars: cal.sourceCalendars().map((c) => {

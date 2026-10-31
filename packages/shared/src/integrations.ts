@@ -25,6 +25,7 @@ import { IsoDateTime, Settings } from './models.js';
 export const IntegrationId = z.enum([
   'google',
   'icloud',
+  'ical',
   'homeassistant',
   'photos',
   'routes',

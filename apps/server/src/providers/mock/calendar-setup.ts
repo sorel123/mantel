@@ -63,6 +63,7 @@ export function mountMockCalendarSetup(api: Hono, auth: DeviceAuth, ctx: Provide
         pushActive: false,
       },
       icloud: { configured: false, connected: false, lastSync: null, error: null, username: null },
+      ical: { configured: false, connected: false, lastSync: null, error: null },
       people,
       defaultCalendarId: prefs.defaultCalendarId ?? (google ? 'cal-family' : null),
       calendars: list,

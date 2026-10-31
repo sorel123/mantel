@@ -259,7 +259,7 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'homeassistant']}
+        exclude={['google', 'icloud', 'ical', 'homeassistant']}
       />
     ),
     homeassistant: () => (
