@@ -42,7 +42,7 @@
 
   <Config Name="Google client ID" Target="GOOGLE_CLIENT_ID" Default="" Mode="" Description="OAuth client (Web application) from Google Cloud Console, for Google Calendar." Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Google client secret" Target="GOOGLE_CLIENT_SECRET" Default="" Mode="" Description="The secret for the OAuth client above." Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="iCloud Apple ID" Target="ICLOUD_USERNAME" Default="" Mode="" Description="Apple ID email for iCloud calendars and Reminders." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="iCloud Apple ID" Target="ICLOUD_USERNAME" Default="" Mode="" Description="Apple ID email for iCloud calendars." Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="iCloud app-specific password" Target="ICLOUD_APP_PASSWORD" Default="" Mode="" Description="From appleid.apple.com, Sign-In and Security, App-Specific Passwords." Type="Variable" Display="always" Required="false" Mask="true"/>
   <Config Name="iCloud shared album link" Target="ICLOUD_SHARED_ALBUM_URL" Default="" Mode="" Description="Public Website link of the iCloud Shared Album for the photo slideshow." Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="Google Routes API key" Target="GOOGLE_ROUTES_API_KEY" Default="" Mode="" Description="For leave-by times on weekday mornings. Optional." Type="Variable" Display="always" Required="false" Mask="true"/>

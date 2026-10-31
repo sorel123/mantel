@@ -11,6 +11,7 @@ import {
   Calendar,
   CalendarEvent,
   Chore,
+  ChoreCadence,
   Countdown,
   Device,
   DisplayState,
@@ -159,6 +160,20 @@ export const ChoresResponse = z.object({
   stars: z.array(StarTally),
 });
 export const ChoreDoneResponse = z.object({ chore: Chore, stars: z.array(StarTally) });
+
+export const CreateListRequest = z.object({ name: z.string().trim().min(1).max(60) });
+export const ListResponse = z.object({ list: List });
+
+export const CreateChoreRequest = z.object({
+  title: z.string().trim().min(1).max(80),
+  personId: Id,
+  cadence: ChoreCadence,
+  /** Stars per completion. */
+  stars: z.number().int().min(1).max(5).default(1),
+  /** Completions needed per period. */
+  target: z.number().int().min(1).max(7).default(1),
+});
+export const ChoreResponse = z.object({ chore: Chore });
 
 export const SettingsResponse = Settings;
 export const PutSettingsRequest = Settings;
@@ -361,6 +376,22 @@ export const routes = {
     response: Ok,
     auth: true,
   }),
+  listCreate: route({
+    method: 'POST',
+    path: '/lists',
+    query: NoQuery,
+    body: CreateListRequest,
+    response: ListResponse,
+    auth: true,
+  }),
+  listDelete: route({
+    method: 'DELETE',
+    path: '/lists/:id',
+    query: NoQuery,
+    body: NoBody,
+    response: Ok,
+    auth: true,
+  }),
   chores: route({
     method: 'GET',
     path: '/chores',
@@ -375,6 +406,32 @@ export const routes = {
     query: NoQuery,
     body: z.object({ personId: Id.optional() }).optional(),
     response: ChoreDoneResponse,
+    auth: true,
+  }),
+  /** Take back the most recent completion of a chore in the current period (a mis-tap). */
+  choreUndo: route({
+    method: 'DELETE',
+    path: '/chores/:id/done',
+    query: NoQuery,
+    body: NoBody,
+    response: ChoreDoneResponse,
+    auth: true,
+  }),
+  choreCreate: route({
+    method: 'POST',
+    path: '/chores',
+    query: NoQuery,
+    body: CreateChoreRequest,
+    response: ChoreResponse,
+    auth: true,
+  }),
+  /** Retire a chore. Stars already earned this week stay. */
+  choreDelete: route({
+    method: 'DELETE',
+    path: '/chores/:id',
+    query: NoQuery,
+    body: NoBody,
+    response: Ok,
     auth: true,
   }),
   settings: route({

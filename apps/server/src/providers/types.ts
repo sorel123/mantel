@@ -57,8 +57,13 @@ export interface ListsProvider {
   addItem(listId: string, req: BodyOf<'listAddItem'>): Promise<ResponseOf<'listAddItem'>>;
   patchItem(itemId: string, req: BodyOf<'itemPatch'>): Promise<ResponseOf<'itemPatch'>>;
   deleteItem(itemId: string): Promise<ResponseOf<'itemDelete'>>;
+  createList(req: BodyOf<'listCreate'>): Promise<ResponseOf<'listCreate'>>;
+  deleteList(listId: string): Promise<ResponseOf<'listDelete'>>;
   chores(): Promise<ResponseOf<'chores'>>;
   choreDone(choreId: string, personId?: string): Promise<ResponseOf<'choreDone'>>;
+  choreUndo(choreId: string): Promise<ResponseOf<'choreUndo'>>;
+  createChore(req: BodyOf<'choreCreate'>): Promise<ResponseOf<'choreCreate'>>;
+  deleteChore(choreId: string): Promise<ResponseOf<'choreDelete'>>;
 }
 
 export interface Providers {

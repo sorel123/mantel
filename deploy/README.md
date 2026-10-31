@@ -79,8 +79,8 @@ way the first time). It has:
   reload time (04:00 by default) and brightness steps through the day.
 - **People**: name, initial, colour and which calendars are theirs.
 - **Leave-by places**: address, arrive-by time, weekdays and who goes there.
-- **Features**: countdowns, meals, leave-by, chores, now playing, doorbell pop-over,
-  Reminders, Alexa announcements.
+- **Features**: countdowns, meals, leave-by, chores, now playing, doorbell pop-over and
+  Alexa announcements.
 - **Displays**: every paired display with when it was last seen. Rename one, revoke one (tap
   twice; it is signed out at once and shows the pairing screen), show a pairing code, or
   reload every display.

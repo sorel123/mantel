@@ -375,7 +375,7 @@ const FLAG_LABELS: Partial<Record<keyof FeatureFlags, [string, string?]>> = {
   chores: ['Chore chart', 'Stars for the kids, reset weekly'],
   media: ['Now playing', 'Apple TV controls on the Home screen'],
   doorbellPopover: ['Doorbell pop-over', 'Live view over any screen when someone rings'],
-  remindersSync: ['Apple Reminders lists', 'Off uses the built-in lists'],
+  remindersSync: ['Apple Reminders sync', 'Not available yet: lists live on the server for now'],
   alexaAnnouncements: [
     'Alexa announcements',
     'Unofficial; needs Alexa Media Player in Home Assistant',
