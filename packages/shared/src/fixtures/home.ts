@@ -1,3 +1,4 @@
+import type { AnnounceTarget } from '../api.js';
 import type { HomeArea, HomeEntity, MediaPlayer, Presence } from '../models.js';
 import { toLocalIso } from '../time.js';
 
@@ -22,11 +23,15 @@ const sensor = (
   attrs,
 });
 
-/** Mockup Home screen: four rooms of lights, thermostat, front door, sensors, scenes and Ring cameras. */
+/**
+ * Mockup Home screen: four rooms of lights, three ecobee thermostats, front door, sensors,
+ * scenes, Meross plugs and Ring cameras.
+ */
 export function homeState(now: Date): {
   areas: HomeArea[];
   entities: HomeEntity[];
   presence: Presence[];
+  announceTargets: AnnounceTarget[];
 } {
   const minsAgo = (m: number) => toLocalIso(new Date(now.getTime() - m * 60e3));
   const base: HomeEntity[] = [
@@ -122,8 +127,46 @@ export function homeState(now: Date): {
       state: 'idle',
       attrs: { brand: 'Ring' },
     },
+    {
+      id: 'climate.upstairs',
+      kind: 'climate',
+      name: 'Upstairs',
+      state: 'heat',
+      attrs: {
+        current_temperature: 67,
+        temperature: 67,
+        min_temp: 55,
+        max_temp: 80,
+        hvac_action: 'idle',
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+        unit_of_measurement: '°F',
+      },
+    },
+    {
+      id: 'climate.basement',
+      kind: 'climate',
+      name: 'Basement',
+      state: 'heat_cool',
+      attrs: {
+        current_temperature: 64,
+        temperature: null,
+        target_temp_low: 63,
+        target_temp_high: 75,
+        min_temp: 55,
+        max_temp: 80,
+        hvac_action: 'idle',
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+        unit_of_measurement: '°F',
+      },
+    },
+    { id: 'switch.living_room_tree', kind: 'switch', name: 'Tree lights', state: 'on', attrs: {} },
+    { id: 'switch.kitchen_kettle', kind: 'switch', name: 'Kettle', state: 'off', attrs: {} },
   ];
   const entities = base.map((e) => ({ lastChanged: minsAgo(30), ...e }));
+  const thermostat = entities.find((e) => e.id === 'climate.main_floor')!;
+  thermostat.attrs.hvac_modes = ['off', 'heat', 'cool', 'heat_cool'];
+  thermostat.name = 'Main floor';
+  entities.find((e) => e.id === 'scene.morning')!.lastChanged = minsAgo(95);
   entities.find((e) => e.id === 'binary_sensor.back_door')!.lastChanged = minsAgo(12);
   entities.find((e) => e.id === 'binary_sensor.hallway_motion')!.lastChanged = minsAgo(2);
 
@@ -143,6 +186,8 @@ export function homeState(now: Date): {
       name: 'Around the house',
       entityIds: [
         'climate.main_floor',
+        'climate.upstairs',
+        'climate.basement',
         'binary_sensor.hallway_motion',
         'sensor.laundry',
         'sensor.indoor_temperature',
@@ -169,7 +214,12 @@ export function homeState(now: Date): {
     { personId: 'sam', home: false, since: minsAgo(45) },
     { personId: 'leo', home: false, since: minsAgo(45) },
   ];
-  return { areas, entities, presence };
+  const announceTargets: AnnounceTarget[] = [
+    { id: 'media_player.kitchen_echo', name: 'Kitchen' },
+    { id: 'media_player.kids_room_echo', name: 'Kids room' },
+    { id: 'media_player.basement_echo', name: 'Basement' },
+  ];
+  return { areas, entities, presence, announceTargets };
 }
 
 export function mediaPlayers(now: Date): MediaPlayer[] {
@@ -183,6 +233,7 @@ export function mediaPlayers(now: Date): MediaPlayer[] {
       artist: 'Season 3 · Episode 12',
       positionSeconds: 312,
       durationSeconds: 470,
+      artworkUrl: '/api/media/media_player.living_room_apple_tv/artwork',
       updatedAt: now.toISOString(),
     },
     { id: 'media_player.bedroom_apple_tv', name: 'Bedroom Apple TV', state: 'standby' },

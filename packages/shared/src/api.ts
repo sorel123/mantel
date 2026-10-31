@@ -126,10 +126,16 @@ export const PhotoRef = Photo.extend({
 export type PhotoRef = z.infer<typeof PhotoRef>;
 export const PhotosNextResponse = z.object({ photos: z.array(PhotoRef) });
 
+/** An Echo (or group) that Alexa announcements can go to. */
+export const AnnounceTarget = z.object({ id: Id, name: z.string() });
+export type AnnounceTarget = z.infer<typeof AnnounceTarget>;
+
 export const HomeStateResponse = z.object({
   areas: z.array(HomeArea),
   entities: z.array(HomeEntity),
   presence: z.array(Presence),
+  /** Where Alexa announcements can go; empty or missing when announcements are not set up. */
+  announceTargets: z.array(AnnounceTarget).optional(),
 });
 
 export const HomeCallRequest = z.object({
@@ -139,6 +145,20 @@ export const HomeCallRequest = z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 });
 export const HomeCallResponse = z.object({ ok: z.literal(true), entity: HomeEntity.optional() });
+
+/**
+ * Query for byte routes the display loads with `<img src>`, which cannot send headers: the
+ * device key rides in `?key=` (as on `/ws`), and `t` is a cache-buster.
+ */
+export const ImageQuery = z.object({ key: z.string().optional(), t: z.string().optional() });
+
+/** Speak a message on Echo devices through Alexa Media Player. Needs the `alexaAnnouncements` flag. */
+export const AnnounceRequest = z.object({
+  message: z.string().trim().min(1).max(200),
+  /** Announce target ids from `/home/state`; omitted means every target. */
+  targets: z.array(Id).min(1).optional(),
+});
+export const AnnounceResponse = z.object({ ok: z.literal(true), targets: z.array(Id) });
 
 export const MediaResponse = z.object({ players: z.array(MediaPlayer) });
 export const MediaCallRequest = z.object({ playerId: Id, action: MediaAction });
@@ -296,6 +316,33 @@ export const routes = {
     response: HomeCallResponse,
     auth: true,
   }),
+  homeAnnounce: route({
+    method: 'POST',
+    path: '/home/announce',
+    query: NoQuery,
+    body: AnnounceRequest,
+    response: AnnounceResponse,
+    auth: true,
+  }),
+  /** Latest still from an allowed camera (JPEG from Home Assistant, SVG in mock mode). */
+  cameraSnapshot: route({
+    method: 'GET',
+    path: '/home/cameras/:id/snapshot',
+    query: ImageQuery,
+    body: NoBody,
+    response: null,
+    // Checked by the handler from `?key=`, since `<img>` cannot send the header.
+    auth: false,
+  }),
+  /** Live view for an `<img>`: MJPEG from Home Assistant (an animated SVG in mock mode). */
+  cameraStream: route({
+    method: 'GET',
+    path: '/home/cameras/:id/stream',
+    query: ImageQuery,
+    body: NoBody,
+    response: null,
+    auth: false,
+  }),
   media: route({
     method: 'GET',
     path: '/media',
@@ -311,6 +358,15 @@ export const routes = {
     body: MediaCallRequest,
     response: MediaCallResponse,
     auth: true,
+  }),
+  /** Now-playing artwork for a media player; `MediaPlayer.artworkUrl` points here. */
+  mediaArtwork: route({
+    method: 'GET',
+    path: '/media/:id/artwork',
+    query: ImageQuery,
+    body: NoBody,
+    response: null,
+    auth: false,
   }),
   lists: route({
     method: 'GET',
@@ -388,6 +444,10 @@ export const routes = {
 
 export type Routes = typeof routes;
 export type RouteName = keyof Routes;
+/** Routes that answer JSON (everything but the byte routes). */
+export type JsonRouteName = {
+  [N in RouteName]: Routes[N]['response'] extends null ? never : N;
+}[RouteName];
 
 type Out<T> = T extends z.ZodType ? z.output<T> : never;
 type In<T> = T extends z.ZodType ? z.input<T> : never;

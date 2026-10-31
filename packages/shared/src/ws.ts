@@ -4,7 +4,7 @@
  * uses WebSocket ping frames.
  */
 import { z } from 'zod';
-import { HomeEntity, Id, IsoDateTime, MediaPlayer, WeatherSnapshot } from './models.js';
+import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence, WeatherSnapshot } from './models.js';
 
 const event = <T extends string, P extends z.ZodType>(type: T, payload: P) =>
   z.object({ type: z.literal(type), payload });
@@ -23,6 +23,8 @@ export const HomeDoorbell = event(
     durationSeconds: z.number().int().positive().default(30),
   }),
 );
+/** Who is home changed; the full presence list, as in `/home/state`. */
+export const HomePresence = event('home.presence', z.object({ presence: z.array(Presence) }));
 export const MediaStateEvent = event('media.state', z.object({ player: MediaPlayer }));
 export const ListChanged = event('list.changed', z.object({ listId: Id }));
 export const WeatherUpdated = event('weather.updated', z.object({ weather: WeatherSnapshot }));
@@ -40,6 +42,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   CalendarChanged,
   HomeStateEvent,
   HomeDoorbell,
+  HomePresence,
   MediaStateEvent,
   ListChanged,
   WeatherUpdated,
