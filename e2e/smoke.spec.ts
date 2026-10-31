@@ -188,3 +188,86 @@ test('a fresh install shows an empty state with a Settings link on every screen'
   // The 501 answers for weather and Home Assistant are expected here; nothing else may fail.
   expect(problems.filter((p) => !/Failed to load resource/.test(p))).toEqual([]);
 });
+
+test('layout presets switch, and the day sheet and quick add still work in each', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  const dock = () => page.getByRole('navigation', { name: 'Screens' });
+
+  // Each Today preset on the display's address, with quick add reachable from every one.
+  const todayChecks: Array<[string, () => Promise<void>]> = [
+    ['agenda', async () => expect(page.getByRole('button', { name: /list$/ })).toBeVisible()],
+    [
+      'weather',
+      async () => expect(page.getByRole('region', { name: 'The week ahead' })).toBeVisible(),
+    ],
+    [
+      'family',
+      async () => {
+        const board = page.getByRole('list', { name: 'Family board' });
+        await expect(board).toBeVisible();
+        expect(await board.getByRole('listitem').count()).toBeGreaterThanOrEqual(4);
+      },
+    ],
+    ['photo', async () => expect(page.locator('.photo-panel .ph-show')).toBeVisible()],
+    [
+      'poster',
+      async () => expect(page.getByRole('region', { name: "Today's bill" })).toBeVisible(),
+    ],
+  ];
+  for (const [preset, check] of todayChecks) {
+    await page.goto(`/?mode=daylight&today=${preset}`);
+    await expect(dock()).toBeVisible();
+    await expect(page.locator(`.today[data-preset="${preset}"]`)).toBeVisible();
+    await check();
+    await page.getByRole('button', { name: 'Add an event today' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByLabel('Event title')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+  }
+
+  // The Week strip: seven days, the day sheet from a day's header, paging by week.
+  await page.goto('/?mode=daylight&month=week');
+  await dock().getByRole('button', { name: 'Month' }).click();
+  const week = page.getByRole('list', { name: /^Week of / });
+  await expect(week).toBeVisible();
+  await expect(week.getByRole('listitem')).toHaveCount(7);
+  await week.locator('.day.today .dh').click();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Quick add' })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByRole('button', { name: 'Next week' }).click();
+  await expect(page.getByRole('heading', { name: /^This week/ })).toBeHidden();
+  await page.locator('.wstrip .today-btn').click();
+  await expect(page.getByRole('heading', { name: /^This week/ })).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test('fill and scale reach the edges of the viewport', async ({ page }) => {
+  const problems = watchConsole(page);
+  const size = page.viewportSize()!;
+  const panelBox = async () => (await page.locator('.panel').boundingBox())!;
+
+  await page.goto('/?mode=daylight&fit=fill');
+  await expect(page.getByRole('navigation', { name: 'Screens' })).toBeVisible();
+  let box = await panelBox();
+  expect(Math.abs(box.width - size.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(box.height - size.height)).toBeLessThanOrEqual(2);
+
+  // Scale 120%: still edge to edge, with a panel that holds a fifth less in each direction.
+  await page.goto('/?mode=daylight&fit=scale&scale=1.2');
+  await expect(page.getByRole('navigation', { name: 'Screens' })).toBeVisible();
+  box = await panelBox();
+  expect(Math.abs(box.width - size.width)).toBeLessThanOrEqual(2);
+  const logical = await page.locator('.panel').evaluate((el) => ({
+    width: el.clientWidth,
+    height: el.clientHeight,
+  }));
+  expect(logical.height).toBe(Math.round(820 / 1.2));
+  expect(Math.abs(logical.width * 1.2 - size.width * (820 / size.height))).toBeLessThan(3);
+
+  expect(problems).toEqual([]);
+});
