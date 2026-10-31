@@ -1,7 +1,11 @@
 import type { HomeEntity, MediaPlayer } from '@mantel/shared';
-import { homeState, mediaPlayers } from '@mantel/shared/fixtures';
+import { homeConfig, homeDiscovery, homeState, mediaPlayers } from '@mantel/shared/fixtures';
 import { HttpError, notFound } from '../../errors.js';
-import type { HomeProvider, ProviderContext } from '../types.js';
+import { homeConfigToYaml } from '../real/home-config.js';
+import type { HaRegistry } from '../real/home-client.js';
+import { HomeConfigStore, HomeConnectionStore } from '../real/home-store.js';
+import { connectionStatus, disabledError, resolveView } from '../real/home.js';
+import type { HomeProvider, HomeSetup, ProviderContext } from '../types.js';
 import { artworkSvg, cameraSvg } from './cameras.js';
 
 /** The mockup's scene presets: [on, brightness %] for each light, in fixture order. */
@@ -54,12 +58,113 @@ const queue = [
   { title: 'Bluey', artist: 'Season 3 · Episode 14', durationSeconds: 482 },
 ];
 
-/** Applies service calls to in-memory fixture state and echoes `home.state` like HA would. */
+/**
+ * Applies service calls to in-memory fixture state and echoes `home.state` like HA would. The
+ * stored allow-list (the fixture one until it is edited on the settings page) decides which
+ * rooms and entities the Home screen gets, through the same `resolveView` the real provider
+ * uses, so saving the picker changes the mock Home screen too.
+ */
 export function mockHome(ctx: ProviderContext): HomeProvider {
   const state = homeState(ctx.now());
   const players = mediaPlayers(ctx.now());
   const changed: HomeEntity[] = [];
   let episode = 0;
+
+  const discovery = homeDiscovery(ctx.now());
+  const registry: HaRegistry = {
+    areas: discovery.areas.map((a) => ({ area_id: a.id, name: a.name })),
+    devices: [],
+    entities: discovery.entities.map((e) => ({
+      entity_id: e.id,
+      area_id: e.areaId,
+      device_id: null,
+      platform: e.platform ?? 'mock',
+      hidden_by: null,
+      disabled_by: null,
+      entity_category: null,
+    })),
+  };
+  const connection = new HomeConnectionStore(ctx.db, {
+    HA_URL: 'http://homeassistant.local:8123',
+    HA_TOKEN: 'mock-token',
+  });
+  const store = new HomeConfigStore(ctx.db, { fallback: homeConfig(ctx.now()) }, () =>
+    ctx.emit({ type: 'display.reload', payload: {} }),
+  );
+  const guard = () => {
+    if (!connection.get().enabled) throw disabledError();
+  };
+
+  /** The fixture state seen through the stored allow-list. */
+  const view = () => {
+    const v = resolveView(store.get(), registry, ctx.settings().people);
+    const byId = new Map(state.entities.map((e) => [e.id, e]));
+    const entities: HomeEntity[] = [];
+    for (const [id, allowed] of v.allowed) {
+      const e = byId.get(id);
+      if (!e) continue;
+      const attrs = { ...e.attrs, ...allowed.extra };
+      if (allowed.ref.read_only) attrs.read_only = true;
+      entities.push({ ...e, name: allowed.ref.name ?? e.name, attrs });
+    }
+    const alexa = store.get().alexa;
+    return {
+      areas: v.areas,
+      entities,
+      presence: state.presence.filter((p) => v.presence.some((m) => m.person === p.personId)),
+      announceTargets: alexa ? alexa.targets : [],
+    };
+  };
+
+  const setup: HomeSetup = {
+    enabled: () => connection.get().enabled,
+    connection: () => {
+      const conn = connection.get();
+      if (!conn.enabled || !conn.url || !conn.token) return connectionStatus(conn, null);
+      return {
+        enabled: true,
+        url: conn.url,
+        hasToken: true,
+        source: conn.source,
+        state: 'connected',
+        summary: `Connected to Home Assistant ${discovery.haVersion} (${discovery.entities.length} entities, mock).`,
+        lastOkAt: ctx.now().toISOString(),
+        entityCount: discovery.entities.length,
+      };
+    },
+    async setConnection(patch) {
+      const before = connection.get().enabled;
+      connection.patch(patch);
+      if (before !== connection.get().enabled) ctx.emit({ type: 'display.reload', payload: {} });
+      return setup.connection();
+    },
+    async test(req) {
+      const conn = connection.get();
+      const url = req.url ?? conn.url;
+      const token = req.token ?? conn.token;
+      if (!url) return { ok: false, message: 'Enter the address of Home Assistant first.' };
+      if (!token) return { ok: false, message: 'Paste a long-lived access token first.' };
+      if (/fail|wrong/.test(token))
+        return {
+          ok: false,
+          message:
+            'Home Assistant refused the token. Make a new long-lived access token and paste it here.',
+        };
+      return { ok: true, message: `Connected to Home Assistant ${discovery.haVersion} (mock).` };
+    },
+    async discover() {
+      guard();
+      const live = new Map(state.entities.map((e) => [e.id, e.state]));
+      return {
+        ...discovery,
+        entities: discovery.entities.map((e) => ({ ...e, state: live.get(e.id) ?? e.state })),
+      };
+    },
+    config: () => store.get(),
+    putConfig: (raw) => store.put(raw),
+    importYaml: (text) => store.importYaml(text),
+    exportYaml: () => homeConfigToYaml(store.get()),
+  };
 
   const touch = (e: HomeEntity) => {
     e.lastChanged = ctx.now().toISOString();
@@ -159,12 +264,20 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
   };
 
   return {
+    setup,
     async state() {
-      return structuredClone(state);
+      guard();
+      return structuredClone(view());
     },
     async call({ entityId, service, data }) {
+      guard();
+      const v = view();
+      const shown = v.entities.find((e) => e.id === entityId);
       const entity = state.entities.find((e) => e.id === entityId);
-      if (!entity) throw new HttpError('forbidden', `${entityId} is not an allowed entity`);
+      if (!entity || !shown)
+        throw new HttpError('forbidden', `${entityId} is not an allowed entity`);
+      if (shown.attrs.read_only)
+        throw new HttpError('forbidden', `${entityId} is read-only on the display`);
       changed.length = 0;
       apply(entity, service, data ?? {});
       touch(entity);
@@ -172,7 +285,7 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       return { ok: true, entity };
     },
     async announce({ targets }) {
-      const all = state.announceTargets.map((t) => t.id);
+      const all = view().announceTargets.map((t) => t.id);
       const chosen = targets ?? all;
       const unknown = chosen.filter((t) => !all.includes(t));
       if (unknown.length)
@@ -180,6 +293,7 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       return { ok: true, targets: chosen };
     },
     async cameraSnapshot(entityId) {
+      guard();
       const cam = state.entities.find((e) => e.id === entityId && e.kind === 'camera');
       if (!cam) return null;
       return {
@@ -188,14 +302,17 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       };
     },
     async cameraStream(entityId) {
+      guard();
       const cam = state.entities.find((e) => e.id === entityId && e.kind === 'camera');
       if (!cam) return null;
       return { contentType: 'image/svg+xml', body: cameraSvg(cam.id, cam.name, ctx.now(), true) };
     },
     async media() {
+      guard();
       return { players: structuredClone(players) };
     },
     async mediaCall({ playerId, action }) {
+      guard();
       const p = findPlayer(playerId);
       const pos = position(p);
       if (pos !== undefined) p.positionSeconds = Math.round(pos);

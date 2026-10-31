@@ -39,6 +39,15 @@ import {
   Location,
   WeatherSnapshot,
 } from './models.js';
+import {
+  HomeConfig,
+  HomeConnectionPatch,
+  HomeConnectionStatus,
+  HomeConnectionTestRequest,
+  HomeDiscovery,
+  HomeTestResult,
+  HomeYaml,
+} from './home-setup.js';
 
 export const API_PREFIX = '/api';
 export const WS_PATH = '/ws';
@@ -58,6 +67,8 @@ export const ApiError = z.object({
       'not_implemented',
       'upstream_error',
       'internal',
+      /** The integration is turned off in settings (Home Assistant, for example). */
+      'disabled',
     ]),
     message: z.string(),
   }),
@@ -91,6 +102,12 @@ export const BootstrapResponse = z.object({
   theme: ThemeMode,
   panel: PanelSize,
   flags: FeatureFlags,
+  /**
+   * Which integrations are turned on. The display hides a whole screen or layer when its
+   * integration is off (Home Assistant: the Home screen and the doorbell pop-over). Missing
+   * means everything is on, so older servers keep working.
+   */
+  integrations: z.record(z.string(), z.object({ enabled: z.boolean() })).optional(),
 });
 
 export const CalendarQuery = z.object({ from: IsoDateTime, to: IsoDateTime });
@@ -389,6 +406,75 @@ export const routes = {
     query: NoQuery,
     body: MediaCallRequest,
     response: MediaCallResponse,
+    auth: true,
+  }),
+  /* Home Assistant setup (WS C): the connection, discovery and the stored allow-list. */
+  homeConnection: route({
+    method: 'GET',
+    path: '/home/connection',
+    query: NoQuery,
+    body: NoBody,
+    response: HomeConnectionStatus,
+    auth: true,
+  }),
+  /** Save the URL, token or on/off switch; the server reconnects at once, no restart. */
+  homeConnectionPut: route({
+    method: 'PUT',
+    path: '/home/connection',
+    query: NoQuery,
+    body: HomeConnectionPatch,
+    response: HomeConnectionStatus,
+    auth: true,
+  }),
+  homeConnectionTest: route({
+    method: 'POST',
+    path: '/home/connection/test',
+    query: NoQuery,
+    body: HomeConnectionTestRequest,
+    response: HomeTestResult,
+    auth: true,
+  }),
+  /** Areas and entities Home Assistant has right now, for the room and device picker. */
+  homeDiscover: route({
+    method: 'GET',
+    path: '/home/discover',
+    query: NoQuery,
+    body: NoBody,
+    response: HomeDiscovery,
+    auth: true,
+  }),
+  homeConfig: route({
+    method: 'GET',
+    path: '/home/config',
+    query: NoQuery,
+    body: NoBody,
+    response: HomeConfig,
+    auth: true,
+  }),
+  /** Replace the allow-list. Takes effect live; displays reload. */
+  homeConfigPut: route({
+    method: 'PUT',
+    path: '/home/config',
+    query: NoQuery,
+    body: HomeConfig,
+    response: HomeConfig,
+    auth: true,
+  }),
+  /** Import a `home.yaml` (the whole file as text); replaces the stored allow-list. */
+  homeConfigImportYaml: route({
+    method: 'POST',
+    path: '/home/config/import-yaml',
+    query: NoQuery,
+    body: HomeYaml,
+    response: HomeConfig,
+    auth: true,
+  }),
+  homeConfigExportYaml: route({
+    method: 'GET',
+    path: '/home/config/export-yaml',
+    query: NoQuery,
+    body: NoBody,
+    response: HomeYaml,
     auth: true,
   }),
   /** Now-playing artwork for a media player; `MediaPlayer.artworkUrl` points here. */

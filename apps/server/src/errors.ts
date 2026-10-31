@@ -10,6 +10,7 @@ const status: Record<Code, number> = {
   not_implemented: 501,
   upstream_error: 502,
   internal: 500,
+  disabled: 503,
 };
 
 /** Throw from a route or provider to answer with `{ error: { code, message } }`. */

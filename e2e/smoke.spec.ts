@@ -106,3 +106,65 @@ test('the settings page and the phone page load', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Add to a list' })).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test('Home Assistant is set up from Settings: test, pick rooms and devices, save, turn off', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings');
+  const ha = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Home Assistant' }),
+  });
+  await expect(ha).toBeVisible();
+  await expect(ha.getByText(/^Connected to Home Assistant/)).toBeVisible();
+
+  // The Test button answers in one sentence.
+  await ha.getByRole('button', { name: 'Test', exact: true }).click();
+  await expect(ha.getByText(/Connected to Home Assistant .* \(mock\)/)).toBeVisible();
+
+  // Rooms from discovery: Kitchen is shown; open it and untick the island, then hide the room.
+  const rooms = ha.getByRole('list', { name: 'Rooms on the Home screen' });
+  await expect(rooms.getByLabel('Kitchen room name')).toHaveValue('Kitchen');
+  await rooms.getByRole('button', { name: 'Choose devices in Kitchen' }).click();
+  const island = rooms.getByRole('switch', { name: 'Show Island' });
+  await expect(island).toHaveAttribute('aria-checked', 'true');
+  await island.click();
+  await expect(island).toHaveAttribute('aria-checked', 'false');
+  await expect(rooms.getByText('2 of 3 shown')).toBeVisible();
+  await rooms.getByRole('switch', { name: 'Show Kitchen' }).click();
+  await expect(
+    ha.getByRole('list', { name: 'Rooms not on the Home screen' }).getByText('Kitchen'),
+  ).toBeVisible();
+  await ha.getByRole('button', { name: 'Save rooms and devices' }).click();
+  await expect(ha.getByText('Saved. The Home screen is updating.')).toBeVisible();
+
+  // The server applied it without a restart.
+  const state = (await (await request.get('/api/home/state')).json()) as {
+    areas: { id: string }[];
+  };
+  expect(state.areas.map((a) => a.id)).not.toContain('kitchen');
+
+  // Put it back the way it was, so the other tests see the fixture rooms.
+  await ha.getByRole('switch', { name: 'Show Kitchen' }).click();
+  await ha.getByRole('button', { name: 'Save rooms and devices' }).click();
+  await expect(ha.getByText('Saved. The Home screen is updating.')).toBeVisible();
+  const after = (await (await request.get('/api/home/state')).json()) as {
+    areas: { id: string }[];
+  };
+  expect(after.areas.map((a) => a.id)).toContain('kitchen');
+
+  // Turning Home Assistant off takes the Home screen out of the dock; on brings it back.
+  await ha.getByRole('switch', { name: 'Show Home Assistant on the wall' }).click();
+  await expect(ha.getByText('Turned off. The Home screen is hidden.')).toBeVisible();
+  expect((await request.get('/api/home/state')).status()).toBe(503);
+  await page.goto('/?mode=daylight');
+  const dock = page.getByRole('navigation', { name: 'Screens' });
+  await expect(dock.getByRole('button', { name: 'Today' })).toBeVisible();
+  await expect(dock.getByRole('button', { name: 'Home' })).toHaveCount(0);
+  await page.goto('/settings');
+  await ha.getByRole('switch', { name: 'Show Home Assistant on the wall' }).click();
+  await expect(ha.getByText(/^Connected to Home Assistant/)).toBeVisible();
+  expect((await request.get('/api/home/state')).status()).toBe(200);
+  expect(problems).toEqual([]);
+});

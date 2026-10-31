@@ -6,7 +6,16 @@
  * Ownership: calendar (WS2), home + media (WS3), weather + commute + photos (WS4),
  * lists + chores (WS5). Settings and devices belong to the scaffold and WS6.
  */
-import type { BodyOf, ResponseOf, Settings, WsEventInput } from '@mantel/shared';
+import type {
+  BodyOf,
+  HomeConfig,
+  HomeConnectionStatus,
+  HomeDiscovery,
+  HomeTestResult,
+  ResponseOf,
+  Settings,
+  WsEventInput,
+} from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { DeviceAuth } from '../auth.js';
 import type { Config } from '../config.js';
@@ -55,7 +64,24 @@ export interface HomeBytes {
   body: Uint8Array | string | ReadableStream<Uint8Array>;
 }
 
+/** The settings page's side of Home Assistant: connection, discovery and the stored allow-list. */
+export interface HomeSetup {
+  connection(): HomeConnectionStatus;
+  /** Save and apply at once (reconnect, or stop when turned off). */
+  setConnection(patch: BodyOf<'homeConnectionPut'>): Promise<HomeConnectionStatus>;
+  /** Try a URL and token (saved ones when omitted) without saving them. */
+  test(req: BodyOf<'homeConnectionTest'>): Promise<HomeTestResult>;
+  discover(): Promise<HomeDiscovery>;
+  config(): HomeConfig;
+  putConfig(config: unknown): HomeConfig;
+  importYaml(text: string): HomeConfig;
+  exportYaml(): string;
+  /** False when Home Assistant is turned off in settings; `/home/*` then answers `disabled`. */
+  enabled(): boolean;
+}
+
 export interface HomeProvider {
+  setup: HomeSetup;
   state(): Promise<ResponseOf<'homeState'>>;
   call(req: BodyOf<'homeCall'>): Promise<ResponseOf<'homeCall'>>;
   announce(req: BodyOf<'homeAnnounce'>): Promise<ResponseOf<'homeAnnounce'>>;

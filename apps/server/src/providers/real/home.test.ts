@@ -3,11 +3,18 @@ import { settings as fixtureSettings } from '@mantel/shared/fixtures';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Config } from '../../config.js';
 import type { Db } from '../../db/index.js';
-import type { HomeProvider, ProviderContext } from '../types.js';
+import type { ProviderContext } from '../types.js';
 import { FakeHa, TOKEN } from './fake-ha.js';
 import { HaClient } from './home-client.js';
 import { parseHomeConfig, type HomeConfig } from './home-config.js';
-import { createHomeProvider, displayName, isRing, realHome, toPlayer } from './home.js';
+import {
+  createHomeProvider,
+  displayName,
+  isRing,
+  realHome,
+  toPlayer,
+  type HomeLive,
+} from './home.js';
 
 const allowList = `
 areas:
@@ -47,7 +54,7 @@ const until = async (check: () => boolean, ms = 2000) => {
 describe('Home Assistant provider against a fake HA', () => {
   let ha: FakeHa;
   let client: HaClient;
-  let home: HomeProvider;
+  let home: HomeLive;
   let events: WsEventInput[];
   let config: HomeConfig;
   let flags = fixtureSettings().flags;
@@ -462,12 +469,16 @@ describe('Home Assistant helpers', () => {
     );
   });
 
-  it('answers 501 until HA_URL and HA_TOKEN are set', async () => {
-    const off = realHome({} as ProviderContext, {
-      HA_ALLOWLIST: './config/home.yaml',
-      HA_STREAM_MAX_SECONDS: 120,
-    });
+  it('answers 501 until an address and token are saved or set in the environment', async () => {
+    const { openDb } = await import('../../db/index.js');
+    const ctx = {
+      db: openDb(':memory:'),
+      emit: () => {},
+      settings: () => fixtureSettings(),
+    } as unknown as ProviderContext;
+    const off = realHome(ctx, { HA_ALLOWLIST: './nope.yaml', HA_STREAM_MAX_SECONDS: 120 });
     await expect(off.state()).rejects.toMatchObject({ code: 'not_implemented' });
+    expect(off.setup.connection()).toMatchObject({ state: 'not_set_up', source: 'none' });
   });
 });
 

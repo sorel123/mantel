@@ -4,6 +4,7 @@ import { Pairing } from '../../app/Pairing';
 import { api } from '../../lib/api';
 import { useThemeMode } from '../../lib/theme';
 import { Displays } from './Displays';
+import { HomeSetupSection } from './home';
 import { Destinations, Features, General, People, Schedule } from './sections';
 import './settings.css';
 
@@ -143,6 +144,7 @@ export function SettingsPage() {
         onChange={(v) => set('destinations', v)}
       />
       <Features value={draft.flags} onChange={(v) => set('flags', v)} />
+      <HomeSetupSection people={draft.people} />
       <Displays />
 
       <footer className="set-bar card" aria-live="polite">

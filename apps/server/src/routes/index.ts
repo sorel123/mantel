@@ -42,6 +42,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
       theme: s.theme,
       panel: DEFAULT_PANEL,
       flags: s.flags,
+      // WS C: the display hides the Home screen and doorbell layer when Home Assistant is off.
+      integrations: { homeassistant: { enabled: providers.home.setup.enabled() } },
     };
   });
 
@@ -110,6 +112,25 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   });
   handle('media', async () => providers.home.media());
   handle('mediaCall', async ({ body }) => providers.home.mediaCall(body));
+
+  // Setup without YAML: the connection, what HA has, and the stored allow-list.
+  const setup = providers.home.setup;
+  handle('homeConnection', async () => setup.connection());
+  handle('homeConnectionPut', async ({ body }) => setup.setConnection(body));
+  handle('homeConnectionTest', async ({ body }) => setup.test(body));
+  handle('homeDiscover', async () => setup.discover());
+  handle('homeConfig', async () => setup.config());
+  const saveConfig = (run: () => ReturnType<typeof setup.config>) => {
+    try {
+      return run();
+    } catch (err) {
+      if (err instanceof HttpError) throw err;
+      throw new HttpError('bad_request', err instanceof Error ? err.message : String(err));
+    }
+  };
+  handle('homeConfigPut', async ({ body }) => saveConfig(() => setup.putConfig(body)));
+  handle('homeConfigImportYaml', async ({ body }) => saveConfig(() => setup.importYaml(body.yaml)));
+  handle('homeConfigExportYaml', async () => ({ yaml: setup.exportYaml() }));
 
   // Byte routes for <img src>: the device key comes in the header or `?key=`.
   const image =

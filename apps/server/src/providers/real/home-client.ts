@@ -64,6 +64,17 @@ interface Pending {
 }
 
 const COMMAND_TIMEOUT_MS = 10_000;
+
+/** Error text without the Node noise ("Error: connect ECONNREFUSED 1.2.3.4:8123" → "connection refused"). */
+function describe(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/ECONNREFUSED/.test(msg)) return 'connection refused (is the address and port right?)';
+  if (/ENOTFOUND|EAI_AGAIN/.test(msg)) return 'that host name could not be found';
+  if (/ETIMEDOUT|timed out|handshake/i.test(msg)) return 'no answer (timed out)';
+  if (/ECONNRESET/.test(msg)) return 'the connection was dropped';
+  if (/certificate|SSL|TLS/i.test(msg)) return 'the HTTPS certificate was not trusted';
+  return msg;
+}
 const PING_MS = 30_000;
 const MAX_BACKOFF_MS = 30_000;
 
@@ -81,6 +92,11 @@ export class HaClient {
   registry: HaRegistry = { areas: [], entities: [], devices: [] };
   /** Temperature unit from HA's unit system, e.g. `°F`. */
   temperatureUnit = '°C';
+  /** Home Assistant's version, once connected. */
+  haVersion: string | undefined;
+  /** The last thing that went wrong, for the settings page; cleared when a connection succeeds. */
+  lastError: string | null = null;
+  lastOkAt: string | null = null;
   private ws: WebSocket | null = null;
   private nextId = 1;
   private pending = new Map<number, Pending>();
@@ -208,12 +224,17 @@ export class HaClient {
         void this.onAuthed();
       } else if (msg.type === 'auth_invalid') {
         log.error(`home: Home Assistant rejected the token (${String(msg.message ?? '')})`);
+        this.lastError =
+          'Home Assistant refused the token. Make a new long-lived access token and paste it in Settings.';
         ws.close();
       } else if (authed) {
         this.onMessage(msg);
       }
     });
-    ws.on('error', (err) => log.debug('home: socket error', { err: String(err) }));
+    ws.on('error', (err) => {
+      log.debug('home: socket error', { err: String(err) });
+      if (!this.lastError) this.lastError = `Could not reach ${this.base}: ${describe(err)}`;
+    });
     ws.on('close', () => {
       if (this.ws !== ws) return;
       this.ws = null;
@@ -242,7 +263,9 @@ export class HaClient {
       await this.command({ type: 'subscribe_events', event_type: 'state_changed' });
       const [states, config, areas, entities, devices] = await Promise.all([
         this.command<HaState[]>({ type: 'get_states' }),
-        this.command<{ unit_system?: { temperature?: string } }>({ type: 'get_config' }),
+        this.command<{ unit_system?: { temperature?: string }; version?: string }>({
+          type: 'get_config',
+        }),
         this.command<HaArea[]>({ type: 'config/area_registry/list' }).catch(() => []),
         this.command<HaEntityEntry[]>({ type: 'config/entity_registry/list' }).catch(() => []),
         this.command<HaDevice[]>({ type: 'config/device_registry/list' }).catch(() => []),
@@ -252,6 +275,9 @@ export class HaClient {
       for (const s of states) this.states.set(s.entity_id, s);
       this.registry = { areas, entities, devices };
       this.temperatureUnit = config.unit_system?.temperature ?? this.temperatureUnit;
+      this.haVersion = config.version ?? this.haVersion;
+      this.lastError = null;
+      this.lastOkAt = new Date().toISOString();
       this.retry = 0;
       this._connected = true;
       this.everReady = true;
@@ -260,6 +286,7 @@ export class HaClient {
       this.emit('ready', previous);
     } catch (err) {
       log.warn('home: setup after auth failed; reconnecting', { err: String(err) });
+      this.lastError = `Connected, but loading states failed: ${describe(err)}`;
       this.ws?.close();
     }
   }

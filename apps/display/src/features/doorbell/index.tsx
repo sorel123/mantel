@@ -22,7 +22,7 @@ function tokenMs(name: string, fallback: number): number {
  * live view for its time (30 s by default) with a draining bar, and closes itself.
  */
 export function DoorbellLayer() {
-  const { flags } = useBootstrap();
+  const { flags, integrations } = useBootstrap();
   const live = useLiveView();
   const [shown, setShown] = useState<LiveView | null>(live);
   const [leaving, setLeaving] = useState(false);
@@ -64,7 +64,8 @@ export function DoorbellLayer() {
     return () => clearTimeout(t);
   }, [live]);
 
-  if (!shown) return null;
+  // Home Assistant turned off in Settings: no live view, whatever arrives.
+  if (!shown || integrations?.homeassistant?.enabled === false) return null;
   return <LivePopover view={shown} leaving={leaving} />;
 }
 
