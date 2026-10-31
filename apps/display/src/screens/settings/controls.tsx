@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 /** Small form controls for the settings page, sized for touch (56 px rows). */
 
@@ -152,32 +152,56 @@ export function TimeInput({
   );
 }
 
+/**
+ * A number field that is safe to type into: while the text is not yet a number ("-", "42.",
+ * "") nothing is sent up, so a half-typed negative longitude never lands as NaN in the draft.
+ * The field keeps what was typed until it loses focus, then shows the stored value again.
+ */
 export function NumberInput({
   value,
   onChange,
-  min,
-  max,
-  step,
   label,
+  onPasteText,
 }: {
   value: number;
   onChange: (v: number) => void;
+  /** Kept for callers; a free-text field does not clamp while typing, the schema check does. */
   min?: number;
   max?: number;
   step?: number;
   label?: string;
+  /** Return true to take over a paste (for example "lat, lng" into the latitude field). */
+  onPasteText?: (text: string) => boolean;
 }) {
+  const shown = Number.isFinite(value) ? String(value) : '';
+  const [text, setText] = useState(shown);
+  const [editing, setEditing] = useState(false);
+  const display = editing ? text : shown;
   return (
     <input
       className="set-input tnum"
-      type="number"
+      type="text"
       inputMode="decimal"
+      autoComplete="off"
       aria-label={label}
-      value={Number.isFinite(value) ? value : ''}
-      min={min}
-      max={max}
-      step={step}
-      onChange={(e) => onChange(e.target.valueAsNumber)}
+      value={display}
+      onFocus={() => {
+        setText(shown);
+        setEditing(true);
+      }}
+      onBlur={() => setEditing(false)}
+      onPaste={(e) => {
+        if (onPasteText?.(e.clipboardData.getData('text'))) {
+          e.preventDefault();
+          setEditing(false);
+        }
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        const n = Number(next.trim().replace(/,$/, ''));
+        if (next.trim() !== '' && Number.isFinite(n)) onChange(n);
+      }}
     />
   );
 }
