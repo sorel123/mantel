@@ -56,11 +56,12 @@ export function matchLeaveBy(events: CalendarEvent[], trips: LeaveBy[]): Map<str
   const timed = events
     .filter((e) => !e.allDay)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  // Trips the server tied to an event (event addresses) claim theirs first.
+  for (const trip of trips)
+    if (trip.eventId && !out.has(trip.eventId) && events.some((e) => e.id === trip.eventId))
+      out.set(trip.eventId, trip);
   for (const trip of trips) {
-    if (trip.eventId && events.some((e) => e.id === trip.eventId)) {
-      if (!out.has(trip.eventId)) out.set(trip.eventId, trip);
-      continue;
-    }
+    if (trip.eventId && events.some((e) => e.id === trip.eventId)) continue;
     const from = new Date(trip.leaveBy).getTime();
     const to = new Date(trip.arriveBy).getTime() + 60 * 60_000;
     const event = timed.find((e) => {

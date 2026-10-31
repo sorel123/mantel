@@ -55,6 +55,21 @@
   border-radius: 999px;
   font-weight: 600;
 }
+.month .navbtns .view-toggle {
+  margin-right: 10px;
+}
+.month .navbtns .view-toggle button {
+  width: auto;
+  height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-weight: 600;
+}
+.month .navbtns .view-toggle button[aria-pressed='true'] {
+  background: var(--surface);
+}
 .month .navbtns svg {
   width: 22px;
   height: 22px;

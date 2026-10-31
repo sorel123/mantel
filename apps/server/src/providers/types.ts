@@ -77,7 +77,8 @@ export interface WeatherProvider {
   search(q: string): Promise<ResponseOf<'weatherSearch'>>;
   /** Today's quip; `events` loads the day's calendar when a line is written by Claude. */
   quip(events: () => Promise<CalendarEvent[]>): Promise<ResponseOf<'weatherQuip'>>;
-  commute(): Promise<ResponseOf<'commute'>>;
+  /** Leave-by times for saved destinations, and (when `events` is given) for today's events that have an address. */
+  commute(events?: () => Promise<CalendarEvent[]>): Promise<ResponseOf<'commute'>>;
 }
 
 export interface PhotoBytes {

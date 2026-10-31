@@ -1,7 +1,14 @@
 import { CommuteResponse } from '@mantel/shared';
 import { settings as defaultSettings } from '@mantel/shared/fixtures';
 import { describe, expect, it } from 'vitest';
-import { activeDestinations, commuteStatus, realCommute } from './commute.js';
+import {
+  activeDestinations,
+  commuteStatus,
+  eventStops,
+  realCommute,
+  routableLocation,
+} from './commute.js';
+import type { CalendarEvent } from '@mantel/shared';
 import {
   normaliseNominatim,
   normaliseOrs,
@@ -292,5 +299,81 @@ describe('keyless commute', () => {
       fetch,
     });
     expect((await commute()).leaveBy.map((l) => l.durationMinutes)).toEqual([5, 5]);
+  });
+});
+
+describe('leave-by from event addresses', () => {
+  const ev = (id: string, start: string, location?: string, extra: Partial<CalendarEvent> = {}) =>
+    ({
+      id,
+      calendarId: 'cal',
+      title: id,
+      start,
+      end: start,
+      allDay: false,
+      personIds: ['jay'],
+      color: '#000000',
+      ...(location ? { location } : {}),
+      ...extra,
+    }) as CalendarEvent;
+
+  it('routes addresses, not meeting links or rooms', () => {
+    expect(routableLocation('42 Elm St, Springfield')).toBe('42 Elm St, Springfield');
+    expect(routableLocation('Lakeside Park, Seattle')).toBe('Lakeside Park, Seattle');
+    expect(routableLocation('47.61, -122.33')).toBe('47.61, -122.33');
+    expect(routableLocation('Zoom')).toBeNull();
+    expect(routableLocation('Kitchen')).toBeNull();
+    expect(routableLocation('https://meet.google.com/abc-defg')).toBeNull();
+    expect(routableLocation('Microsoft Teams Meeting, room 4')).toBeNull();
+    expect(routableLocation(undefined)).toBeNull();
+  });
+
+  it('opens three hours before the start and skips saved destinations', () => {
+    const stops = eventStops(
+      [
+        ev('dentist', '2026-11-02T10:00:00-08:00', '42 Elm St, Springfield'),
+        ev('later', '2026-11-02T18:00:00-08:00', '42 Elm St, Springfield'),
+        ev('started', '2026-11-02T07:00:00-08:00', '42 Elm St, Springfield'),
+        ev('office', '2026-11-02T09:00:00-08:00', '500 Market St'),
+        ev('allday', '2026-11-02T00:00:00-08:00', '42 Elm St, Springfield', { allDay: true }),
+      ],
+      MONDAY_710,
+      destinations,
+    );
+    expect(stops.map((s) => s.eventId)).toEqual(['dentist']);
+    expect(stops[0]!.dest).toMatchObject({ name: 'dentist', personIds: ['jay'] });
+  });
+
+  it('adds a chip tied to the event, and stays quiet about unknown addresses', async () => {
+    const ctx = testContext(MONDAY_710, { destinations: [] });
+    const fetch = fakeFetch(
+      (url) => {
+        if (url.host !== 'nominatim.openstreetmap.org') return undefined;
+        return url.searchParams.get('q') === '42 Elm St, Springfield'
+          ? json([{ lat: '37.70', lon: '-122.40' }])
+          : json([]);
+      },
+      osrm({ '-122.4,37.7': 1200 }),
+    );
+    const commute = realCommute(ctx, { env: loadWs4Env({}), fetch });
+    const events = async () => [
+      ev('Dentist', '2026-11-02T10:00:00-08:00', '42 Elm St, Springfield'),
+      ev('Party', '2026-11-02T09:30:00-08:00', '1 Nowhere Rd, Atlantis'),
+    ];
+    const { leaveBy } = CommuteResponse.parse(await commute(events));
+    expect(leaveBy).toEqual([
+      expect.objectContaining({
+        name: 'Dentist',
+        eventId: 'Dentist',
+        leaveBy: '2026-11-02T09:40:00-08:00',
+        arriveBy: '2026-11-02T10:00:00-08:00',
+        durationMinutes: 20,
+        traffic: false,
+      }),
+    ]);
+    const before = fetch.mock.calls.length;
+    await commute(events);
+    // The trip is cached and the unknown address is not looked up again within the hour.
+    expect(fetch.mock.calls.length).toBe(before);
   });
 });

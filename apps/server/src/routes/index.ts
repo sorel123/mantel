@@ -348,19 +348,18 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('weather', async () => providers.weather.weather());
   handle('weatherPlace', async ({ query }) => providers.weather.place(query));
   handle('weatherSearch', async ({ query }) => providers.weather.search(query.q));
-  handle('weatherQuip', async () =>
-    providers.weather.quip(async () => {
-      // Today's events, for a quip written by Claude; the library needs none.
-      const s = settings.get();
-      const day = fromIsoDate(dateInZone(new Date(), s.timezone));
-      const to = new Date(day.getTime() + 864e5);
-      return providers.calendar
-        .events(day, to)
-        .then((r) => r.events)
-        .catch(() => []);
-    }),
-  );
-  handle('commute', async () => providers.weather.commute());
+  /** Today's events, for a quip written by Claude and for leave-by from event addresses. */
+  const todaysEvents = async () => {
+    const s = settings.get();
+    const day = fromIsoDate(dateInZone(new Date(), s.timezone));
+    const to = new Date(day.getTime() + 864e5);
+    return providers.calendar
+      .events(day, to)
+      .then((r) => r.events)
+      .catch(() => []);
+  };
+  handle('weatherQuip', async () => providers.weather.quip(todaysEvents));
+  handle('commute', async () => providers.weather.commute(todaysEvents));
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');
