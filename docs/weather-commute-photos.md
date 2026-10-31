@@ -8,11 +8,23 @@ In mock mode (`MOCK=1`) all three serve fixtures. To see the display pieces befo
 
 Nothing to set up. The server reads the household location, units and timezone from settings and asks:
 
-- **Open-Meteo** for now, the next 24 hours, 7 days, sunrise and sunset, UV, US AQI and pollen. No key.
+- **Open-Meteo** for now, the next 48 hours (temperature, feels-like, rain chance and amount, wind and gusts, humidity, dew point, pressure, visibility, UV), 10 days (high, low, rain chance and sum, wind, daylight), sunrise and sunset, US AQI and pollen. No key. The moon phase is computed on the server.
 - **api.weather.gov** for active alerts at the location (US only). Set `NWS_CONTACT` to an email or URL; NWS asks for one in the User-Agent.
 - **Google Pollen API**, only when Open-Meteo has no pollen for the location (its pollen model covers Europe only) and a key is set: `GOOGLE_POLLEN_API_KEY`, or the Routes key if the Pollen API is enabled on it. Without either, pollen is hidden.
 
 Results are cached for 15 minutes in memory and in SQLite, so a restart answers at once. Once a display has asked, the server refreshes every 15 minutes and pushes `weather.updated`. If Open-Meteo is down the last snapshot is served (its `updatedAt` says how old it is); air quality, pollen and alerts each drop out on their own if their source fails.
+
+### Other places
+
+`GET /api/weather/search?q=` finds places by name through Open-Meteo's geocoder (or takes a pasted `lat, lon` pair), and `GET /api/weather/place?lat=&lon=` returns the same snapshot for anywhere, in that place's own timezone, with air quality but without alerts or pollen. Place snapshots are cached for 30 minutes, searches for a day. Places the household saves live in settings as `weather.savedPlaces` (name, latitude, longitude) and show as chips in the weather sheet.
+
+### Quips
+
+With `weather.personality` set to `friendly` or `snarky` in settings, `GET /api/weather/quip` returns one line a day about the weather, shown in the card's outlook line and on Ambient. The line comes from a hand-written library of a few hundred, keyed by sky, temperature band, time of day, season and whether rain is coming, and changes every three hours. With a Claude API key in Settings (Integrations > Weather quips; `CLAUDE_API_KEY` in the environment also works), Claude writes the day's line instead from the forecast and today's calendar, once a day, cached; if the call fails the library answers. `off` (the default) shows the plain outlook line ("Rain after 6 pm").
+
+### Warnings
+
+When a new **warning** of severity severe or extreme appears (not a watch or advisory), the server pushes `weather.alert` and `display.wake`, so the display wakes from Ambient and shows a banner with the warning's name until it is dismissed. Each warning is announced once; a server restart does not repeat warnings already in force.
 
 ## Leave-by times
 
@@ -37,10 +49,12 @@ On first start with a large album the photos arrive over a few minutes; the slid
 
 From `features/weather`:
 
-- `WeatherCard`: the Today card. Now, high and low, a one-line outlook ("Rain after 6 pm"), the next six hours, and an extras row (next sunrise or sunset, UV, air quality, pollen). Active alerts sit on top; tap to read.
+- `WeatherCard`: the Today card. Now, high and low, a one-line outlook ("Rain after 6 pm") or the day's quip, the next 48 hours in a scroller (six at a time; it slides back to now after a while untouched), and an extras row (next sunrise or sunset, UV, air quality, pollen). Active alerts sit on top; tap to read. The round button opens `WeatherSheet`.
+- `WeatherSheet`: home and saved places as chips with a search box, then tabs: Hourly (temperature line over rain bars, the strip, every third hour), 10-day (range bars), Details (every measurement, moon, daylight, air, pollen), Alerts.
+- `WeatherAlertLayer`: the banner the shell mounts for `weather.alert`; `showAlert` and `dismissAlert` drive it.
 - `LeaveByChip` and `matchLeaveBy(events, trips)`: the chip, and which event each trip belongs next to (the server's match, else the first timed event of one of the travellers that starts between leaving and an hour after arriving).
-- `AmbientWeather`: the icon, temperature and summary for Ambient.
-- `useWeather()`, `useCommute()`: shared, self-refreshing data for any screen.
+- `AmbientWeather`: the icon, temperature and summary for Ambient, with the quip and any warning in force under it.
+- `useWeather()`, `useCommute()`, `useQuip()`, `useWeatherPrefs()`: shared, self-refreshing data for any screen; `fetchPlace`, `searchPlaces`, `toggleSavedPlace` for other places.
 
 From `features/photos`:
 
