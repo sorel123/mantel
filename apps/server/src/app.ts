@@ -48,6 +48,7 @@ export interface CreateAppOptions {
 function mockGeocodeFetch(timezone: () => string): typeof fetch {
   return async (input) => {
     const url = String(input);
+    if (url.includes('nominatim')) return new Response('[]');
     const body = url.includes('geocoding-api')
       ? {
           results: geocodeCandidates.map((c) => ({
