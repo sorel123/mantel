@@ -72,6 +72,40 @@ export function routeFixtures(now = new Date()): {
     choreDone: { chore: choreSet.chores[0]!, stars: choreSet.stars },
     settings: s,
     settingsPut: s,
+    devices: {
+      devices: [
+        {
+          id: 'dev-mock',
+          name: 'Kitchen iPad',
+          createdAt: toLocalIso(addDays(now, -7)),
+          lastSeenAt: toLocalIso(now),
+          revokedAt: null,
+          current: true,
+        },
+        {
+          id: 'dev-old',
+          name: 'Surface Pro',
+          createdAt: toLocalIso(addDays(now, -30)),
+          lastSeenAt: toLocalIso(addDays(now, -9)),
+          revokedAt: toLocalIso(addDays(now, -8)),
+          current: false,
+        },
+      ],
+    },
+    deviceRevoke: { ok: true },
+    deviceRename: {
+      device: {
+        id: 'dev-mock',
+        name: 'Kitchen wall',
+        createdAt: toLocalIso(addDays(now, -7)),
+        lastSeenAt: toLocalIso(now),
+        revokedAt: null,
+        current: true,
+      },
+    },
+    pairingCode: { code: '482913', expiresAt: toLocalIso(new Date(now.getTime() + 15 * 60_000)) },
+    displayState: { at: toLocalIso(now), screen: 'on', ambient: false, brightness: 100 },
+    displayReload: { ok: true, clients: 1 },
     health: {
       ok: true,
       version: '0.1.0',

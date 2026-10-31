@@ -11,6 +11,7 @@ import { mockProviders } from './providers/mock/index.js';
 import { realProviders } from './providers/real/index.js';
 import type { ProviderContext, Providers } from './providers/types.js';
 import { registerRoutes } from './routes/index.js';
+import { DisplayScheduler } from './schedule.js';
 import { SettingsStore } from './settings.js';
 import { WsHub } from './ws/hub.js';
 
@@ -41,6 +42,8 @@ export function createApp(config: Config, overrides: { now?: () => Date } = {}) 
   };
   const providers = config.MOCK ? mockProviders(ctx) : realProviders(ctx);
   const deps: AppDeps = { config, db, auth, hub, settings, providers, sync };
+  const scheduler = new DisplayScheduler(settings, (e) => hub.broadcast(e), ctx.now);
+  scheduler.start();
 
   const app = new Hono();
   app.onError((err, c) => {
@@ -91,5 +94,12 @@ export function createApp(config: Config, overrides: { now?: () => Date } = {}) 
     app.get('*', serveStatic({ root, path: 'index.html' }));
   }
 
-  return { app, deps, close: () => hub.close() };
+  return {
+    app,
+    deps,
+    close: () => {
+      scheduler.stop();
+      hub.close();
+    },
+  };
 }

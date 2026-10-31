@@ -12,6 +12,8 @@ import {
   CalendarEvent,
   Chore,
   Countdown,
+  Device,
+  DisplayState,
   FeatureFlags,
   HomeArea,
   HomeEntity,
@@ -168,6 +170,21 @@ export const HealthResponse = z.object({
   uptimeSeconds: z.number().nonnegative(),
   /** Last successful sync per source (`calendar`, `weather`, `photos`, `home`, `lists`...), null if never. */
   lastSync: z.record(z.string(), IsoDateTime.nullable()),
+});
+
+export const DevicesResponse = z.object({ devices: z.array(Device) });
+export const RenameDeviceRequest = z.object({ name: z.string().trim().min(1).max(60) });
+export const DeviceResponse = z.object({ device: Device });
+export const PairingCodeResponse = z.object({
+  /** The code `POST /pair` accepts right now, for pairing another display from this one. */
+  code: z.string().regex(/^\d{6}$/),
+  expiresAt: IsoDateTime,
+});
+export const DisplayStateResponse = DisplayState;
+export const DisplayReloadResponse = z.object({
+  ok: z.literal(true),
+  /** Displays connected when the reload was sent. */
+  clients: z.number().int().nonnegative(),
 });
 
 /* ---------- the route table ---------- */
@@ -374,6 +391,54 @@ export const routes = {
     query: NoQuery,
     body: PutSettingsRequest,
     response: SettingsResponse,
+    auth: true,
+  }),
+  devices: route({
+    method: 'GET',
+    path: '/devices',
+    query: NoQuery,
+    body: NoBody,
+    response: DevicesResponse,
+    auth: true,
+  }),
+  deviceRevoke: route({
+    method: 'DELETE',
+    path: '/devices/:id',
+    query: NoQuery,
+    body: NoBody,
+    response: Ok,
+    auth: true,
+  }),
+  deviceRename: route({
+    method: 'PATCH',
+    path: '/devices/:id',
+    query: NoQuery,
+    body: RenameDeviceRequest,
+    response: DeviceResponse,
+    auth: true,
+  }),
+  pairingCode: route({
+    method: 'GET',
+    path: '/pairing-code',
+    query: NoQuery,
+    body: NoBody,
+    response: PairingCodeResponse,
+    auth: true,
+  }),
+  displayState: route({
+    method: 'GET',
+    path: '/display/state',
+    query: NoQuery,
+    body: NoBody,
+    response: DisplayStateResponse,
+    auth: true,
+  }),
+  displayReload: route({
+    method: 'POST',
+    path: '/display/reload',
+    query: NoQuery,
+    body: NoBody,
+    response: DisplayReloadResponse,
     auth: true,
   }),
   health: route({

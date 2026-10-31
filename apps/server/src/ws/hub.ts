@@ -11,6 +11,8 @@ const PING_MS = 25_000;
 export class WsHub {
   private readonly wss = new WebSocketServer({ noServer: true });
   private readonly alive = new WeakSet<WebSocket>();
+  /** Which device each socket authenticated as, so revoking a key closes its socket. */
+  private readonly deviceOf = new WeakMap<WebSocket, string>();
   private timer: NodeJS.Timeout | undefined;
 
   constructor(private readonly auth: DeviceAuth) {
@@ -35,12 +37,16 @@ export class WsHub {
     server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
       const url = new URL(req.url ?? '/', 'http://localhost');
       if (url.pathname !== WS_PATH) return;
-      if (!this.auth.verify(url.searchParams.get('key'))) {
+      const deviceId = this.auth.verify(url.searchParams.get('key'));
+      if (!deviceId) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
       }
-      this.wss.handleUpgrade(req, socket, head, (ws) => this.wss.emit('connection', ws, req));
+      this.wss.handleUpgrade(req, socket, head, (ws) => {
+        this.deviceOf.set(ws, deviceId);
+        this.wss.emit('connection', ws, req);
+      });
     });
     this.timer = setInterval(() => {
       for (const client of this.wss.clients) {
@@ -53,6 +59,19 @@ export class WsHub {
       }
     }, PING_MS);
     this.timer.unref();
+  }
+
+  /**
+   * Close every socket a device holds (after its key is revoked). It is told to reload first,
+   * so the display finds its key rejected and shows the pairing screen.
+   */
+  disconnect(deviceId: string): void {
+    const reload = JSON.stringify(WsEvent.parse({ type: 'display.reload', payload: {} }));
+    for (const client of this.wss.clients) {
+      if (this.deviceOf.get(client) !== deviceId) continue;
+      if (client.readyState === client.OPEN) client.send(reload);
+      client.close(4401, 'device revoked');
+    }
   }
 
   close(): void {

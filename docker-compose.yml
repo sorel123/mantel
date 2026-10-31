@@ -1,7 +1,11 @@
+# Local or any-Docker-host run. On Unraid use the template in deploy/unraid/ instead.
+#   docker compose up --build        # build from source
+#   docker compose pull && docker compose up -d   # run the published image
 services:
   mantel:
     build: .
-    image: mantel:local
+    image: ghcr.io/sorel123/mantel:latest
+    container_name: mantel
     restart: unless-stopped
     ports:
       - '8787:8787'

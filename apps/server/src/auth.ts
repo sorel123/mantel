@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { MOCK_DEVICE_KEY, MOCK_PAIRING_CODE } from '@mantel/shared/fixtures';
-import { and, eq, isNull } from 'drizzle-orm';
+import type { Device } from '@mantel/shared';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { schema, type Db } from './db/index.js';
 import { log } from './log.js';
 
@@ -29,6 +30,12 @@ export class DeviceAuth {
       log.info(`Pairing code: ${this.code} (valid 15 minutes)`);
     }
     return this.code;
+  }
+
+  /** The current code and when it expires, so a paired display can pair another. */
+  pairingCode(): { code: string; expiresAt: Date } {
+    const code = this.currentCode();
+    return { code, expiresAt: new Date(this.codeExpires) };
   }
 
   pair(code: string, name = 'Display'): { deviceId: string; deviceKey: string } | null {
@@ -69,11 +76,37 @@ export class DeviceAuth {
     return row.id;
   }
 
-  revoke(deviceId: string): void {
-    this.db
+  /** Every paired display, newest first, revoked ones included. */
+  list(currentId: string | null): Device[] {
+    return this.db
+      .select()
+      .from(schema.devices)
+      .orderBy(desc(schema.devices.createdAt))
+      .all()
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        createdAt: d.createdAt,
+        lastSeenAt: d.lastSeenAt,
+        revokedAt: d.revokedAt,
+        current: d.id === currentId,
+      }));
+  }
+
+  /** Rename a device; returns it, or null if there is no such device. */
+  rename(deviceId: string, name: string, currentId: string | null): Device | null {
+    this.db.update(schema.devices).set({ name }).where(eq(schema.devices.id, deviceId)).run();
+    return this.list(currentId).find((d) => d.id === deviceId) ?? null;
+  }
+
+  /** Revoke a device key. False if there is no such device or it was already revoked. */
+  revoke(deviceId: string): boolean {
+    const result = this.db
       .update(schema.devices)
       .set({ revokedAt: new Date().toISOString() })
-      .where(eq(schema.devices.id, deviceId))
+      .where(and(eq(schema.devices.id, deviceId), isNull(schema.devices.revokedAt)))
       .run();
+    if (result.changes > 0) log.info(`Revoked device ${deviceId}`);
+    return result.changes > 0;
   }
 }
