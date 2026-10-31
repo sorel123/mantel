@@ -1,0 +1,507 @@
+/* Today's presets other than Agenda (workstream F): the pieces each one adds. */
+
+/* ---------- one line of date (Weather focus, Family board) ---------- */
+.today .dateline {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 4px 6px 0;
+  min-height: 48px;
+}
+.today .dateline .wd {
+  font: italic 500 24px/1 var(--display);
+  color: var(--ink-2);
+}
+.today .dateline b {
+  font: 400 40px/1 var(--display);
+  letter-spacing: -0.02em;
+}
+.today .region.row .dateline {
+  padding-top: 0;
+}
+
+/* ---------- one line of weather ---------- */
+.today .wline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  color: var(--ink-2);
+  font-size: 15px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.today .wline .wico {
+  width: 36px;
+  height: 36px;
+  color: var(--ink);
+  flex: none;
+}
+.today .wline b {
+  font: 300 40px/1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.today .wline .sum {
+  color: var(--ink);
+  font-weight: 600;
+}
+.today .wline .out {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .wline.is-loading {
+  width: 240px;
+}
+.today .slot.inline {
+  display: block;
+  width: 240px;
+  min-height: 48px;
+}
+
+/* ---------- Weather focus: the week ahead ---------- */
+.today .ahead {
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.today .ahead.is-loading {
+  min-height: 200px;
+}
+.today .ahead .hourly {
+  border-top: 0;
+  padding-top: 0;
+}
+.today .ahead .days {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.today .ahead .days li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 0;
+}
+.today .ahead .days li:first-child {
+  background: var(--accent-soft);
+}
+.today .ahead .days .dn {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.today .ahead .days svg {
+  width: 26px;
+  height: 26px;
+  color: var(--ink);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.today .ahead .days small {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  min-height: 13px;
+  line-height: 13px;
+}
+.today .ahead .days b {
+  font: 500 19px/1 var(--display);
+  color: var(--ink);
+}
+.today .ahead .days .lo {
+  font-size: 13px;
+}
+.today .agenda.short .tl {
+  flex: 1;
+}
+/* narrow agendas let the countdown chips wrap instead of truncating */
+.today .agenda.short .countdowns,
+.today.slots[data-preset='photo'] .countdowns {
+  flex-wrap: wrap;
+}
+
+/* ---------- a round add button for presets without the agenda card ---------- */
+.today .add-round {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex: none;
+  transition: transform var(--fast) var(--ease);
+}
+.today .add-round:active {
+  transform: scale(0.94);
+}
+.today .add-round svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.4;
+}
+.today .region.row .wline {
+  margin-left: auto;
+}
+
+/* ---------- Family board ---------- */
+.today .fam {
+  display: grid;
+  gap: var(--gap);
+  flex: 1;
+  min-height: 0;
+}
+.today .famcol {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-top: 4px solid var(--pc);
+}
+.today .famcol .fh {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 12px;
+  text-align: left;
+  min-height: var(--tap);
+  transition: background var(--fast) var(--ease);
+}
+.today .famcol .fh:active {
+  background: var(--surface-2);
+}
+.today .famcol .fh .av {
+  width: 34px;
+  height: 34px;
+  font-size: 13.5px;
+}
+.today .famcol .fh .av.all {
+  background: var(--pc);
+  color: var(--accent-ink);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.today .famcol .who {
+  font: 500 22px/1.1 var(--display);
+  letter-spacing: -0.01em;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today .famcol .cnt {
+  font-size: 13px;
+  color: var(--ink-2);
+  flex: none;
+}
+.today .flist {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 10px 12px;
+}
+.today .flist::-webkit-scrollbar {
+  display: none;
+}
+.today .frow {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 9px 10px 9px 8px;
+  border-radius: 12px;
+  text-align: left;
+  min-height: 52px;
+  flex: none;
+  transition:
+    background var(--fast) var(--ease),
+    opacity var(--std) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.today .frow:active {
+  transform: scale(0.98);
+  background: var(--surface-2);
+}
+.today .frow i {
+  width: 4px;
+  border-radius: 3px;
+  background: var(--pc);
+  flex: none;
+}
+.today .frow .ft {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.today .frow .ft b {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.today .frow .ft small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.today .frow.now {
+  background: var(--accent-soft);
+}
+.today .frow.past,
+.today .frow.dim {
+  opacity: 0.5;
+}
+.today .fnone {
+  color: var(--ink-3);
+  font-size: 14.5px;
+  padding: 6px 8px;
+}
+.today .fsub {
+  padding: 12px 8px 4px;
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+}
+
+/* ---------- Photo and agenda ---------- */
+.today .photo-panel {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+}
+.today .photo-panel .veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+.today .photo-panel .pdate {
+  position: absolute;
+  left: 28px;
+  bottom: 24px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.45);
+}
+.today .photo-panel .pdate .wd {
+  font: italic 500 24px/1 var(--display);
+  opacity: 0.9;
+}
+.today .photo-panel .pdate b {
+  font: 300 96px/0.9 var(--display);
+  letter-spacing: -0.04em;
+}
+.today .photo-panel .pdate .mo {
+  font: 400 30px/1 var(--display);
+  opacity: 0.9;
+}
+
+/* ---------- Poster ---------- */
+.today .masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 0 8px 16px;
+  border-bottom: 4px solid var(--ink);
+}
+.today .masthead .ml {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.today .masthead .ml .eyebrow {
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  color: var(--ink-2);
+  margin-left: 10px;
+}
+.today .masthead .dn {
+  font: 300 200px/0.84 var(--display);
+  letter-spacing: -0.06em;
+  margin-left: -8px;
+}
+.today .masthead .mr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 6px;
+  padding-bottom: 6px;
+}
+.today .masthead .mo {
+  font: italic 400 64px/1 var(--display);
+  letter-spacing: -0.02em;
+}
+.today .masthead .yr {
+  font: 400 24px/1 var(--display);
+  color: var(--ink-2);
+  letter-spacing: 0.12em;
+}
+.today .masthead .cnt {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 6px;
+}
+.today .bill {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+  padding: 0 8px;
+}
+.today .bill .brule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.today .bill .brule .add {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  display: grid;
+  place-items: center;
+  transition: transform var(--fast) var(--ease);
+}
+.today .bill .brule .add:active {
+  transform: scale(0.94);
+}
+.today .bill .brule .add svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.4;
+}
+.today .blist {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+}
+.today .blist::-webkit-scrollbar {
+  display: none;
+}
+.today .brow {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  flex: none;
+  transition:
+    opacity var(--std) var(--ease),
+    background var(--fast) var(--ease);
+}
+.today .brow:active {
+  background: var(--surface-2);
+}
+.today .brow .bt {
+  flex: 0 0 120px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pc);
+}
+.today .brow .bti {
+  font: 400 30px/1.1 var(--display);
+  letter-spacing: -0.015em;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.today .brow .bti small {
+  font: 500 14px/1 var(--body);
+  color: var(--ink-2);
+}
+.today .brow .leader {
+  flex: 1;
+  min-width: 24px;
+  border-bottom: 2px dotted var(--ink-3);
+  align-self: flex-end;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+.today .brow .avs {
+  align-self: center;
+}
+.today .brow.past {
+  opacity: 0.4;
+}
+.today .brow.now .bti {
+  font-weight: 600;
+}
+.today .brow.now .bt::before {
+  content: '● ';
+}
+.today .bnone {
+  font: italic 400 28px/1.2 var(--display);
+  color: var(--ink-3);
+  padding: 24px 4px;
+}
+.today .bill .countdowns {
+  padding-top: 4px;
+}
+.today .region[data-region='foot'] {
+  border-top: 4px solid var(--ink);
+  padding: 14px 8px 0;
+}
+.today .region[data-region='foot'] .tonight {
+  border-top: 0;
+  padding-top: 0;
+  flex: none;
+}
+.today .region[data-region='foot'] .wline .out {
+  display: none;
+}

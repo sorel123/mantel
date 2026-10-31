@@ -3,13 +3,14 @@ import { AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useBootstrap, useBootstrapState } from '../lib/bootstrap';
 import { connectEvents, useConnection, useServerEvent } from '../lib/events';
-import { useFitPanel } from '../lib/fit';
+import { useFitPanel, type FitOptions } from '../lib/fit';
 import { setModeOverride, setSunTimes, useThemeMode } from '../lib/theme';
 import { AmbientWeather, useWeather } from '../features/weather';
 import { Ambient, ScreenOff, registerAmbientSlot, useIdle } from './ambient';
 import { formatClock, useNow } from './Clock';
 import { Dock } from './Dock';
 import { FeatureLayers } from './FeatureLayers';
+import { useLayout } from './layout';
 import { useMotionPreference } from './motion';
 import { NavProvider } from './nav';
 import { OverlayProvider, useOverlay } from './overlay';
@@ -65,11 +66,20 @@ export function Shell() {
 }
 
 /**
- * The fixed-size panel, scaled to fit the viewport. Everything positioned "absolute" lives inside
- * it, and the brightness dimmer sits on top of everything.
+ * The fixed-size panel, scaled to fit the viewport (or filling it, per `fit`). Everything
+ * positioned "absolute" lives inside it, and the brightness dimmer sits on top of everything.
  */
-export function Stage({ panel, children }: { panel: PanelSize; children: ReactNode }) {
-  const fit = useFitPanel(panel);
+export function Stage({
+  panel,
+  fit: options,
+  children,
+}: {
+  panel: PanelSize;
+  /** Fit mode and zoom from the layout settings; the default letterboxes. */
+  fit?: FitOptions;
+  children: ReactNode;
+}) {
+  const fit = useFitPanel(panel, options);
   return (
     <div className="stage">
       <div
@@ -146,8 +156,9 @@ export function useDisplayMode(schedule: ScreenSchedule) {
 
 function Display() {
   const boot = useBootstrap();
+  const layout = useLayout();
   return (
-    <Stage panel={boot.panel}>
+    <Stage panel={boot.panel} fit={layout}>
       <OverlayProvider>
         <DisplayInner />
       </OverlayProvider>
