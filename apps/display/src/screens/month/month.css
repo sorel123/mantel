@@ -1,5 +1,10 @@
-/* Month (WS2). Layout and sizes from design/mockup.html. */
+/* Month (WS2, presets by WS F). Layout and sizes from design/mockup.html. */
 .cal.month {
+  flex: 1;
+  min-height: 0;
+}
+.month .mgrid,
+.month .wstrip {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -143,4 +148,160 @@
   border: 0;
   color: var(--ink-2);
   padding-left: 4px;
+}
+
+/* ---------- Week strip ---------- */
+.month .weekwrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.month .week {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  touch-action: pan-y;
+}
+.month .week .day {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.month .week .day.past {
+  opacity: 0.6;
+}
+.month .week .day.today {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.month .week .dh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 8px 14px;
+  min-height: var(--tap);
+  transition: background var(--fast) var(--ease);
+}
+.month .week .dh:active {
+  background: var(--surface-2);
+}
+.month .week .dh .wd {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.month .week .dh .n {
+  font: 500 24px/1 var(--display);
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.month .week .day.today .dh .n {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.month .week .dlist {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px;
+}
+.month .week .dlist::-webkit-scrollbar {
+  display: none;
+}
+.month .week .wev {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 7px 6px 7px 4px;
+  border-radius: 10px;
+  text-align: left;
+  min-height: 44px;
+  flex: none;
+  transition:
+    background var(--fast) var(--ease),
+    opacity var(--std) var(--ease);
+}
+.month .week .wev:active {
+  background: var(--surface-2);
+}
+.month .week .wev i {
+  width: 3px;
+  border-radius: 3px;
+  background: var(--pc);
+  flex: none;
+}
+.month .week .wev.allday {
+  background: color-mix(in srgb, var(--pc) 16%, transparent);
+}
+.month .week .wev .wt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+}
+.month .week .wev .wt b {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.month .week .wev .avs {
+  align-self: center;
+}
+.month .week .wev .av.sm {
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+}
+.month .week .wev.past {
+  opacity: 0.45;
+}
+.month .week .wev.now {
+  background: var(--accent-soft);
+}
+.month .week .dnone {
+  color: var(--ink-3);
+  font-size: 13.5px;
+  padding: 6px 8px;
+}
+.month .week .dadd {
+  height: 44px;
+  margin: 0 8px 8px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+  flex: none;
+  transition:
+    background var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.month .week .dadd:active {
+  transform: scale(0.97);
+}
+.month .week .dadd svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.2;
 }
