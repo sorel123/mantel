@@ -90,6 +90,8 @@ export function SetupWizard() {
 
   const index = SETUP_STEPS.indexOf(step);
   const paired = load.status === 'ready';
+  /** A fresh install chooses its PIN before anything else. */
+  const fresh = setup ? setup.firstRun && !setup.pinSet : false;
 
   /** Record a step and move on. Settings edits are saved first. */
   const advance = async (state: 'done' | 'skipped') => {
@@ -207,6 +209,7 @@ export function SetupWizard() {
                   setSetup((s) => (s ? { ...s, firstRun: false, pinSet: true } : s));
                   loadSettings();
                 }}
+                onSetup={setSetup}
               />
             )}
             {step !== 'welcome' && load.status === 'unpaired' && (
@@ -302,7 +305,7 @@ export function SetupWizard() {
               <button
                 type="button"
                 className="set-btn primary"
-                disabled={!paired}
+                disabled={!paired || fresh}
                 onClick={() => void advance('done')}
               >
                 Continue
@@ -333,10 +336,12 @@ function WelcomeStep({
   setup,
   paired,
   onPaired,
+  onSetup,
 }: {
   setup: SetupState | null;
   paired: boolean;
   onPaired: () => void;
+  onSetup: (s: SetupState) => void;
 }) {
   const [pin, setPin] = useState('');
   const [again, setAgain] = useState('');
@@ -365,7 +370,15 @@ function WelcomeStep({
       });
       onPaired();
     } catch (err) {
-      setResult({ ok: false, message: errorText(err) });
+      // Two browsers on first run: if the other one just set the PIN, ask for it instead.
+      const now = fresh ? await api.call('setupState').catch(() => null) : null;
+      if (now?.pinSet) {
+        onSetup(now);
+        setResult({
+          ok: false,
+          message: 'A PIN was just set from another browser. Enter it here to continue.',
+        });
+      } else setResult({ ok: false, message: errorText(err) });
     } finally {
       setBusy(false);
     }
