@@ -5,7 +5,6 @@ import {
   type FeatureFlags,
   type Person,
   type ScreenSchedule,
-  type Settings,
 } from '@mantel/shared';
 import {
   Chips,
@@ -13,112 +12,11 @@ import {
   NumberInput,
   RemoveButton,
   Section,
-  Seg,
   TextInput,
   TimeInput,
   Toggle,
   newId,
 } from './controls';
-
-/** "42.6003, -83.3309" (or with a space or tab between) as a pair of numbers, else null. */
-export function parseLatLng(text: string): [number, number] | null {
-  const m = text.trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
-  if (!m) return null;
-  const lat = Number(m[1]);
-  const lng = Number(m[2]);
-  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-  return [lat, lng];
-}
-
-const timeZones: string[] =
-  typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
-
-export function General({
-  draft,
-  set,
-}: {
-  draft: Settings;
-  set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
-}) {
-  const loc = draft.location;
-  return (
-    <Section title="Home" hint="Where the house is, for weather, sunrise and the clock.">
-      <Field label="Look" hint="Auto uses Dusk from evening until morning.">
-        <Seg
-          label="Look"
-          value={draft.theme}
-          options={[
-            ['auto', 'Auto'],
-            ['daylight', 'Daylight'],
-            ['dusk', 'Dusk'],
-          ]}
-          onChange={(v) => set('theme', v)}
-        />
-      </Field>
-      <Field label="Units">
-        <Seg
-          label="Units"
-          value={draft.units}
-          options={[
-            ['imperial', '°F, miles'],
-            ['metric', '°C, km'],
-          ]}
-          onChange={(v) => set('units', v)}
-        />
-      </Field>
-      <Field label="Timezone" hint="The schedule below runs on this clock.">
-        <TextInput
-          label="Timezone"
-          value={draft.timezone}
-          list="set-timezones"
-          onChange={(v) => set('timezone', v)}
-        />
-        <datalist id="set-timezones">
-          {timeZones.map((tz) => (
-            <option key={tz} value={tz} />
-          ))}
-        </datalist>
-      </Field>
-      <Field label="Place name">
-        <TextInput
-          label="Place name"
-          value={loc.name}
-          onChange={(name) => set('location', { ...loc, name })}
-        />
-      </Field>
-      <Field
-        label="Latitude and longitude"
-        hint="Right-click the house in Google Maps to copy them."
-      >
-        <span className="set-pair">
-          <NumberInput
-            label="Latitude"
-            value={loc.latitude}
-            step={0.0001}
-            min={-90}
-            max={90}
-            onChange={(latitude) => set('location', { ...loc, latitude })}
-            onPasteText={(text) => {
-              // "42.6003, -83.3309" straight from Google Maps fills both fields.
-              const pair = parseLatLng(text);
-              if (!pair) return false;
-              set('location', { ...loc, latitude: pair[0], longitude: pair[1] });
-              return true;
-            }}
-          />
-          <NumberInput
-            label="Longitude"
-            value={loc.longitude}
-            step={0.0001}
-            min={-180}
-            max={180}
-            onChange={(longitude) => set('location', { ...loc, longitude })}
-          />
-        </span>
-      </Field>
-    </Section>
-  );
-}
 
 export function Schedule({
   value: s,
@@ -132,6 +30,7 @@ export function Schedule({
     onChange({ ...s, brightness: steps.map((x, j) => (j === i ? step : x)) });
   return (
     <Section
+      id="schedule"
       title="Screen schedule"
       hint="When the wall goes quiet, sleeps and wakes. Times are on the home timezone."
     >
@@ -229,6 +128,7 @@ export function People({
   const update = (i: number, p: Person) => onChange(value.map((x, j) => (j === i ? p : x)));
   return (
     <Section
+      id="people"
       title="People"
       hint="Each person gets a colour on the calendar. Events on their calendars carry it."
       action={
@@ -314,6 +214,7 @@ export function Destinations({
   const update = (i: number, d: Destination) => onChange(value.map((x, j) => (j === i ? d : x)));
   return (
     <Section
+      id="places"
       title="Leave-by places"
       hint="School and work. On the chosen mornings the wall shows when to leave."
       action={
@@ -407,7 +308,7 @@ export function Features({
   onChange: (v: FeatureFlags) => void;
 }) {
   return (
-    <Section title="Features" hint="Turn parts of the display on or off.">
+    <Section id="features" title="Features" hint="Turn parts of the display on or off.">
       {(Object.keys(value) as Array<keyof FeatureFlags>).map((k) => (
         <Toggle
           key={k}
