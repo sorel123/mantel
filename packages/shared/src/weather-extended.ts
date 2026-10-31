@@ -143,7 +143,8 @@ export const WeatherQuipResponse = z.object({ quip: WeatherQuip.nullable() });
  */
 export const WeatherPrefs = z.object({
   savedPlaces: z.array(WeatherSavedPlace).default([]),
-  personality: QuipPersonality.default('off'),
+  personality: QuipPersonality.default('friendly'),
+  newsJokes: z.boolean().default(false),
 });
 export type WeatherPrefs = z.infer<typeof WeatherPrefs>;
 
@@ -151,7 +152,9 @@ export type WeatherPrefs = z.infer<typeof WeatherPrefs>;
 export function weatherPrefsOf(settings: unknown): WeatherPrefs {
   const raw = (settings as { weather?: unknown } | null | undefined)?.weather;
   const parsed = WeatherPrefs.safeParse(raw ?? {});
-  return parsed.success ? parsed.data : { savedPlaces: [], personality: 'off' };
+  return parsed.success
+    ? parsed.data
+    : { savedPlaces: [], personality: 'friendly', newsJokes: false };
 }
 
 /* ---------- alerts over the socket ---------- */

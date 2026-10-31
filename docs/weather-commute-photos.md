@@ -20,7 +20,9 @@ Results are cached for 15 minutes in memory and in SQLite, so a restart answers 
 
 ### Quips
 
-With `weather.personality` set to `friendly` or `snarky` in settings, `GET /api/weather/quip` returns one line a day about the weather, shown in the card's outlook line and on Ambient. The line comes from a hand-written library of a few hundred, keyed by sky, temperature band, time of day, season and whether rain is coming, and changes every three hours. With a Claude API key in Settings (Integrations > Weather quips; `CLAUDE_API_KEY` in the environment also works), Claude writes the day's line instead from the forecast and today's calendar, once a day, cached; if the call fails the library answers. `off` (the default) shows the plain outlook line ("Rain after 6 pm").
+Choose the voice in **Settings › Weather quips** (`/settings#quips`): Off, Friendly (the default) or Snarky, with a sample line. `GET /api/weather/quip` returns the current line, shown under the weather on Today and on Ambient. Without a key it comes from a hand-written library of about 200 lines keyed by sky, temperature band, time of day, season and whether rain is coming, and changes every three hours. With a Claude API key (on the same Settings page; `CLAUDE_API_KEY` in the environment also works), Claude writes a fresh line for the morning, the afternoon and the evening from the forecast and today's calendar, cached; if a call fails the library answers and Claude is retried after an hour.
+
+**Jokes about the news** (`weather.newsJokes`, needs the key): the afternoon line riffs on one light story from the day's headlines, a playful what-if rather than the headline itself. Sad, violent and divisive stories are skipped, and if nothing fits Claude writes a weather line. Headlines come from NPR's top-stories RSS by default; any RSS or Atom feed can be set under the quips integration's advanced fields. Only titles are read and none are shown.
 
 ### Warnings
 

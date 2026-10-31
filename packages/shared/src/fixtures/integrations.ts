@@ -365,7 +365,8 @@ export const pluginManifests: PluginManifest[] = [
   {
     id: 'quips',
     name: 'Weather quips',
-    description: 'A line of weather humour each day. Built in; a Claude API key writes fresh ones.',
+    description:
+      'Lines of weather humour through the day. Built in; a Claude API key writes fresh ones and news jokes.',
     category: 'weather',
     step: 'extras',
     connect: 'fields',
@@ -373,7 +374,8 @@ export const pluginManifests: PluginManifest[] = [
     docs: 'weather-commute-photos.md',
     directions: [
       'Quips work with no key, from a library of lines.',
-      'For a new line each morning, create a key at the Claude console and paste it below.',
+      'For fresh lines through the day, create a key at the Claude console and paste it below.',
+      'With a key, turn on Jokes about the news in Settings, Weather quips: the afternoon line riffs on a light story from the day’s headlines.',
     ],
     fields: [
       field({
@@ -384,8 +386,16 @@ export const pluginManifests: PluginManifest[] = [
           label: 'Claude console, API keys',
           url: 'https://platform.claude.com/settings/keys',
         },
-        help: 'Optional. One short request a day.',
+        help: 'Optional. Three short requests a day, a fraction of a cent.',
         env: 'CLAUDE_API_KEY',
+      }),
+      field({
+        key: 'newsFeed',
+        label: 'News feed for news jokes',
+        type: 'url',
+        advanced: true,
+        placeholder: 'https://feeds.npr.org/1001/rss.xml',
+        help: 'Any RSS or Atom feed. Only headlines are read, to inspire the joke; none are shown.',
       }),
     ],
     contributes: { ambientSlot: 'quip', events: [] },

@@ -289,7 +289,10 @@ export function Destinations({
 const FLAG_LABELS: Partial<Record<keyof FeatureFlags, [string, string?]>> = {
   countdowns: ['Countdowns', 'Chips for events tagged with a star or #countdown'],
   meals: ['Meal plan', 'From the calendar named Meals'],
-  commute: ['Leave-by times', 'Drive times on weekday mornings'],
+  commute: [
+    'Leave-by times',
+    'Drive times for leave-by places, and for today’s events that have an address',
+  ],
   chores: ['Chore chart', 'Stars for the kids, reset weekly'],
   media: ['Now playing', 'Apple TV controls on the Home screen'],
   doorbellPopover: ['Doorbell pop-over', 'Live view over any screen when someone rings'],

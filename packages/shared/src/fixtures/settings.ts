@@ -54,7 +54,7 @@ export function settings(): Settings {
     layout: { todayPreset: 'agenda', monthPreset: 'grid', fit: 'fit', scale: 1 },
     screens: structuredClone(DEFAULT_SCREENS),
     defaultScreen: 'today',
-    weather: { savedPlaces: [], personality: 'off' },
+    weather: { savedPlaces: [], personality: 'friendly', newsJokes: false },
     integrations: { quips: { enabled: false } },
   };
 }
