@@ -55,7 +55,10 @@ export async function getJson(
   return res.json();
 }
 
-export function realWeather(ctx: ProviderContext, opts: WeatherOptions): WeatherProvider {
+export function realWeather(
+  ctx: ProviderContext,
+  opts: WeatherOptions,
+): WeatherProvider & { stop(): void } {
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   let cached: Cached | null = loadCached();
   let inflight: Promise<WeatherSnapshot> | null = null;
@@ -169,5 +172,9 @@ export function realWeather(ctx: ProviderContext, opts: WeatherOptions): Weather
       }
     },
     commute: realCommute(ctx, { env: opts.env, fetch: doFetch }),
+    stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    },
   };
 }

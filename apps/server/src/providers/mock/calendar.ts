@@ -2,6 +2,7 @@ import type { CalendarEvent } from '@mantel/shared';
 import { addDays, toLocalIso } from '@mantel/shared';
 import { calendars, countdowns, eventsInRange, meals, personColor } from '@mantel/shared/fixtures';
 import type { CalendarProvider, ProviderContext } from '../types.js';
+import { mountMockCalendarSetup } from './calendar-setup.js';
 
 export function mockCalendar(ctx: ProviderContext): CalendarProvider {
   const added: CalendarEvent[] = [];
@@ -44,6 +45,9 @@ export function mockCalendar(ctx: ProviderContext): CalendarProvider {
     },
     async calendars() {
       return calendars;
+    },
+    mount(api, auth) {
+      mountMockCalendarSetup(api, auth, ctx);
     },
   };
 }

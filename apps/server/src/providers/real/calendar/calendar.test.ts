@@ -466,9 +466,10 @@ describe('calendar setup routes', () => {
     const { app, deps, close } = createApp(
       loadConfig({ DATA_DIR: ':memory:', PUBLIC_URL: 'http://tower.local:8787' }),
     );
+    // The setup page moved into Settings; the old address redirects there.
     const page = await app.request('/api/calendar/setup');
-    expect(page.status).toBe(200);
-    expect(await page.text()).toContain('Calendars');
+    expect(page.status).toBe(302);
+    expect(page.headers.get('location')).toBe('/settings#calendars');
     expect((await app.request('/api/calendar/setup/state')).status).toBe(401);
 
     const { deviceKey } = (await (
@@ -490,8 +491,10 @@ describe('calendar setup routes', () => {
       await app.request('/api/calendar/google/start', { method: 'POST', headers: h })
     ).json()) as { url: string };
     const st = new URL(start.url).searchParams.get('state');
+    // A forged state never completes; the browser lands back in Settings with the reason.
     const bad = await app.request('/api/calendar/google/callback?code=good-code&state=forged');
-    expect(bad.status).toBe(400);
+    expect(bad.status).toBe(302);
+    expect(bad.headers.get('location')).toMatch(/^\/settings\?google=error&message=.+#calendars$/);
 
     const finish = await app.request('/api/calendar/google/finish', {
       method: 'POST',

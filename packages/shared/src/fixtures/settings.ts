@@ -1,11 +1,11 @@
-import type { Settings } from '../models.js';
+import { DEFAULT_SCREENS, type Settings } from '../models.js';
 import { DEFAULT_APPEARANCE } from '../skins.js';
 import { people } from './people.js';
 
 export function settings(): Settings {
   return {
     timezone: 'America/Los_Angeles',
-    location: { name: 'Home', latitude: 37.7749, longitude: -122.4194 },
+    location: { name: 'Home', latitude: 37.7749, longitude: -122.4194, query: '' },
     units: 'imperial',
     theme: 'auto',
     schedule: {
@@ -51,5 +51,10 @@ export function settings(): Settings {
       remindersSync: false,
     },
     appearance: { ...DEFAULT_APPEARANCE },
+    layout: { todayPreset: 'agenda', monthPreset: 'grid', fit: 'fit', scale: 1 },
+    screens: structuredClone(DEFAULT_SCREENS),
+    defaultScreen: 'today',
+    weather: { savedPlaces: [], personality: 'off' },
+    integrations: { quips: { enabled: false } },
   };
 }

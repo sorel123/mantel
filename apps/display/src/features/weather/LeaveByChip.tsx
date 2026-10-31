@@ -8,7 +8,8 @@ import './weather.css';
 /**
  * "Leave by 7:41 · 14 min, +3 traffic" for one trip. Sits next to the event it is for (see
  * `matchLeaveBy`). Turns to "Leave now" in the warning colour once the time has passed.
- * `color` is the first traveller's colour.
+ * `color` is the first traveller's colour. A trip with `traffic: false` (no Google key, so a
+ * typical drive time) never shows a traffic delay.
  */
 export function LeaveByChip({
   trip,
@@ -37,7 +38,9 @@ export function LeaveByChip({
       <span className="tnum">
         {showName && `${trip.name} · `}
         {trip.durationMinutes} min
-        {trip.delayMinutes >= 2 && <em>, +{trip.delayMinutes} traffic</em>}
+        {trip.traffic !== false && trip.delayMinutes >= 2 && (
+          <em>, +{trip.delayMinutes} traffic</em>
+        )}
       </span>
     </span>
   );
