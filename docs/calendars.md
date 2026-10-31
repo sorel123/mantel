@@ -13,7 +13,7 @@ The wall shows Google and iCloud calendars together. The server syncs them into 
 
 ## Setting it up
 
-All of this happens once, on any computer on the home network, at **`http://<server>:8787/api/calendar/setup`**. The page asks for the 6-digit pairing code from the server log first.
+All of this happens once, on any computer on the home network, in **Settings › Calendars** (`http://<server>:8787/settings#calendars`). The page asks for the admin PIN or the 6-digit pairing code from the server log first; the old `/api/calendar/setup` address redirects there.
 
 ### Google
 

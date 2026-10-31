@@ -103,7 +103,7 @@ describe('Shell', () => {
       vi.fn(() => respond(401, { error: { code: 'unauthorized', message: 'no key' } })),
     );
     renderShell();
-    expect(await screen.findByLabelText('Pairing code')).toBeTruthy();
+    expect(await screen.findByLabelText('PIN or pairing code')).toBeTruthy();
   });
 
   it('offers a retry when the server is unreachable', async () => {
