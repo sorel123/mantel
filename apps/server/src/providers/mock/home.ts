@@ -3,9 +3,14 @@ import { homeConfig, homeDiscovery, homeState, mediaPlayers } from '@mantel/shar
 import { HttpError, notFound } from '../../errors.js';
 import { homeConfigToYaml } from '../real/home-config.js';
 import type { HaRegistry } from '../real/home-client.js';
-import { HomeConfigStore, HomeConnectionStore } from '../real/home-store.js';
-import { connectionStatus, disabledError, resolveView } from '../real/home.js';
-import type { HomeProvider, HomeSetup, ProviderContext } from '../types.js';
+import { HomeConfigStore } from '../real/home-store.js';
+import { connectionStatus, disabledError, resolveView, type HomeConnection } from '../real/home.js';
+import {
+  integrationValues,
+  type HomeProvider,
+  type HomeSetup,
+  type ProviderContext,
+} from '../types.js';
 import { artworkSvg, cameraSvg } from './cameras.js';
 
 /** The mockup's scene presets: [on, brightness %] for each light, in fixture order. */
@@ -84,17 +89,22 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       entity_category: null,
     })),
   };
-  const connection = new HomeConnectionStore(
-    ctx.db,
-    { HA_URL: 'http://homeassistant.local:8123', HA_TOKEN: 'mock-token' },
-    () => ctx.settings().integrations?.homeassistant?.enabled,
-  );
-  let wasEnabled = connection.get().enabled;
+  // The address and token are the plugin registry's (saved in Settings, else the mock defaults).
+  const connection = (): HomeConnection => {
+    const v = integrationValues(ctx, 'homeassistant');
+    const saved = v.sources?.url === 'store' || v.sources?.token === 'store';
+    return {
+      enabled: v.enabled,
+      url: v.config.url ? String(v.config.url) : 'http://homeassistant.local:8123',
+      token: v.secrets.token ?? 'mock-token',
+      source: saved ? 'settings' : 'env',
+    };
+  };
   const store = new HomeConfigStore(ctx.db, { fallback: homeConfig(ctx.now()) }, () =>
     ctx.emit({ type: 'display.reload', payload: {} }),
   );
   const guard = () => {
-    if (!connection.get().enabled) throw disabledError();
+    if (!connection().enabled) throw disabledError();
   };
 
   /** The fixture state seen through the stored allow-list. */
@@ -119,9 +129,9 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
   };
 
   const setup: HomeSetup = {
-    enabled: () => connection.get().enabled,
+    enabled: () => connection().enabled,
     connection: () => {
-      const conn = connection.get();
+      const conn = connection();
       if (!conn.enabled || !conn.url || !conn.token) return connectionStatus(conn, null);
       return {
         enabled: true,
@@ -134,27 +144,7 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
         entityCount: discovery.entities.length,
       };
     },
-    async setConnection(patch) {
-      connection.patch(patch);
-      const now = connection.get().enabled;
-      if (now !== wasEnabled) ctx.emit({ type: 'display.reload', payload: {} });
-      wasEnabled = now;
-      return setup.connection();
-    },
-    async test(req) {
-      const conn = connection.get();
-      const url = req.url ?? conn.url;
-      const token = req.token ?? conn.token;
-      if (!url) return { ok: false, message: 'Enter the address of Home Assistant first.' };
-      if (!token) return { ok: false, message: 'Paste a long-lived access token first.' };
-      if (/fail|wrong/.test(token))
-        return {
-          ok: false,
-          message:
-            'Home Assistant refused the token. Make a new long-lived access token and paste it here.',
-        };
-      return { ok: true, message: `Connected to Home Assistant ${discovery.haVersion} (mock).` };
-    },
+    async ready() {},
     async discover() {
       guard();
       const live = new Map(state.entities.map((e) => [e.id, e.state]));

@@ -1,0 +1,56 @@
+import type { PluginManifest } from '@mantel/shared';
+
+export const manifest: PluginManifest = {
+  id: 'homeassistant',
+  name: 'Home Assistant',
+  description: 'Lights, locks, thermostats, cameras and the doorbell, picked room by room.',
+  category: 'home',
+  step: 'homeassistant',
+  connect: 'fields',
+  optional: true,
+  docs: 'home-assistant.md',
+  directions: [
+    'In Home Assistant open your profile (bottom left), then the Security tab.',
+    'Under Long-lived access tokens press Create token, name it Mantel and copy it.',
+    'Paste the token and the address of Home Assistant as this server reaches it, then press Test.',
+  ],
+  fields: [
+    {
+      key: 'url',
+      label: 'Home Assistant address',
+      type: 'url',
+      required: true,
+      advanced: false,
+      readOnly: false,
+      placeholder: 'http://homeassistant.local:8123',
+      help: 'As the Mantel server reaches it, not as your phone does.',
+      env: 'HA_URL',
+    },
+    {
+      key: 'token',
+      label: 'Long-lived access token',
+      type: 'secret',
+      required: true,
+      advanced: false,
+      readOnly: false,
+      getItHere: {
+        label: 'Home Assistant, profile, Security',
+        url: 'http://homeassistant.local:8123/profile/security',
+      },
+      env: 'HA_TOKEN',
+    },
+    {
+      key: 'streamMaxSeconds',
+      label: 'Longest live camera view (seconds)',
+      type: 'number',
+      required: false,
+      min: 10,
+      max: 600,
+      default: 120,
+      advanced: true,
+      readOnly: false,
+      env: 'HA_STREAM_MAX_SECONDS',
+    },
+  ],
+  contributes: { screen: 'home', events: ['home.state', 'home.doorbell', 'media.state'] },
+};

@@ -7,8 +7,9 @@ import type { ProviderContext } from '../types.js';
 import { FakeHa, TOKEN } from './fake-ha.js';
 import { homeConfigToYaml, parseHomeConfig } from './home-config.js';
 import { mapDiscovery, testHaConnection } from './home-discover.js';
-import { HomeConfigStore, HomeConnectionStore } from './home-store.js';
-import { realHome, waitFor } from './home.js';
+import { HomeConfigStore } from './home-store.js';
+import { connectionSource, realHome, waitFor, type RealHome } from './home.js';
+import { homeAssistantPlugin } from '../../plugins/homeassistant/index.js';
 
 const example = readFileSync(
   new URL('../../../../../config/home.example.yaml', import.meta.url),
@@ -65,37 +66,6 @@ describe('allow-list store', () => {
   it('writes the fixture config as YAML that parses back to the same config', () => {
     const cfg = homeConfig(new Date());
     expect(parseHomeConfig(homeConfigToYaml(cfg))).toEqual(HomeConfig.parse(cfg));
-  });
-});
-
-describe('connection store', () => {
-  it('falls back to the environment until something is saved, and reports the source', () => {
-    const db = openDb(':memory:');
-    const env = { HA_URL: 'http://ha.local:8123', HA_TOKEN: 'env-token' };
-    let enabled: boolean | undefined = undefined;
-    const store = new HomeConnectionStore(db, env, () => enabled);
-    expect(store.get()).toEqual({
-      enabled: true,
-      url: 'http://ha.local:8123',
-      token: 'env-token',
-      source: 'env',
-    });
-    store.patch({ url: 'http://10.0.0.5:8123/', token: 'saved' });
-    expect(store.get()).toMatchObject({
-      url: 'http://10.0.0.5:8123',
-      token: 'saved',
-      source: 'settings',
-    });
-    // Survives a restart; the switch is separate from the credentials.
-    const again = new HomeConnectionStore(db, env);
-    expect(again.get().url).toBe('http://10.0.0.5:8123');
-    // The switch comes from settings, not from this store.
-    enabled = false;
-    expect(new HomeConnectionStore(db, env, () => enabled).get().enabled).toBe(false);
-    // Clearing the token falls back to the environment one.
-    again.patch({ token: '' });
-    expect(again.get().token).toBe('env-token');
-    expect(new HomeConnectionStore(openDb(':memory:'), {}).get().source).toBe('none');
   });
 });
 
@@ -224,11 +194,11 @@ describe('connection test', () => {
   });
 });
 
-describe('realHome controller', () => {
+describe('realHome', () => {
   let ha: FakeHa;
   let events: WsEventInput[];
   let ctx: ProviderContext;
-  let home: ReturnType<typeof realHome>;
+  let home: RealHome | null = null;
   let haEnabled = true;
 
   beforeEach(async () => {
@@ -252,6 +222,7 @@ describe('realHome controller', () => {
     await ha.listen();
     events = [];
     haEnabled = true;
+    home = null;
     ctx = {
       db: openDb(':memory:'),
       emit: (e: WsEventInput) => events.push(e),
@@ -262,21 +233,23 @@ describe('realHome controller', () => {
         return { ...s, integrations: { ...s.integrations, homeassistant: { enabled: haEnabled } } };
       },
     } as unknown as ProviderContext;
-    home = realHome(ctx, { HA_ALLOWLIST: './nope.yaml', HA_STREAM_MAX_SECONDS: 5 });
   });
 
   afterEach(async () => {
-    haEnabled = false;
-    await home.setup.setConnection({});
+    home?.stop();
     await ha.close();
   });
 
-  it('connects when an address and token are saved, serves discovery, and applies the picker live', async () => {
-    expect(home.setup.connection().state).toBe('not_set_up');
-    await expect(home.setup.discover()).rejects.toMatchObject({ code: 'not_implemented' });
-
-    const status = await home.setup.setConnection({ url: ha.url, token: TOKEN });
-    expect(status).toMatchObject({ state: 'connected', source: 'settings', hasToken: true });
+  it('connects with the address and token it is given, serves discovery, and applies the picker live', async () => {
+    home = realHome(ctx, {
+      HA_URL: ha.url,
+      HA_TOKEN: TOKEN,
+      HA_ALLOWLIST: './nope.yaml',
+      HA_STREAM_MAX_SECONDS: 5,
+    });
+    await home.setup.ready(4000);
+    const status = home.setup.connection();
+    expect(status).toMatchObject({ state: 'connected', source: 'env', hasToken: true });
     expect(status.url).toBe(ha.url);
 
     const found = await home.setup.discover();
@@ -296,25 +269,96 @@ describe('realHome controller', () => {
     expect(home.setup.exportYaml()).toContain('ha_area: living_room');
   });
 
-  it('reports a refused token in words, and turns off cleanly', async () => {
-    const status = await home.setup.setConnection({ url: ha.url, token: 'wrong' });
+  it('reports a refused token in words, and answers disabled when turned off in settings', async () => {
+    home = realHome(ctx, {
+      HA_URL: ha.url,
+      HA_TOKEN: 'wrong',
+      HA_ALLOWLIST: './nope.yaml',
+      HA_STREAM_MAX_SECONDS: 5,
+    });
+    await home.setup.ready(4000);
+    const status = home.setup.connection();
     expect(status.state).toBe('error');
     expect(status.summary).toMatch(/refused the token/);
 
-    // The switch is a settings field; the provider notices on its next call.
+    // The switch is a settings field; the provider reads it on every call.
     haEnabled = false;
-    const off = await home.setup.setConnection({});
-    expect(off).toMatchObject({ state: 'disabled', enabled: false });
+    expect(home.setup.connection()).toMatchObject({ state: 'disabled', enabled: false });
     await expect(home.state()).rejects.toMatchObject({ code: 'disabled' });
     await expect(home.setup.discover()).rejects.toMatchObject({ code: 'disabled' });
-    expect(events.filter((e) => e.type === 'display.reload').length).toBeGreaterThan(0);
     // The allow-list is still readable while off.
     expect(home.setup.config().areas).toEqual([]);
   });
 
-  it('tests a connection without saving it', async () => {
-    expect(await home.setup.test({ url: ha.url, token: 'nope' })).toMatchObject({ ok: false });
-    expect(home.setup.connection().state).toBe('not_set_up');
+  it('serves the setup routes before an address and token exist, naming where values come from', async () => {
+    home = realHome(ctx, { HA_ALLOWLIST: './nope.yaml', HA_STREAM_MAX_SECONDS: 5 });
+    expect(home.setup.connection()).toMatchObject({ state: 'not_set_up', source: 'none' });
+    await expect(home.setup.discover()).rejects.toMatchObject({ code: 'not_implemented' });
+    await expect(home.state()).rejects.toMatchObject({ code: 'not_implemented' });
+    const env = {
+      HA_URL: ha.url,
+      HA_TOKEN: TOKEN,
+      HA_ALLOWLIST: './nope.yaml',
+      HA_STREAM_MAX_SECONDS: 5,
+    };
+    expect(connectionSource(ctx, env)).toBe('env');
+    const withRegistry = {
+      ...ctx,
+      integration: () => ({
+        enabled: true,
+        config: {},
+        secrets: {},
+        sources: { url: 'env' as const, token: 'store' as const },
+      }),
+    } as ProviderContext;
+    expect(connectionSource(withRegistry, env)).toBe('settings');
     await waitFor(() => true, 0);
+  });
+});
+
+describe('Home Assistant plugin', () => {
+  it('keeps the allow-list across rebuilds and serves setup while unconfigured or off', async () => {
+    const ha = new FakeHa();
+    await ha.listen();
+    const events: WsEventInput[] = [];
+    const ctx = {
+      db: openDb(':memory:'),
+      emit: (e: WsEventInput) => events.push(e),
+      now: () => new Date(),
+      markSynced: () => {},
+      settings: () => fixtureSettings(),
+    } as unknown as ProviderContext;
+    const plugin = homeAssistantPlugin({ env: { HA_ALLOWLIST: './nope.yaml' } });
+    try {
+      plugin.start(ctx);
+      const home = plugin.live.proxy;
+      expect(home.setup.connection().state).toBe('not_set_up');
+      expect(plugin.status().state).toBe('not_set_up');
+      home.setup.putConfig({ areas: [{ id: 'den', name: 'Den' }] });
+
+      plugin.apply({ url: `${ha.url}/` }, { token: TOKEN });
+      await home.setup.ready(4000);
+      expect(home.setup.connection().state).toBe('connected');
+      expect(plugin.status()).toMatchObject({
+        state: 'connected',
+        summary: `Connected to ${ha.url}`,
+      });
+      // The rooms picked before connecting are still there.
+      expect(home.setup.config().areas.map((a) => a.id)).toEqual(['den']);
+
+      // Turned off: the registry applies nothing; the setup routes still answer.
+      plugin.apply({}, {});
+      expect(home.setup.connection().state).toBe('not_set_up');
+      expect(home.setup.config().areas.map((a) => a.id)).toEqual(['den']);
+      expect(ha.connections).toBe(1);
+
+      expect(await plugin.test({ url: ha.url }, { token: 'nope' })).toMatchObject({
+        ok: false,
+        message: /refused the token/,
+      });
+    } finally {
+      plugin.stop();
+      await ha.close();
+    }
   });
 });

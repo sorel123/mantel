@@ -26,8 +26,8 @@ import {
   type HaEnv,
   type HomeConfig,
 } from './home-config.js';
-import { mapDiscovery, testHaConnection } from './home-discover.js';
-import { HomeConfigStore, HomeConnectionStore, type HomeConnection } from './home-store.js';
+import { mapDiscovery } from './home-discover.js';
+import { HomeConfigStore } from './home-store.js';
 
 /** HA attributes the display uses; everything else stays on the server. */
 const ATTRS = [
@@ -295,6 +295,14 @@ const CALL_SETTLE_MS = 1500;
 export const disabledError = () =>
   new HttpError('disabled', 'Home Assistant is turned off in Settings');
 
+/** The connection the provider was built with, as the status line describes it. */
+export interface HomeConnection {
+  enabled: boolean;
+  url: string;
+  token: string;
+  source: 'settings' | 'env' | 'none';
+}
+
 /** One sentence for the connection card, from the connection and the client's state. */
 export function connectionStatus(
   conn: HomeConnection,
@@ -346,96 +354,82 @@ export function connectionStatus(
   };
 }
 
+/** Where the address and token came from, as the plugin registry reports it. */
+export function connectionSource(ctx: ProviderContext, env: HaEnv): HomeConnection['source'] {
+  if (!env.HA_URL && !env.HA_TOKEN) return 'none';
+  const sources = ctx.integration?.('homeassistant').sources;
+  if (!sources) return 'env';
+  return sources.url === 'store' || sources.token === 'store' ? 'settings' : 'env';
+}
+
+export interface RealHome extends HomeProvider {
+  /** Close the Home Assistant socket (the plugin registry calls this before a rebuild). */
+  stop(): void;
+  /** The connection, for status reporting; absent until an address and token are set. */
+  client?: HaClient;
+}
+
+export interface RealHomeOptions {
+  /** The stored allow-list, shared across rebuilds so edits survive a reconnect. */
+  store?: HomeConfigStore;
+}
+
 /**
- * The real provider: a controller around `createHomeProvider` that starts, stops and restarts
- * the Home Assistant client as the connection saved in Settings changes, and serves the setup
- * routes (connection, discovery, the stored allow-list). Nothing here needs a restart.
+ * The real provider. The address and token arrive in `env` from the Home Assistant plugin,
+ * which rebuilds this when they change; the on/off switch is read from settings on every
+ * call so `/home/*` answers `disabled` the moment it is turned off. The allow-list lives in
+ * SQLite and applies without a reconnect.
  */
-export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): HomeProvider {
-  const connection = new HomeConnectionStore(
-    ctx.db,
-    env,
-    () => ctx.settings().integrations?.homeassistant?.enabled,
-  );
+export function realHome(
+  ctx: ProviderContext,
+  env: HaEnv = loadHaEnv(),
+  opts: RealHomeOptions = {},
+): RealHome {
   // A changed allow-list can add or drop whole cards, so displays reload to pick it up.
-  const store = new HomeConfigStore(ctx.db, { importFrom: env.HA_ALLOWLIST }, () =>
-    ctx.emit({ type: 'display.reload', payload: {} }),
-  );
+  const store =
+    opts.store ??
+    new HomeConfigStore(ctx.db, { importFrom: env.HA_ALLOWLIST }, () =>
+      ctx.emit({ type: 'display.reload', payload: {} }),
+    );
+  const enabled = () => ctx.settings().integrations?.homeassistant?.enabled ?? true;
 
-  let client: HaClient | null = null;
+  let client: HaClient | undefined;
   let inner: HomeLive | null = null;
-  /** The connection the running client was built for, so a change anywhere restarts it. */
-  let applied: HomeConnection | null = null;
-
-  const apply = () => {
-    client?.stop();
-    client = null;
-    inner = null;
-    const conn = connection.get();
-    applied = conn;
-    if (!conn.enabled) {
-      log.info('home: Home Assistant is turned off in Settings');
-      return;
-    }
-    if (!conn.url || !conn.token) {
-      log.info('home: no Home Assistant address and token yet; set them on the Settings page');
-      return;
-    }
-    client = new HaClient({ url: conn.url, token: conn.token });
+  if (env.HA_URL && env.HA_TOKEN) {
+    client = new HaClient({ url: env.HA_URL, token: env.HA_TOKEN });
     inner = createHomeProvider(ctx, client, () => store.get(), env.HA_STREAM_MAX_SECONDS);
     client.start();
-  };
-  /** The switch lives in settings, which `PUT /api/settings` can change too: catch up lazily. */
-  const sync = () => {
-    const conn = connection.get();
-    if (
-      !applied ||
-      applied.enabled !== conn.enabled ||
-      applied.url !== conn.url ||
-      applied.token !== conn.token
-    )
-      apply();
-  };
-  apply();
+  } else {
+    log.info('home: no Home Assistant address and token yet; set them on the Settings page');
+  }
 
+  const connection = (): HomeConnection => ({
+    enabled: enabled(),
+    url: env.HA_URL ?? '',
+    token: env.HA_TOKEN ?? '',
+    source: connectionSource(ctx, env),
+  });
   const live = (): HomeLive => {
-    sync();
-    if (!connection.get().enabled) throw disabledError();
+    if (!enabled()) throw disabledError();
     if (!inner) throw notImplemented('Home Assistant (add its address and token in Settings)');
     return inner;
   };
 
   const setup: HomeSetup = {
-    enabled: () => connection.get().enabled,
-    connection: () => {
-      sync();
-      return connectionStatus(
-        connection.get(),
-        client,
+    enabled,
+    connection: () =>
+      connectionStatus(
+        connection(),
+        client ?? null,
         client?.connected ? client.states.size : undefined,
-      );
-    },
-    async setConnection(patch) {
-      const before = applied;
-      connection.patch(patch);
-      sync();
-      const changed = applied !== before;
-      if (changed && client)
-        await waitFor(() => !!client && (client.connected || !!client.lastError), 4000);
-      // The Home screen appears or disappears with the switch.
-      if (before && before.enabled !== applied?.enabled)
-        ctx.emit({ type: 'display.reload', payload: {} });
-      return setup.connection();
-    },
-    async test(req) {
-      const conn = connection.get();
-      const r = await testHaConnection(req.url ?? conn.url, req.token ?? conn.token);
-      return { ok: r.ok, message: r.message };
+      ),
+    async ready(ms) {
+      const c = client;
+      if (c) await waitFor(() => c.connected || !!c.lastError, ms);
     },
     async discover() {
-      sync();
+      if (!enabled()) throw disabledError();
       const c = client;
-      if (!connection.get().enabled) throw disabledError();
       if (!c) throw notImplemented('Home Assistant (add its address and token in Settings)');
       if (!c.hasStates) {
         await waitFor(() => c.connected || !!c.lastError, 4000);
@@ -458,6 +452,8 @@ export function realHome(ctx: ProviderContext, env: HaEnv = loadHaEnv()): HomePr
 
   return {
     setup,
+    ...(client ? { client } : {}),
+    stop: () => client?.stop(),
     // `async` so a refusal is a rejected promise, never a throw into the caller.
     state: async () => live().state(),
     call: async (req) => live().call(req),

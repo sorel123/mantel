@@ -156,7 +156,13 @@ Outside mock mode the display shows a pairing screen. The server prints a 6-digi
 
 ## Configuration
 
-All configuration is environment variables; see [`.env.example`](.env.example). The server loads `.env` from the repo root or `apps/server`. No secrets in the repo.
+Everything is configured in the app. Open `/settings` (the first-run wizard at `/setup` walks through the same sections in order): home location, people, calendars, Home Assistant, photos and the other integrations. Values are stored in SQLite; secrets are encrypted at rest with a key the server creates in `DATA_DIR/secret.key` on first run (keep that file with the data folder). Saving takes effect without a restart. An admin PIN, set on first run, pairs new displays and opens Settings; the rotating code in the server log still works too.
+
+Every integration is a plugin with a manifest that declares its setup fields, so Settings renders the cards and forms with no per-integration UI code. [`docs/plugins.md`](docs/plugins.md) explains the framework and how to add one.
+
+Environment variables remain as optional fallbacks (a variable is read only when nothing is saved in Settings); see [`.env.example`](.env.example). The server loads `.env` from the repo root or `apps/server`. No secrets in the repo.
+
+Backup: `POST /api/settings/export` returns one JSON bundle (secrets included only when a passphrase is given); `POST /api/settings/import` restores it. Health for support: `GET /api/health/details` has every integration's state, the last error in plain words and the last 50 log lines.
 
 - Weather, leave-by times and the photo album: [`docs/weather-commute-photos.md`](docs/weather-commute-photos.md).
 

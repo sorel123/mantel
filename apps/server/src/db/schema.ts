@@ -8,6 +8,17 @@ export const devices = sqliteTable('devices', {
   createdAt: text('created_at').notNull(),
   lastSeenAt: text('last_seen_at'),
   revokedAt: text('revoked_at'),
+  /** JSON `DeviceOverrides` (look, defaultScreen, fit, scale), or null. */
+  overrides: text('overrides'),
+});
+
+/** Encrypted integration secrets (AES-256-GCM), keyed `<integrationId>.<field>`. */
+export const secrets = sqliteTable('secrets', {
+  key: text('key').primaryKey(),
+  iv: text('iv').notNull(),
+  tag: text('tag').notNull(),
+  data: text('data').notNull(),
+  updatedAt: text('updated_at').notNull(),
 });
 
 /** Small JSON values: settings, sync cursors, tokens. */

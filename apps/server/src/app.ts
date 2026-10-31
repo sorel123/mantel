@@ -7,13 +7,19 @@ import { makeHandle } from './contract.js';
 import { openDb, type Db } from './db/index.js';
 import { HttpError } from './errors.js';
 import { log } from './log.js';
+import { createGeocoder, type Geocoder } from './geocode.js';
+import { createPlugins, type PluginSet } from './plugins/index.js';
+import { mockPlugins } from './plugins/mock.js';
+import { PluginRegistry } from './plugins/registry.js';
 import { mockProviders } from './providers/mock/index.js';
-import { realProviders } from './providers/real/index.js';
 import type { ProviderContext, Providers } from './providers/types.js';
 import { registerRoutes } from './routes/index.js';
 import { DisplayScheduler } from './schedule.js';
+import { SecretStore } from './secrets.js';
 import { SettingsStore } from './settings.js';
+import { SetupStore } from './setup.js';
 import { WsHub } from './ws/hub.js';
+import { geocodeCandidates } from '@mantel/shared/fixtures';
 
 export interface AppDeps {
   config: Config;
@@ -24,14 +30,49 @@ export interface AppDeps {
   providers: Providers;
   /** Last successful sync per source, for `/api/health`. */
   sync: Map<string, string | null>;
+  secrets: SecretStore;
+  registry: PluginRegistry;
+  setup: SetupStore;
+  geocoder: Geocoder;
 }
 
-export function createApp(config: Config, overrides: { now?: () => Date } = {}) {
+export interface CreateAppOptions {
+  now?: () => Date;
+  /** Environment the plugins read fallbacks from (tests pass their own). */
+  env?: NodeJS.ProcessEnv;
+  /** `fetch` for every outbound call the plugins make (tests pass a fake). */
+  fetch?: typeof fetch;
+}
+
+/** In mock mode the geocoder answers from fixtures and never leaves the machine. */
+function mockGeocodeFetch(timezone: () => string): typeof fetch {
+  return async (input) => {
+    const url = String(input);
+    const body = url.includes('geocoding-api')
+      ? {
+          results: geocodeCandidates.map((c) => ({
+            name: c.name.split(',')[0],
+            latitude: c.latitude,
+            longitude: c.longitude,
+            timezone: c.timezone,
+            country: c.country,
+            admin1: c.admin,
+          })),
+        }
+      : { timezone: timezone() };
+    return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
+  };
+}
+
+export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   const db = openDb(config.DATA_DIR);
   const auth = new DeviceAuth(db, config.MOCK);
   const hub = new WsHub(auth);
   const settings = new SettingsStore(db);
+  const secrets = SecretStore.open(db, config.DATA_DIR);
+  const setup = new SetupStore(db, auth);
   const sync = new Map<string, string | null>();
+  let registry: PluginRegistry | null = null;
   const ctx: ProviderContext = {
     config,
     db,
@@ -39,9 +80,47 @@ export function createApp(config: Config, overrides: { now?: () => Date } = {}) 
     now: overrides.now ?? (() => new Date()),
     markSynced: (source) => sync.set(source, new Date().toISOString()),
     settings: () => settings.get(),
+    integration: (id) =>
+      registry
+        ? { enabled: registry.enabled(id), ...registry.resolve(id) }
+        : { enabled: true, config: {}, secrets: {} },
   };
-  const providers = config.MOCK ? mockProviders(ctx) : realProviders(ctx);
-  const deps: AppDeps = { config, db, auth, hub, settings, providers, sync };
+
+  let providers: Providers;
+  let pluginSet: PluginSet | null = null;
+  registry = new PluginRegistry(ctx, { db, secrets, settings, sync, env: overrides.env });
+  if (config.MOCK) {
+    providers = mockProviders(ctx);
+    for (const p of mockPlugins(ctx.now)) registry.register(p);
+  } else {
+    pluginSet = createPlugins(ctx, { env: overrides.env, fetch: overrides.fetch });
+    providers = pluginSet.providers;
+    for (const p of pluginSet.plugins) registry.register(p);
+  }
+  const ready = registry.start();
+
+  const geocoder = createGeocoder({
+    defaultTimezone: settings.get().timezone,
+    ...(config.MOCK
+      ? { fetch: mockGeocodeFetch(() => settings.get().timezone) }
+      : overrides.fetch
+        ? { fetch: overrides.fetch }
+        : {}),
+  });
+
+  const deps: AppDeps = {
+    config,
+    db,
+    auth,
+    hub,
+    settings,
+    providers,
+    sync,
+    secrets,
+    registry,
+    setup,
+    geocoder,
+  };
   const scheduler = new DisplayScheduler(settings, (e) => hub.broadcast(e), ctx.now);
   scheduler.start();
 
@@ -58,7 +137,9 @@ export function createApp(config: Config, overrides: { now?: () => Date } = {}) 
   const api = new Hono();
   registerRoutes(makeHandle(api, { auth, validateResponses: !config.isProd }), deps);
   // Non-contract routes a provider needs (WS2: calendar setup page, OAuth and push callbacks).
-  providers.calendar.mount?.(api, auth);
+  // Real mode mounts them through the calendar service so they follow a rebuilt provider.
+  if (pluginSet) pluginSet.calendar.mount(api, auth);
+  else providers.calendar.mount?.(api, auth);
 
   if (config.MOCK) {
     // Mock-only helpers so workstreams can demo server pushes: `curl -XPOST .../api/dev/emit -d '{...}'`.
@@ -99,8 +180,11 @@ export function createApp(config: Config, overrides: { now?: () => Date } = {}) 
   return {
     app,
     deps,
+    /** Settles when every plugin has started (the built-in ones start synchronously). */
+    ready,
     close: () => {
       scheduler.stop();
+      void registry?.stop();
       hub.close();
     },
   };

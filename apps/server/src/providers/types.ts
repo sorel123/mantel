@@ -11,9 +11,11 @@ import type {
   HomeConfig,
   HomeConnectionStatus,
   HomeDiscovery,
-  HomeTestResult,
+  IntegrationConfig,
+  IntegrationId,
   ResponseOf,
   Settings,
+  ValueSource,
   WsEventInput,
 } from '@mantel/shared';
 import type { Hono } from 'hono';
@@ -30,6 +32,31 @@ export interface ProviderContext {
   /** Record a successful sync for `/api/health`. */
   markSynced: (source: string) => void;
   settings: () => Settings;
+  /**
+   * Live values of an integration from the plugin registry (saved in Settings, else from the
+   * environment): on/off, non-secret config and secrets by field key. Providers that need a
+   * key (quips, routes) read it through `integrationValues(ctx, id)` instead of `process.env`.
+   * Optional so hand-built test contexts keep compiling.
+   */
+  integration?: (id: IntegrationId) => IntegrationValues;
+}
+
+export interface IntegrationValues {
+  enabled: boolean;
+  config: IntegrationConfig;
+  secrets: Record<string, string>;
+  /** Where each field came from (`store` or `env`); absent when no registry is attached. */
+  sources?: Record<string, ValueSource>;
+}
+
+/** An integration's live values, or "enabled with nothing set" when no registry is attached. */
+export function integrationValues(ctx: ProviderContext, id: IntegrationId): IntegrationValues {
+  return ctx.integration?.(id) ?? { enabled: true, config: {}, secrets: {} };
+}
+
+/** A provider that holds timers or sockets; the plugin registry calls `stop` before replacing it. */
+export interface Stoppable {
+  stop(): void;
 }
 
 export interface CalendarProvider {
@@ -65,12 +92,15 @@ export interface HomeBytes {
 }
 
 /** The settings page's side of Home Assistant: connection, discovery and the stored allow-list. */
+/**
+ * The setup side of the Home provider. The address and token themselves belong to the plugin
+ * registry (`PUT /api/integrations/homeassistant`, which rebuilds the provider); this is what
+ * the Settings page reads and the allow-list it edits.
+ */
 export interface HomeSetup {
   connection(): HomeConnectionStatus;
-  /** Save and apply at once (reconnect, or stop when turned off). */
-  setConnection(patch: BodyOf<'homeConnectionPut'>): Promise<HomeConnectionStatus>;
-  /** Try a URL and token (saved ones when omitted) without saving them. */
-  test(req: BodyOf<'homeConnectionTest'>): Promise<HomeTestResult>;
+  /** Resolve once the client is connected or has failed, or after `ms`. */
+  ready(ms: number): Promise<void>;
   discover(): Promise<HomeDiscovery>;
   config(): HomeConfig;
   putConfig(config: unknown): HomeConfig;

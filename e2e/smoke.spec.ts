@@ -160,7 +160,7 @@ test('Home Assistant is set up from Settings: test, pick rooms and devices, save
 
   // The Test button answers in one sentence.
   await ha.getByRole('button', { name: 'Test', exact: true }).click();
-  await expect(ha.getByText(/Connected to Home Assistant .* \(mock\)/)).toBeVisible();
+  await expect(ha.getByText(/Home Assistant answered \(mock mode/)).toBeVisible();
 
   // Rooms from discovery: Kitchen is shown; open it and untick the island, then hide the room.
   const rooms = ha.getByRole('list', { name: 'Rooms on the Home screen' });
