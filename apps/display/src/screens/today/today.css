@@ -1,0 +1,285 @@
+/* Today (WS2). Layout and sizes from design/mockup.html. */
+.cal.today {
+  display: grid;
+  grid-template-columns: 392px 1fr;
+  gap: 28px;
+  flex: 1;
+  min-height: 0;
+}
+.today .col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+.today .datebox {
+  padding: 4px 6px 0;
+}
+.today .datebox .wd {
+  font: italic 500 24px/1 var(--display);
+  color: var(--ink-2);
+}
+.today .datebox .big {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 2px;
+}
+.today .datebox .dn {
+  font: 300 128px/0.9 var(--display);
+  letter-spacing: -0.04em;
+}
+.today .datebox .mo {
+  font: 400 34px/1 var(--display);
+  color: var(--ink-2);
+}
+
+.today .countdowns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+.today .countdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.today .countdown svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--pc);
+  fill: color-mix(in srgb, var(--pc) 30%, transparent);
+}
+.today .countdown b {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* slots other workstreams fill in the integration pass */
+.today .slot {
+  min-height: 150px;
+  padding: 20px 22px;
+  box-shadow: none;
+  background: transparent;
+  border-style: dashed;
+}
+.today .slot.grow {
+  flex: 1;
+  min-height: 80px;
+}
+
+.today .meals {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.today .tonight {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.today .tonight > svg {
+  width: 30px;
+  height: 30px;
+  color: var(--warn);
+  stroke-width: 1.7;
+  flex: none;
+}
+.today .tonight div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.today .tonight b {
+  font: 500 24px/1.15 var(--display);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today .tonight .also {
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.today .meals .none {
+  color: var(--ink-3);
+}
+.today .nextmeals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  font-size: 13.5px;
+}
+.today .nextmeals div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.today .nextmeals span {
+  color: var(--ink-3);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.today .nextmeals b {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* agenda */
+.today .agenda {
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+.today .agenda .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.today .agenda .head .l {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.today .agenda .head .r {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.today .agenda .head .cnt {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.today .agenda .add {
+  width: 48px;
+  height: 48px;
+  margin: -6px -6px -6px 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  transition: transform var(--fast) var(--ease);
+}
+.today .agenda .add:active {
+  transform: scale(0.94);
+}
+.today .agenda .add svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.4;
+}
+.today .allday {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.today .tl {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  scroll-behavior: smooth;
+}
+.today .tl::-webkit-scrollbar {
+  display: none;
+}
+.today .nowline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 0 2px 2px;
+  flex: none;
+}
+.today .nowline::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.today .tl .ev {
+  flex: none;
+}
+.today .upcoming {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.today .upcoming .d {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 92px;
+  min-width: 0;
+  text-align: left;
+  transition:
+    background var(--slow) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.today .upcoming .d:active {
+  transform: scale(0.98);
+}
+.today .upcoming .dh {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.today .upcoming .dh b {
+  color: var(--ink);
+}
+.today .upcoming .r {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today .upcoming .r i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pc);
+  flex: none;
+}
+.today .upcoming .r.more,
+.today .upcoming .r.none {
+  color: var(--ink-3);
+}

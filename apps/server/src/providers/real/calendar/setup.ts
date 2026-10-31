@@ -209,7 +209,7 @@ table{width:100%;border-collapse:collapse}th{text-align:left;font-size:12px;lett
 td{padding:10px 8px;border-top:1px solid var(--line);vertical-align:middle}td input[type=text]{height:40px;width:100%}
 .sw{width:22px;height:22px;accent-color:var(--accent)}.color{width:40px;height:40px;border:0;border-radius:10px;padding:0;background:none}
 .who{display:flex;gap:6px;flex-wrap:wrap}.who label{display:inline-flex;align-items:center;gap:4px;padding:4px 10px 4px 6px;border-radius:999px;background:var(--surface-2);font-weight:600;font-size:13px;cursor:pointer}
-.who label.on{background:color-mix(in srgb,var(--pc) 20%,transparent)}.who i{width:10px;height:10px;border-radius:50%;background:var(--pc)}
+.who label.on{background:color-mix(in srgb,var(--pc) 20%,transparent);box-shadow:inset 0 0 0 2px var(--pc)}.who i{width:10px;height:10px;border-radius:50%;background:var(--pc)}
 .who input{display:none}.src{font-size:12px;color:var(--ink-3)}[hidden]{display:none!important}
 </style>
 </head>
