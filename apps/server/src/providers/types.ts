@@ -8,6 +8,7 @@
  */
 import type {
   BodyOf,
+  CalendarEvent,
   IntegrationConfig,
   IntegrationId,
   ResponseOf,
@@ -65,6 +66,11 @@ export interface CalendarProvider {
 
 export interface WeatherProvider {
   weather(): Promise<ResponseOf<'weather'>>;
+  /** The same snapshot for another place (saved places and the sheet's search). */
+  place(query: { lat: number; lon: number; name?: string }): Promise<ResponseOf<'weatherPlace'>>;
+  search(q: string): Promise<ResponseOf<'weatherSearch'>>;
+  /** Today's quip; `events` loads the day's calendar when a line is written by Claude. */
+  quip(events: () => Promise<CalendarEvent[]>): Promise<ResponseOf<'weatherQuip'>>;
   commute(): Promise<ResponseOf<'commute'>>;
 }
 

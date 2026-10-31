@@ -1,16 +1,29 @@
-import { useState } from 'react';
-import { formatHour, formatWhen, nextSun, outlook, worstPollen } from './format';
+import { useEffect, useRef, useState, type UIEvent } from 'react';
+import { useOverlay } from '../../app/overlay';
+import { formatHour, formatWhen, hourDayLabel, nextSun, outlook, worstPollen } from './format';
 import { Icon, WeatherIcon } from './icons';
-import { useWeather, type Weather } from './store';
+import { useQuip, useWeather, type Weather } from './store';
+import { WeatherSheet } from './WeatherSheet';
 import './weather.css';
 
 /**
- * The Today screen's weather card: now, high and low with a one-line outlook, the next six
- * hours, and an extras row (sun, UV, air quality, pollen). Active alerts sit on top.
+ * The Today screen's weather card: now, high and low with a one-line outlook (or the day's quip
+ * when a personality is on), the next 48 hours in a scroller, and an extras row (sun, UV, air
+ * quality, pollen). Active alerts sit on top. Tapping the card opens the weather sheet.
  * Pass `weather` to render a fixed snapshot; otherwise it reads the shared weather store.
+ * `interactive={false}` renders without the sheet (demos and tests outside the shell).
  */
-export function WeatherCard({ weather, now }: { weather?: Weather; now?: Date }) {
+export function WeatherCard({
+  weather,
+  now,
+  interactive = true,
+}: {
+  weather?: Weather;
+  now?: Date;
+  interactive?: boolean;
+}) {
   const live = useWeather();
+  const quip = useQuip().data;
   const w = weather ?? live.data;
   if (!w) return <div className="card weather is-loading" aria-busy="true" />;
   const today = w.daily[0];
@@ -29,26 +42,101 @@ export function WeatherCard({ weather, now }: { weather?: Weather; now?: Date })
               H {Math.round(today.high)}° · L {Math.round(today.low)}°
             </span>
           )}
-          <span>{outlook(w, at)}</span>
+          {!quip && <span>{outlook(w, at)}</span>}
         </div>
+        {interactive && <OpenSheet weather={w} now={at} />}
       </div>
-      <HourlyStrip weather={w} />
+      {quip && <p className="wx-quip">{quip.text}</p>}
+      <HourlyStrip weather={w} now={at} />
       <WeatherExtras weather={w} now={at} />
     </section>
   );
 }
 
-export function HourlyStrip({ weather, hours = 6 }: { weather: Weather; hours?: number }) {
+/** The round "more" button; the only piece of the card that needs the shell's overlay. */
+function OpenSheet({ weather, now }: { weather: Weather; now: Date }) {
+  const { openSheet } = useOverlay();
   return (
-    <div className="hourly" style={{ gridTemplateColumns: `repeat(${hours}, 1fr)` }}>
-      {weather.hourly.slice(0, hours).map((h, i) => (
-        <div key={h.time}>
-          <span>{i === 0 ? 'Next' : formatHour(h.time)}</span>
-          <WeatherIcon condition={h.condition} isDay={h.isDay} />
-          <b className="tnum">{Math.round(h.temp)}°</b>
-          {h.precipChance >= 30 && <small className="tnum">{h.precipChance}%</small>}
-        </div>
-      ))}
+    <button
+      className="wx-more"
+      aria-label="Open the forecast"
+      onClick={() =>
+        openSheet((close) => <WeatherSheet home={weather} now={now} onClose={close} />, {
+          wide: true,
+          label: `Weather, ${weather.locationName}`,
+        })
+      }
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </button>
+  );
+}
+
+/** Milliseconds without a touch before the hourly strip slides back to now. */
+export const STRIP_SNAP_BACK_MS = 90_000;
+
+/**
+ * The next hours in a horizontal scroller: temperature, icon, a rain bar for wet hours, and a
+ * day label where tomorrow starts. Scroll ahead to see later; it slides back to now after a
+ * while untouched, so the wall always shows the next few hours.
+ */
+export function HourlyStrip({
+  weather,
+  hours = 48,
+  now = new Date(),
+  size = 'card',
+}: {
+  weather: Weather;
+  hours?: number;
+  now?: Date;
+  size?: 'card' | 'sheet';
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const onScroll = (e: UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    clearTimeout(timer.current);
+    if (el.scrollLeft < 2) return;
+    timer.current = setTimeout(() => {
+      el.scrollTo({ left: 0, behavior: 'smooth' });
+    }, STRIP_SNAP_BACK_MS);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const list = weather.hourly.slice(0, hours);
+  let lastDay = '';
+  return (
+    <div
+      className={`hourly scroll-x is-${size}`}
+      ref={box}
+      onScroll={onScroll}
+      role="list"
+      aria-label="Hourly forecast"
+    >
+      {list.map((h, i) => {
+        const day = hourDayLabel(h.time, now);
+        const newDay = i > 0 && day !== lastDay;
+        lastDay = day;
+        const wet = h.precipChance >= 20;
+        return (
+          <div key={h.time} role="listitem" className={newDay ? 'new-day' : undefined}>
+            <span className={newDay ? 'day' : undefined}>
+              {i === 0 ? 'Next' : newDay ? day : formatHour(h.time)}
+            </span>
+            <WeatherIcon condition={h.condition} isDay={h.isDay} />
+            <b className="tnum">{Math.round(h.temp)}°</b>
+            <i
+              className="rain"
+              style={{ '--p': wet ? h.precipChance / 100 : 0 } as React.CSSProperties}
+              aria-hidden="true"
+            />
+            <small className="tnum">{wet ? `${h.precipChance}%` : ''}</small>
+          </div>
+        );
+      })}
     </div>
   );
 }

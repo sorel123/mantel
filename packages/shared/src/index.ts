@@ -8,3 +8,4 @@ export * from './integrations.js';
 export * from './plugins.js';
 export * from './layout.js';
 export * from './skins.js';
+export * from './weather-extended.js';

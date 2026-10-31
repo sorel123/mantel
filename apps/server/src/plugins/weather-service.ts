@@ -9,7 +9,13 @@ import type { ProviderContext, WeatherProvider } from '../providers/types.js';
 import { live, type Live } from './live.js';
 
 const notReady = () => Promise.reject(new HttpError('internal', 'weather provider is starting'));
-const placeholder: WeatherProvider = { weather: notReady, commute: notReady };
+const placeholder: WeatherProvider = {
+  weather: notReady,
+  place: notReady,
+  search: notReady,
+  quip: notReady,
+  commute: notReady,
+};
 
 export class WeatherService {
   readonly live: Live<WeatherProvider> = live(placeholder);

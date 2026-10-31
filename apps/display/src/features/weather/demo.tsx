@@ -85,9 +85,9 @@ function Demo() {
         <div style={grid}>
           <div style={col}>
             <div className="eyebrow">Weather card · live from /api/weather</div>
-            <WeatherCard />
+            <WeatherCard interactive={false} />
             <div className="eyebrow">With an active alert (tap it)</div>
-            {weather.data && <WeatherCard weather={withAlert(weather.data)} />}
+            {weather.data && <WeatherCard weather={withAlert(weather.data)} interactive={false} />}
           </div>
           <div style={col}>
             <div className="card" style={{ padding: '22px 24px', display: 'grid', gap: 14 }}>
