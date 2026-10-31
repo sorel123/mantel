@@ -76,7 +76,7 @@ export function LocationField({
       if (found.length === 0)
         setResult({
           ok: false,
-          message: `No place called “${text}” was found. Try a town and country, or paste coordinates from Google Maps.`,
+          message: `Nothing matched “${text}”. Check the spelling, try just the town, or paste coordinates from Google Maps.`,
         });
       else if (found.length === 1) pick(found[0]!, text);
       else setCandidates(found);
