@@ -1,4 +1,10 @@
-import { DEVICE_KEY_HEADER, fromIsoDate } from '@mantel/shared';
+import {
+  DEVICE_KEY_HEADER,
+  fromIsoDate,
+  minutesInZone,
+  scheduleStateAt,
+  toLocalIso,
+} from '@mantel/shared';
 import { DEFAULT_PANEL } from '@mantel/shared/fixtures';
 import type { Handle, HandlerArgs } from '../contract.js';
 import { HttpError, notFound } from '../errors.js';
@@ -9,7 +15,7 @@ import { VERSION } from '../version.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
 export function registerRoutes(handle: Handle, deps: AppDeps) {
-  const { providers, auth, settings, config, sync } = deps;
+  const { providers, auth, settings, config, sync, hub } = deps;
   const started = Date.now();
 
   /* ---- scaffold / WS6: pairing, bootstrap, settings, health ---- */
@@ -40,7 +46,41 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   });
 
   handle('settings', async () => settings.get());
-  handle('settingsPut', async ({ body }) => settings.put(body));
+  handle('settingsPut', async ({ body }) => {
+    const saved = settings.put(body);
+    // Displays read settings at bootstrap, so a reload applies the new schedule and flags.
+    hub.broadcast({ type: 'display.reload', payload: {} });
+    return saved;
+  });
+
+  handle('devices', async ({ deviceId }) => ({ devices: auth.list(deviceId) }));
+  handle('deviceRevoke', async ({ params }) => {
+    if (!auth.revoke(params.id!)) throw notFound(`device ${params.id}`);
+    hub.disconnect(params.id!);
+    return { ok: true as const };
+  });
+  handle('deviceRename', async ({ params, body, deviceId }) => {
+    const device = auth.rename(params.id!, body.name, deviceId);
+    if (!device) throw notFound(`device ${params.id}`);
+    return { device };
+  });
+  handle('pairingCode', async () => {
+    const { code, expiresAt } = auth.pairingCode();
+    return { code, expiresAt: toLocalIso(expiresAt) };
+  });
+
+  handle('displayState', async () => {
+    const s = settings.get();
+    const now = new Date();
+    return {
+      at: toLocalIso(now),
+      ...scheduleStateAt(s.schedule, minutesInZone(now, s.timezone)),
+    };
+  });
+  handle('displayReload', async () => {
+    hub.broadcast({ type: 'display.reload', payload: {} });
+    return { ok: true as const, clients: hub.size };
+  });
 
   handle('health', async () => ({
     ok: true,
@@ -117,8 +157,13 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('listAddItem', async ({ params, body }) => providers.lists.addItem(params.id!, body));
   handle('itemPatch', async ({ params, body }) => providers.lists.patchItem(params.id!, body));
   handle('itemDelete', async ({ params }) => providers.lists.deleteItem(params.id!));
+  handle('listCreate', async ({ body }) => providers.lists.createList(body));
+  handle('listDelete', async ({ params }) => providers.lists.deleteList(params.id!));
   handle('chores', async () => providers.lists.chores());
   handle('choreDone', async ({ params, body }) =>
     providers.lists.choreDone(params.id!, body?.personId),
   );
+  handle('choreUndo', async ({ params }) => providers.lists.choreUndo(params.id!));
+  handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
+  handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
 }

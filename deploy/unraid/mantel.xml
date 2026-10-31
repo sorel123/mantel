@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!--
+  Unraid Docker template for Mantel. Install it once:
+    1. Copy this file to /boot/config/plugins/dockerMan/templates-user/my-mantel.xml
+       (the "flash" share: \\tower\flash\config\plugins\dockerMan\templates-user\).
+    2. Docker tab, Add Container, Template: pick "mantel" under User templates.
+    3. Fill in the values you have, Apply. See deploy/README.md for the full walk-through.
+-->
+<Container version="2">
+  <Name>mantel</Name>
+  <Repository>ghcr.io/sorel123/mantel:latest</Repository>
+  <Registry>https://github.com/sorel123/mantel/pkgs/container/mantel</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/sorel123/mantel</Support>
+  <Project>https://github.com/sorel123/mantel</Project>
+  <Overview>Mantel, the family wall display: calendars, weather, photos, lists and Home Assistant controls for an iPad or Surface on the wall. One container serves the display and its API on one port and keeps its data in SQLite under /data. Open the WebUI to reach the settings page.</Overview>
+  <Category>HomeAutomation: Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:8787]/settings</WebUI>
+  <TemplateURL/>
+  <Icon/>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Home Assistant reachable from this container (its own container with host networking is fine: use http://UNRAID-IP:8123).</Requires>
+
+  <Config Name="Port" Target="8787" Default="8787" Mode="tcp" Description="Port the tablets open. Change the left side only if 8787 is taken." Type="Port" Display="always" Required="true" Mask="false">8787</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/mantel" Mode="rw" Description="SQLite database, caches and the Home Assistant allow-list (home.yaml). Back this folder up." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/mantel</Config>
+
+  <Config Name="Public URL" Target="PUBLIC_URL" Default="http://192.168.1.10:8787" Mode="" Description="How the tablets reach this container, e.g. http://192.168.1.10:8787 (your Unraid IP and the port above). Used for sign-in redirects." Type="Variable" Display="always" Required="true" Mask="false">http://192.168.1.10:8787</Config>
+  <Config Name="Timezone" Target="TZ" Default="America/Los_Angeles" Mode="" Description="Household timezone for logs. The screen schedule uses the timezone on the settings page." Type="Variable" Display="always" Required="false" Mask="false">America/Los_Angeles</Config>
+  <Config Name="Mock mode" Target="MOCK" Default="0" Mode="" Description="1 shows sample data for everything and skips pairing: handy to check the container works before any accounts are connected. 0 for the real house." Type="Variable" Display="always" Required="false" Mask="false">0</Config>
+
+  <Config Name="Home Assistant URL" Target="HA_URL" Default="http://192.168.1.10:8123" Mode="" Description="Home Assistant's address as seen from this container. With HA on host networking, use the Unraid IP and port 8123." Type="Variable" Display="always" Required="false" Mask="false">http://192.168.1.10:8123</Config>
+  <Config Name="Home Assistant token" Target="HA_TOKEN" Default="" Mode="" Description="Long-lived access token from your Home Assistant profile, Security tab." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Home Assistant allow-list" Target="HA_ALLOWLIST" Default="/data/home.yaml" Mode="" Description="YAML list of the areas and entities the wall may see and control. Lives in the Data folder." Type="Variable" Display="advanced" Required="false" Mask="false">/data/home.yaml</Config>
+
+  <Config Name="Google client ID" Target="GOOGLE_CLIENT_ID" Default="" Mode="" Description="OAuth client (Web application) from Google Cloud Console, for Google Calendar." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Google client secret" Target="GOOGLE_CLIENT_SECRET" Default="" Mode="" Description="The secret for the OAuth client above." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="iCloud Apple ID" Target="ICLOUD_USERNAME" Default="" Mode="" Description="Apple ID email for iCloud calendars." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="iCloud app-specific password" Target="ICLOUD_APP_PASSWORD" Default="" Mode="" Description="From appleid.apple.com, Sign-In and Security, App-Specific Passwords." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="iCloud shared album link" Target="ICLOUD_SHARED_ALBUM_URL" Default="" Mode="" Description="Public Website link of the iCloud Shared Album for the photo slideshow." Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Google Routes API key" Target="GOOGLE_ROUTES_API_KEY" Default="" Mode="" Description="For leave-by times on weekday mornings. Optional." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Weather alerts contact" Target="NWS_CONTACT" Default="" Mode="" Description="An email address; the National Weather Service asks for one with alert requests." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Log level" Target="LOG_LEVEL" Default="info" Mode="" Description="debug, info, warn or error." Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+</Container>

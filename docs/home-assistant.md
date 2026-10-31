@@ -18,7 +18,7 @@ Mantel talks to Home Assistant (HA) only. Every device reaches the wall through 
 1. In HA, add the integrations above (Settings > Devices & services > Add integration). Put devices in areas; Mantel can pull a whole area in.
 2. Make a long-lived access token: your HA profile > Security > Long-lived access tokens.
 3. On the Mantel container set `HA_URL` (for example `http://192.168.1.20:8123`) and `HA_TOKEN`.
-4. Copy `config/home.example.yaml` to `config/home.yaml` (or wherever `HA_ALLOWLIST` points) and edit it. The comments in that file explain each section. Saving the file reloads it, and the wall display refreshes itself.
+4. Copy `config/home.example.yaml` to wherever `HA_ALLOWLIST` points and edit it: on Unraid that is `home.yaml` in the Data folder (`/mnt/user/appdata/mantel/home.yaml`), in `pnpm dev` it is `config/home.yaml`. The comments in that file explain each section. Saving the file reloads it, and the wall display refreshes itself.
 5. Open `/api/health` on the server: `lastSync.home` fills in once HA is connected. The server log says `home: connected to Home Assistant (N entities)`.
 
 ## How it works

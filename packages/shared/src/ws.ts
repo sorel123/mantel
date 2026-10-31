@@ -27,6 +27,8 @@ export const HomeDoorbell = event(
 export const HomePresence = event('home.presence', z.object({ presence: z.array(Presence) }));
 export const MediaStateEvent = event('media.state', z.object({ player: MediaPlayer }));
 export const ListChanged = event('list.changed', z.object({ listId: Id }));
+/** The chore chart changed (a tap, an undo, or a chore added or removed); the display refetches. */
+export const ChoresChanged = event('chores.changed', z.object({}));
 export const WeatherUpdated = event('weather.updated', z.object({ weather: WeatherSnapshot }));
 export const DisplayReload = event('display.reload', z.object({}));
 export const DisplayWake = event(
@@ -45,6 +47,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   HomePresence,
   MediaStateEvent,
   ListChanged,
+  ChoresChanged,
   WeatherUpdated,
   DisplayReload,
   DisplayWake,
