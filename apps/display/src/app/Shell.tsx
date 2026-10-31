@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useBootstrap, useBootstrapState } from '../lib/bootstrap';
 import { connectEvents, useConnection, useServerEvent } from '../lib/events';
 import { useFitPanel } from '../lib/fit';
-import { useThemeMode } from '../lib/theme';
-import { Ambient, ScreenOff, useIdle } from './ambient';
+import { setSunTimes, useThemeMode } from '../lib/theme';
+import { AmbientWeather, useWeather } from '../features/weather';
+import { Ambient, ScreenOff, registerAmbientSlot, useIdle } from './ambient';
 import { formatClock, useNow } from './Clock';
 import { Dock } from './Dock';
 import { FeatureLayers } from './FeatureLayers';
@@ -15,6 +16,9 @@ import { Pairing } from './Pairing';
 import { msToNextMinute, scheduleAt, type Phase } from './schedule';
 import { screens, type ScreenId } from './screens';
 import { ScreenSwitcher } from './ScreenSwitcher';
+
+// What Ambient shows beside the clock. Other features (the next event) register their own.
+registerAmbientSlot({ id: 'weather', Component: AmbientWeather, order: 0 });
 
 /**
  * The shell: fits the panel to the viewport, applies the theme, loads bootstrap and pairs if
@@ -154,6 +158,12 @@ function DisplayInner() {
   const { mode, wake, rest, setMode } = useDisplayMode(boot.settings.schedule);
   const connection = useConnection();
   useEffect(connectEvents, []);
+
+  // Auto theme follows today's sunrise and sunset once the weather is in.
+  const weather = useWeather().data;
+  useEffect(() => {
+    setSunTimes(weather ? { sunrise: weather.sunrise, sunset: weather.sunset } : null);
+  }, [weather]);
 
   // Server-driven sleep and wake; a doorbell always lights the screen so the pop-over is seen.
   useServerEvent('display.sleep', rest);

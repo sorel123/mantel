@@ -18,6 +18,7 @@ export function settings(): Settings {
         { at: '19:00', level: 70 },
         { at: '21:00', level: 35 },
       ],
+      reloadAt: '04:00',
     },
     people: structuredClone(people),
     destinations: [

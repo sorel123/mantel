@@ -8,8 +8,8 @@ export interface SlidePhoto {
 }
 
 /**
- * Generated landscapes in the mockup's ambient palettes, as inline SVG data URLs. Needs no
- * server; WS4's photos feature swaps these for the shared album through `setAmbientPhotos`.
+ * Generated landscapes in the mockup's ambient palettes, as inline SVG data URLs, for the demo
+ * page and tests. The display itself shows the server's album through WS4's `PhotoSlideshow`.
  */
 export function placeholderPhotos(count = 8, width = 1180, height = 820): SlidePhoto[] {
   return Array.from({ length: count }, (_, i) => ({

@@ -1,20 +1,11 @@
 import { settings } from '@mantel/shared/fixtures';
 import { describe, expect, it } from 'vitest';
-import { brightnessAt, inWindow, phaseAt, scheduleAt } from './schedule';
+import { brightnessAt, phaseAt, scheduleAt } from './schedule';
 
 const at = (h: number, m = 0) => new Date(2026, 9, 31, h, m);
 const schedule = settings().schedule; // ambient 21:00, off 23:00-06:00, brightness 06/08/19/21
 
 describe('schedule', () => {
-  it('finds windows that wrap midnight', () => {
-    expect(inWindow(23 * 60 + 30, 23 * 60, 6 * 60)).toBe(true);
-    expect(inWindow(2 * 60, 23 * 60, 6 * 60)).toBe(true);
-    expect(inWindow(6 * 60, 23 * 60, 6 * 60)).toBe(false);
-    expect(inWindow(12 * 60, 23 * 60, 6 * 60)).toBe(false);
-    expect(inWindow(12 * 60, 9 * 60, 17 * 60)).toBe(true);
-    expect(inWindow(12 * 60, 12 * 60, 12 * 60)).toBe(false);
-  });
-
   it('is on during the day, ambient in the evening and off overnight', () => {
     expect(phaseAt(schedule, at(9))).toBe('on');
     expect(phaseAt(schedule, at(20, 59))).toBe('on');

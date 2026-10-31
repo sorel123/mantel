@@ -39,7 +39,7 @@ Each workstream changes only its own folders, plus additions to `packages/shared
 | 3 Home Assistant           | `src/screens/home/`, `src/features/doorbell/`                   | `providers/real/home*`, `providers/mock/home.ts`, home and media block in `routes/`   |
 | 4 Weather, commute, photos | `src/features/weather/`, `src/features/photos/`                 | `providers/real/{weather,commute,photos}*`, `providers/mock/{weather,photos}.ts`      |
 | 5 Lists & chores           | `src/screens/lists/`, `/add` page                               | `providers/real/lists*`, `providers/mock/lists.ts`, lists block in `routes/`          |
-| 6 Deployment & kiosk       | settings page                                                   | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
+| 6 Deployment & kiosk       | `src/screens/settings/` (the `/settings` page)                  | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
 
 Shared plumbing (`src/lib/api.ts`, `src/lib/events.ts`, `src/lib/bootstrap.tsx`, `server/src/contract.ts`, `server/src/app.ts`) belongs to the scaffold; change it only when a workstream truly needs to, and say so in the PR.
 
@@ -71,31 +71,37 @@ The server validates every request against the route table and, outside producti
 
 ### REST (under `/api`, JSON, header `x-mantel-device-key` on every call except pairing and health)
 
-| Route                                                                          | Purpose                                                         |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `POST /pair`                                                                   | Exchange the 6-digit code from the server log for a device key  |
-| `GET /bootstrap`                                                               | People, calendars, settings, theme, panel size, feature flags   |
-| `GET /calendar?from&to`                                                        | Normalised events from Google and iCloud with people and colour |
-| `POST /calendar/quick`                                                         | Create a quick event                                            |
-| `GET /countdowns`                                                              | Upcoming tagged events with days remaining                      |
-| `GET /meals?week`                                                              | Meal plan for the week (weeks start Monday)                     |
-| `GET /weather`                                                                 | Current, hourly, daily, sun, UV, air quality, pollen, alerts    |
-| `GET /commute`                                                                 | Leave-by times; empty outside the weekday morning window        |
-| `GET /photos/next?n`                                                           | Next n photos sized for the panel, with dominant colour         |
-| `GET /photos/:id`                                                              | Image bytes                                                     |
-| `GET /home/state`                                                              | Allowed areas, entities, states and presence                    |
-| `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity              |
-| `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                     |
-| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists, backed by Reminders or the built-in store                |
-| `GET /chores`, `POST /chores/:id/done`                                         | Chore chart and stars                                           |
-| `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags                   |
-| `GET /health`                                                                  | Liveness and last sync times (no key needed)                    |
+| Route                                                                          | Purpose                                                               |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `POST /pair`                                                                   | Exchange the 6-digit code from the server log for a device key        |
+| `GET /bootstrap`                                                               | People, calendars, settings, theme, panel size, feature flags         |
+| `GET /calendar?from&to`                                                        | Normalised events from Google and iCloud with people and colour       |
+| `POST /calendar/quick`                                                         | Create a quick event                                                  |
+| `GET /countdowns`                                                              | Upcoming tagged events with days remaining                            |
+| `GET /meals?week`                                                              | Meal plan for the week (weeks start Monday)                           |
+| `GET /weather`                                                                 | Current, hourly, daily, sun, UV, air quality, pollen, alerts          |
+| `GET /commute`                                                                 | Leave-by times; empty outside the weekday morning window              |
+| `GET /photos/next?n`                                                           | Next n photos sized for the panel, with dominant colour               |
+| `GET /photos/:id`                                                              | Image bytes                                                           |
+| `GET /home/state`                                                              | Allowed areas, entities, states and presence                          |
+| `POST /home/call`                                                              | Call a Home Assistant service on an allowed entity                    |
+| `GET /media`, `POST /media/call`                                               | Apple TV now playing and transport controls                           |
+| `GET /lists`, `POST /lists/:id/items`, `PATCH /items/:id`, `DELETE /items/:id` | Lists and items, from the built-in store                              |
+| `POST /lists`, `DELETE /lists/:id`                                             | Create or delete a list                                               |
+| `GET /chores`, `POST /chores/:id/done`, `DELETE /chores/:id/done`              | Chore chart and stars; mark a chore done or take it back              |
+| `POST /chores`, `DELETE /chores/:id`                                           | Add or retire a chore                                                 |
+| `GET /settings`, `PUT /settings`                                               | Schedule, people, destinations, feature flags; a PUT reloads displays |
+| `GET /devices`, `PATCH /devices/:id`, `DELETE /devices/:id`                    | Paired displays: list, rename, revoke                                 |
+| `GET /pairing-code`                                                            | The current pairing code, so a paired display can pair another        |
+| `GET /display/state`                                                           | What the screen should do now: on/off, ambient, brightness            |
+| `POST /display/reload`                                                         | Tell every display to reload                                          |
+| `GET /health`                                                                  | Liveness and last sync times (no key needed)                          |
 
 Errors are `{ "error": { "code", "message" } }` with codes `bad_request`, `unauthorized`, `forbidden`, `not_found`, `not_implemented` (501, a real integration not built yet), `upstream_error`, `internal`.
 
 ### WebSocket (`/ws?key=<device key>`)
 
-`calendar.changed {from, to}` · `home.state {entity}` · `home.doorbell {cameraEntityId, at, durationSeconds}` · `media.state {player}` · `list.changed {listId}` · `weather.updated {weather}` · `display.reload {}` · `display.wake {reason}` · `display.sleep {reason}`
+`calendar.changed {from, to}` · `home.state {entity}` · `home.doorbell {cameraEntityId, at, durationSeconds}` · `media.state {player}` · `list.changed {listId}` · `chores.changed {}` · `weather.updated {weather}` · `display.reload {}` · `display.wake {reason}` · `display.sleep {reason}`
 
 In the display, `useServerEvent('home.doorbell', handler)` subscribes; the socket reconnects with backoff. `display.reload` is handled by the shell.
 
@@ -120,6 +126,18 @@ Add, don't rename. New fields should be optional or have a default so other work
 - `src/db/` — SQLite via Drizzle. Add tables to `schema.ts` and a `CREATE TABLE IF NOT EXISTS` to `db/index.ts`.
 - `src/auth.ts` — pairing codes and device keys (only hashes are stored).
 
+## Lists and chores
+
+Lists live in the server's SQLite database. A fresh install starts with Grocery, Chores and To-do; items checked off leave the wall the next day and are deleted after 30 days.
+
+Apple Reminders is not synced yet. iCloud stopped serving Reminders over CalDAV with iOS 13, so a server can't reach them with an app-specific password. A later sync (the native iPad shell or a Mac helper, both using EventKit) hooks into `ListStore.onChange` and the `remote_id` columns.
+
+The chore chart counts completions per day. Each tap earns the chore's stars, a chore stops counting at its daily or weekly target, and tapping a finished chore takes the last tap back. Star tallies cover the current week, so they start again every Monday with no job to run.
+
+**Phones:** open `http://<server>:8787/add` on a phone, pair it once with the code from the server log, and add it to the home screen. It adds to any list (with who it's for), ticks or removes items, creates lists, and sets up chores for the kids.
+
+The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`.
+
 ## Pairing a display
 
 Outside mock mode the display shows a pairing screen. The server prints a 6-digit code to its log on start (it rotates every 15 minutes); enter it on the tablet and the display stores a device key. In mock mode no key is needed and `000000` also pairs.
@@ -128,13 +146,15 @@ Outside mock mode the display shows a pairing screen. The server prints a 6-digi
 
 All configuration is environment variables; see [`.env.example`](.env.example). The server loads `.env` from the repo root or `apps/server`. No secrets in the repo.
 
+- Weather, leave-by times and the photo album: [`docs/weather-commute-photos.md`](docs/weather-commute-photos.md).
+
 ## Running the container
 
 ```sh
 docker compose up --build       # http://localhost:8787, data in ./data
 ```
 
-The image builds the display and serves it from the server on one port. Unraid template, kiosk setup for iPad and Surface, and the settings page arrive with workstream 6.
+The image builds the display and serves it from the server on one port. Merges to `main` publish it as `ghcr.io/sorel123/mantel:latest`. [`deploy/README.md`](deploy/README.md) walks from the Unraid template to a paired iPad or Surface in kiosk mode; the settings page is at `/settings`.
 
 ## Conventions
 

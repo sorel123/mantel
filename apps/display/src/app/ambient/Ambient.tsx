@@ -2,13 +2,14 @@ import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { formatClock, formatLongDate, useNow } from '../Clock';
 import { EASE, SLOW, motionOr, useMotionPreference } from '../motion';
+import { PhotoSlideshow } from '../../features/photos';
 import type { SlidePhoto } from './placeholders';
-import { useAmbientPhotos } from './photos';
 import { Slideshow } from './Slideshow';
-import { useAmbientSlots } from './slots';
+import { renderSlot, useAmbientSlots } from './slots';
 
 /**
- * Full-bleed photo slideshow with the time, the date and whatever features registered beside it.
+ * Full-bleed photo slideshow (the server's album through WS4's `PhotoSlideshow`, or the given
+ * placeholder photos) with the time, the date and whatever features registered beside it.
  * Fades in and out over 700 ms. Any tap wakes the display.
  */
 export function Ambient({
@@ -18,7 +19,7 @@ export function Ambient({
   hint = 'Tap to wake',
 }: {
   onWake: () => void;
-  /** Override the shared photo store (demo page). */
+  /** Show these instead of the server's album (demo page, tests). */
   photos?: SlidePhoto[];
   /** Override the registered slots (demo page). */
   aside?: ReactNode;
@@ -26,7 +27,6 @@ export function Ambient({
 }) {
   const reduced = useMotionPreference();
   const now = useNow(5000);
-  const shared = useAmbientPhotos();
   const slots = useAmbientSlots();
   return (
     <motion.div
@@ -42,14 +42,14 @@ export function Ambient({
       onPointerDown={onWake}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onWake()}
     >
-      <Slideshow photos={photos ?? shared} />
+      {photos ? <Slideshow photos={photos} /> : <PhotoSlideshow />}
       <div className="veil" />
       {hint && <div className="hint">{hint}</div>}
       <div className="a-clock">
         <b className="tnum">{formatClock(now)}</b>
         <span>{formatLongDate(now)}</span>
       </div>
-      <div className="a-side">{aside ?? slots.map((s) => <s.Component key={s.id} />)}</div>
+      <div className="a-side">{aside ?? slots.map(renderSlot)}</div>
     </motion.div>
   );
 }

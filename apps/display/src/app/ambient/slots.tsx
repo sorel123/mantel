@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type ComponentType } from 'react';
+import { Component, useSyncExternalStore, type ComponentType, type ReactNode } from 'react';
 
 /**
  * What Ambient shows beside the clock: weather now (WS4), the next event (WS2)... Features
@@ -38,3 +38,20 @@ export function useAmbientSlots(): AmbientSlot[] {
     () => slots,
   );
 }
+
+/** Renders a slot and swallows its errors, so one feature cannot take Ambient down. */
+export class SlotBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+export const renderSlot = (slot: AmbientSlot) => (
+  <SlotBoundary key={slot.id}>
+    <slot.Component />
+  </SlotBoundary>
+);

@@ -1,0 +1,185 @@
+/* The phone page at /add: portrait, scrolls, text is selectable. */
+body.phone {
+  overflow: auto;
+  background: var(--bg);
+  user-select: text;
+  -webkit-user-select: text;
+  transition: background var(--slow) var(--ease);
+}
+.addpage {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.addpage .h1 {
+  font-size: 34px;
+}
+.ahead {
+  padding: 10px 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.amuted {
+  color: var(--ink-2);
+  margin: 0;
+}
+.apanel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.arow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ainput {
+  min-width: 0;
+  height: var(--tap);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0 16px;
+  /* 16px or more stops iOS zooming into the field. */
+  font: 500 17px/1 var(--body);
+  color: var(--ink);
+}
+.arow .ainput {
+  flex: 1;
+}
+.abtn {
+  height: var(--tap);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 16px;
+  padding: 0 22px;
+  transition:
+    opacity var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.abtn:active {
+  transform: scale(0.98);
+}
+.abtn:disabled {
+  opacity: 0.45;
+}
+.alink {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--warn);
+  font-weight: 600;
+  font-size: 14px;
+}
+.aflash {
+  min-height: 1.2em;
+  text-align: center;
+  color: var(--good);
+  font-weight: 600;
+}
+.atabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+}
+.atabs button,
+.achip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink-2);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.atabs button span {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.atabs button[aria-selected='true'],
+.achip[aria-checked='true'] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.achips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.aitem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.aitem .litem {
+  flex: 1;
+}
+.ax {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  color: var(--ink-3);
+  font-size: 24px;
+  line-height: 1;
+}
+.ax:active {
+  background: var(--surface-2);
+}
+.achore {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 4px 6px;
+}
+.achore .tx {
+  display: flex;
+  flex-direction: column;
+  font-size: 16px;
+}
+.achore small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.astep {
+  display: grid;
+  grid-template-columns: 1fr 44px 36px 44px;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.astep button {
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 20px;
+}
+.astep button:disabled {
+  opacity: 0.4;
+}
+.astep b {
+  text-align: center;
+  color: var(--ink);
+  font-size: 18px;
+}

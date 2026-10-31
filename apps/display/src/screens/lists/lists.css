@@ -1,0 +1,462 @@
+/* Lists screen, chore chart and grocery peek (workstream 5). Values from design/mockup.html. */
+
+.lav {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: var(--pc);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.lav.sm {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+.lav.lg {
+  width: 48px;
+  height: 48px;
+  font-size: 19px;
+}
+
+.lists-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.lstate {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+
+/* ---- tabs ---- */
+.ltabs {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.ltabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: calc(var(--tap) - 10px);
+  min-width: 132px;
+  justify-content: center;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink-2);
+  transition:
+    color var(--std) var(--ease),
+    background var(--std) var(--ease);
+}
+.ltabs button[aria-selected='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.tstars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink);
+}
+.tstars .star {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- lists ---- */
+.lgrid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(calc((100% - 44px) / 3), 1fr);
+  gap: 22px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+.lcard {
+  padding: 22px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  scroll-snap-align: start;
+}
+.lcard .lh {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.lcard .lh .n {
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+.litems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  flex: 1;
+}
+.lempty {
+  color: var(--ink-3);
+  padding: 14px 6px;
+}
+.litem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 4px 6px;
+  border-radius: 12px;
+  font-size: 16px;
+  text-align: left;
+  transition:
+    background var(--fast) var(--ease),
+    opacity var(--std) var(--ease);
+}
+.litem:active {
+  background: var(--surface-2);
+}
+.litem .cb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  border: 2px solid var(--ink-3);
+  display: grid;
+  place-items: center;
+  flex: none;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.litem .cb svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--accent-ink);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset var(--std) var(--ease);
+}
+.litem.done .cb {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+.litem.done .cb svg {
+  stroke-dashoffset: 0;
+}
+.litem .tx {
+  flex: 1;
+  position: relative;
+}
+.litem .tx::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 55%;
+  height: 1.5px;
+  width: 0;
+  background: var(--ink-2);
+  transition: width var(--std) var(--ease);
+}
+.litem.done .tx {
+  color: var(--ink-2);
+}
+.litem.done .tx::after {
+  width: 100%;
+}
+.laddrow {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.laddrow input {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  user-select: text;
+  -webkit-user-select: text;
+  transition: background var(--slow) var(--ease);
+}
+.laddrow button {
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+  transition: opacity var(--fast) var(--ease);
+}
+.laddrow button:disabled {
+  opacity: 0.45;
+}
+
+/* ---- chore chart ---- */
+.chart {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  gap: 22px;
+  overflow: auto;
+  align-content: start;
+}
+.chores-empty {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 8px;
+  color: var(--ink-2);
+}
+.chores-empty p {
+  margin: 0;
+}
+.kid {
+  padding: 20px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kh {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+.kn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kn span {
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+.tally {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 6px;
+}
+.tally .star {
+  width: 30px;
+  height: 30px;
+}
+.tally b {
+  font: 500 34px/1 var(--display);
+}
+.tally small {
+  grid-column: 1 / -1;
+  text-align: right;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.star {
+  transform-origin: center;
+  transform-box: fill-box;
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.star.on {
+  fill: var(--warn);
+  stroke: var(--warn);
+}
+.star.pop,
+.star.bump {
+  animation: star-pop var(--std) var(--ease);
+}
+@keyframes star-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.crows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.crow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(7, 42px);
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+.crow.days span {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.crow.days span.today {
+  color: var(--accent);
+}
+.crow.chore {
+  min-height: 66px;
+  padding: 4px 0 4px 8px;
+  border-radius: 12px;
+  text-align: left;
+  transition: background var(--fast) var(--ease);
+}
+.crow.chore:active {
+  background: var(--surface-2);
+}
+.ct {
+  display: flex;
+  flex-direction: column;
+  font-size: 18px;
+  font-weight: 500;
+  overflow: hidden;
+}
+.ct small {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+.ct small:empty {
+  display: none;
+}
+.cell {
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+}
+.cell.today {
+  background: var(--accent-soft);
+}
+.cell.future {
+  opacity: 0.4;
+}
+.cell i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  opacity: 0.5;
+}
+.cell .part {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.cell.week {
+  grid-column: 2 / -1;
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--accent-soft);
+}
+.cell.week .wl {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+/* ---- grocery peek (Today screen) ---- */
+.gpeek {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  text-align: left;
+  transition: transform var(--fast) var(--ease);
+}
+.gpeek:active {
+  transform: scale(0.99);
+}
+.gpeek .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.gpeek .top .h2 {
+  font-size: 22px;
+}
+.gpeek .top .n {
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+.gpeek ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+.gpeek li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gpeek li i {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1.5px solid var(--ink-3);
+  flex: none;
+}
+.gpeek li.none {
+  color: var(--ink-3);
+}

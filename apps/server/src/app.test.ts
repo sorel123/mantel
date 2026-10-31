@@ -51,8 +51,13 @@ describe('mock mode', () => {
     listAddItem: ['/lists/list-grocery/items', { text: 'Eggs' }],
     itemPatch: ['/items/list-grocery-0', { done: true }],
     itemDelete: ['/items/list-grocery-1'],
+    listCreate: ['/lists', { name: 'Hardware store' }],
+    listDelete: ['/lists/list-todo'],
     chores: ['/chores'],
     choreDone: ['/chores/chore-bed-leo/done'],
+    choreUndo: ['/chores/chore-mochi/done'],
+    choreCreate: ['/chores', { title: 'Feed the fish', personId: 'leo', cadence: 'daily' }],
+    choreDelete: ['/chores/chore-plants'],
     settings: ['/settings'],
     health: ['/health'],
   };
@@ -119,11 +124,24 @@ describe('real mode', () => {
     expect((await json(res)).mock).toBe(false);
   });
 
+  it('serves the built-in lists and chore chart', async () => {
+    const { deviceKey } = await json(
+      await req(real.app, 'POST', '/pair', { code: real.deps.auth.currentCode() }),
+    );
+    const auth = { [DEVICE_KEY_HEADER]: deviceKey };
+    const { lists } = await json(await req(real.app, 'GET', '/lists', undefined, auth));
+    expect(lists.map((l: { name: string }) => l.name)).toEqual(['Grocery', 'Chores', 'To-do']);
+    const add = await req(real.app, 'POST', `/lists/${lists[0].id}/items`, { text: 'Eggs' }, auth);
+    expect((await json(add)).item).toMatchObject({ text: 'Eggs', done: false });
+    const chores = await json(await req(real.app, 'GET', '/chores', undefined, auth));
+    expect(chores.chores).toEqual([]);
+  });
+
   it('answers 501 for integrations not built yet', async () => {
     const { deviceKey } = await json(
       await req(real.app, 'POST', '/pair', { code: real.deps.auth.currentCode() }),
     );
-    const res = await req(real.app, 'GET', '/weather', undefined, {
+    const res = await req(real.app, 'GET', '/home/state', undefined, {
       [DEVICE_KEY_HEADER]: deviceKey,
     });
     expect(res.status).toBe(501);
