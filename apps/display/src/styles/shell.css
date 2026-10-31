@@ -200,8 +200,18 @@
   min-width: 0;
   height: 48px;
   padding: 0 14px 0 8px;
+  border-radius: var(--radius-pill);
   font: 500 17px/1 var(--body);
   color: var(--ink);
+  -webkit-touch-callout: none;
+  transition:
+    transform var(--slow) var(--ease),
+    background var(--slow) var(--ease);
+}
+.dock .clock:active {
+  transform: scale(0.94);
+  background: var(--surface-2);
+  transition-duration: 1100ms;
 }
 .dock .moon {
   min-width: 0;

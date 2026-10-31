@@ -83,14 +83,14 @@ describe('Home screen', () => {
   it('asks before unlocking, then calls Home Assistant', async () => {
     await open();
     fireEvent.click(screen.getByRole('button', { name: /Front door: Locked/ }));
-    const dialog = screen.getByRole('dialog');
+    const dialog = screen.getByRole('alertdialog');
     expect(within(dialog).getByText('Unlock the front door?')).toBeTruthy();
     await act(async () => fireEvent.click(within(dialog).getByRole('button', { name: 'Unlock' })));
     expect(calls.find((c) => c.url === '/api/home/call')?.body).toEqual({
       entityId: 'lock.front_door',
       service: 'unlock',
     });
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
   it('follows home.state pushes', async () => {

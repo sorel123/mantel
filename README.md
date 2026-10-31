@@ -17,7 +17,9 @@ MOCK=1 pnpm dev          # or: pnpm dev:mock
 
 `MOCK=1` serves fixture data for every integration (calendar, weather, photos, Home Assistant, lists) and needs no accounts or pairing. Mock state is in memory: toggling a light or checking an item works and pushes WebSocket events, and resets on restart.
 
-Other scripts: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm format`. CI runs all of them plus a container build on every PR.
+Other scripts: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm format`. CI runs all of them, then the smoke test, plus a container build on every PR.
+
+**Smoke test.** `pnpm build && pnpm e2e` starts the production server in mock mode serving the built display (as the container does) and drives it with Playwright at iPad and Surface sizes: every screen, the day sheet and quick add, the unlock dialog, a doorbell press, Ambient, both looks, the settings and phone pages, with no console errors allowed. `e2e/smoke.spec.ts`; the first run needs `pnpm exec playwright install chromium`.
 
 ## Layout
 
@@ -51,9 +53,13 @@ Everything a screen needs from the shell lives in `apps/display/src/app` and `sr
 
 **Shell.** `Shell.tsx` fits the panel to the viewport (`lib/fit.ts`), applies the theme (`lib/theme.ts`: Daylight, Dusk, or auto by clock; call `setSunTimes()` from the weather feature to follow the real sun), switches screens with a 320 ms slide and a swipe (`ScreenSwitcher`), and draws the dock with its sliding highlight (`Dock`). Screens are listed in `screens.ts`.
 
-**Overlays.** `useOverlay()` from `app/overlay` gives every screen `openSheet(render)`, `confirm({ title, body, confirmLabel, danger }) → Promise<boolean>`, `showPopover(render, { durationMs })`, `toast(message)` and `closeAll()`. Sheets, dialogs and pop-overs share one scrim, animate with the standard curve and close on Escape or a tap outside. `SheetHeader` and `PopoverHeader` are ready-made top rows.
+**Overlays.** `useOverlay()` from `app/overlay` gives every screen `openSheet(render)`, `confirm({ title, body, confirmLabel, danger }) → Promise<boolean>`, `showPopover(render, { durationMs })`, `toast(message)` and `closeAll()`. Sheets, dialogs and pop-overs share one scrim, animate with the standard curve and close on Escape or a tap outside. `SheetHeader` and `PopoverHeader` are ready-made top rows. Every overlay on the wall goes through these: the calendar's day sheet and quick add (`useDaySheet()` in `screens/month/DaySheet.tsx`), the Home screen's unlock and garage confirmations, the Alexa announce sheet, and refused calls as toasts. Switching screens or going Ambient closes them all.
 
-**Ambient and the schedule.** After `schedule.idleSeconds` without a touch the display fades to Ambient (`app/ambient`): a photo slideshow with a 1.6 s cross-dissolve and slow drift, the time and date, and whatever features registered with `registerAmbientSlot()` (weather now, the next event). `setAmbientPhotos()` replaces the generated placeholders with real photos. From `ambientFrom` idle still goes to Ambient; from `offFrom` to `onAt` the screen is black; the brightness steps drive a software dimmer (`setBrightness()`), which a kiosk hook can mirror to hardware. The server's `display.sleep` and `display.wake` events and a `home.doorbell` override all of this. `prefers-reduced-motion` collapses every duration to 0.
+**Moving between screens.** `useNav()` from `app/nav` gives a screen `go(id)`; the grocery card on Today opens Lists with it.
+
+**Settings from the wall.** Hold the clock in the dock for about a second and confirm, and the display opens `/settings`; **Back to the display** returns. There is no visible button, so guests and children do not wander in. `?mode=daylight` or `?mode=dusk` on the URL pins the look (screenshots, kiosk tools, the smoke test).
+
+**Ambient and the schedule.** After `schedule.idleSeconds` without a touch the display fades to Ambient (`app/ambient`): the server's album through `PhotoSlideshow` (`features/photos`, a 1.6 s cross-dissolve and slow drift; `placeholderPhotos()` stands in on the demo page and in tests), the time and date, and whatever features registered with `registerAmbientSlot()` (the shell registers the weather line, the Today screen the next event). From `ambientFrom` idle still goes to Ambient; from `offFrom` to `onAt` the screen is black; the brightness steps drive a software dimmer (`setBrightness()`), which a kiosk hook can mirror to hardware. The server's `display.sleep` and `display.wake` events and a `home.doorbell` override all of this. `prefers-reduced-motion` collapses every duration to 0.
 
 **Layers over every screen.** Any export named `*Layer` from `src/features/<name>/index.tsx` is mounted once inside the panel above the screens and dock (the doorbell live view, for example); no change to the shell is needed.
 
@@ -124,7 +130,7 @@ Add, don't rename. New fields should be optional or have a default so other work
 
 - `src/providers/types.ts` — one interface per integration. Routes only call providers.
 - `src/providers/mock/` — fixture-backed, in-memory, used when `MOCK=1`.
-- `src/providers/real/` — real integrations; until a workstream lands, each answers 501 `not_implemented`.
+- `src/providers/real/` — real integrations. One that is not configured (no token, no album link) answers 501 `not_implemented`, and the display leaves that card empty.
 - `src/routes/index.ts` — registers every contract route with `handle(name, handler)`, which parses query and body, checks the device key and validates the response.
 - `src/db/` — SQLite via Drizzle. Add tables to `schema.ts` and a `CREATE TABLE IF NOT EXISTS` to `db/index.ts`.
 - `src/auth.ts` — pairing codes and device keys (only hashes are stored).
@@ -139,7 +145,7 @@ The chore chart counts completions per day. Each tap earns the chore's stars, a 
 
 **Phones:** open `http://<server>:8787/add` on a phone, pair it once with the code from the server log, and add it to the home screen. It adds to any list (with who it's for), ticks or removes items, creates lists, and sets up chores for the kids.
 
-The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`.
+The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`; tapping it opens the Lists screen.
 
 ## Pairing a display
 
@@ -168,4 +174,5 @@ Lights, plugs, thermostats, cameras and the doorbell, Apple TV and presence all 
 - TypeScript strict everywhere; `pnpm lint` and `pnpm format:check` must pass.
 - Touch targets at least 56 px (`--tap`), landscape only, check at 1180×820 (iPad) and 1440×960 (Surface).
 - Use the design tokens in `apps/display/src/styles/tokens.css`, never raw colours or durations.
-- Each PR: green CI, a mock-mode screenshot or recording in the description, and no changes to another workstream's folders beyond the shared contract.
+- Each PR: green CI (including the smoke test) and a mock-mode screenshot or recording in the description.
+- Overlays, navigation between screens, idle and the schedule belong to the shell; screens call `useOverlay()`, `useNav()` and `registerAmbientSlot()` rather than adding their own.

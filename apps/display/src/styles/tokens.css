@@ -40,6 +40,7 @@
 
   /* layers, bottom to top */
   --z-screen: 1;
+  --z-status: 4; /* the mock and offline chips sit under sheets, pop-overs and Ambient */
   --z-dock: 5;
   --z-scrim: 6;
   --z-sheet: 7;
@@ -47,7 +48,6 @@
   --z-popover: 8;
   --z-ambient: 9;
   --z-toast: 10;
-  --z-status: 11;
   --z-dimmer: 20;
 
   /* brightness from the schedule, 0-100; the shell sets it */

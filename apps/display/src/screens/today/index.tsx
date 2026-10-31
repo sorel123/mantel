@@ -5,12 +5,15 @@
  */
 import type { CalendarEvent, Meal } from '@mantel/shared';
 import { addDays, startOfDay, toIsoDate } from '@mantel/shared';
-import { Component, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
+import { useNav } from '../../app/nav';
 import { LeaveByChip, WeatherCard, matchLeaveBy, useCommute } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
-import { DaySheet } from '../month/DaySheet';
+import { useDaySheet } from '../month/DaySheet';
+import { AmbientNextEvent } from './AmbientNext';
 import {
   countdownLabel,
   dayNames,
@@ -25,11 +28,15 @@ import {
 import { Avatars, EventRow, Icon, Svg, pc } from './parts';
 import './today.css';
 
+// Ambient shows the next event under the weather line.
+registerAmbientSlot({ id: 'next-event', Component: AmbientNextEvent, order: 1 });
+
 export function TodayScreen() {
   const now = useNow(30_000);
   const today = startOfDay(now);
   const { events } = useEvents(today, addDays(today, 4));
-  const [sheet, setSheet] = useState<{ day: Date; add: boolean } | null>(null);
+  const openDay = useDaySheet();
+  const nav = useNav();
 
   return (
     <div className="cal today">
@@ -45,18 +52,17 @@ export function TodayScreen() {
           <WeatherCard now={now} />
         </Guard>
         <Guard name="grocery">
-          <GroceryPeek />
+          <GroceryPeek onOpen={() => nav.go('lists')} />
         </Guard>
       </div>
       <div className="col">
         <Agenda
           now={now}
           events={events}
-          onAdd={() => setSheet({ day: today, add: true })}
-          onDay={(day) => setSheet({ day, add: false })}
+          onAdd={() => openDay(today, { add: true })}
+          onDay={(day) => openDay(day)}
         />
       </div>
-      <DaySheet day={sheet?.day ?? null} startWithAdd={sheet?.add} onClose={() => setSheet(null)} />
     </div>
   );
 }

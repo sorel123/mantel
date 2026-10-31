@@ -87,6 +87,10 @@ way the first time). It has:
 
 **Save** stores the settings and reloads every display so they apply straight away.
 
+From the wall itself: hold the clock in the dock for about a second, confirm **Open settings**,
+and the display opens this page; **Back to the display** returns. Nothing on screen points at
+it, so it stays out of the way of guests and children.
+
 ## 5. Kiosk mode on an iPad
 
 1. In Safari open `http://192.168.1.10:8787`, then **Share**, **Add to Home Screen**. Open

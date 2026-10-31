@@ -160,6 +160,13 @@
 .hm-rooms::-webkit-scrollbar {
   display: none;
 }
+/* Rows that scroll out of view fade rather than cut off at the dock. */
+.hm-rooms,
+.hm-rail {
+  padding-bottom: 24px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+}
 .hm-rail {
   display: flex;
   flex-direction: column;
@@ -732,75 +739,18 @@
   fill: currentColor;
 }
 
-/* ---- dialogs: confirm, announce ---- */
-.hm-scrim {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 12, 16, 0.28);
-  z-index: 30;
-  animation: hm-fade var(--std) var(--ease) both;
-}
-.hm-dialog {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 31;
-  background: var(--surface);
-  border-radius: 22px;
-  padding: 28px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+/* ---- announce (inside the shell's side sheet) ---- */
+.hm-announce {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  animation: hm-pop var(--std) var(--ease) both;
+  gap: 12px;
+  overflow: auto;
+  scrollbar-width: none;
 }
-.hm-confirm {
-  width: 400px;
-  text-align: center;
-}
-.hm-dialog h3 {
-  margin: 0;
-  font: 500 26px/1.15 var(--display);
-}
-.hm-dialog p {
-  margin: 0;
-  color: var(--ink-2);
-  font-size: 15px;
-}
-.hm-confirm .btns {
-  display: flex;
-  gap: 10px;
-  margin-top: 6px;
-}
-.hm-confirm .btns button {
-  flex: 1;
-  height: var(--tap);
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 16px;
-  background: var(--surface-2);
-}
-.hm-confirm .btns .go {
-  background: var(--warn);
-  color: #fff;
-}
-.hm-announce {
-  width: 560px;
-}
-.hm-announce-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.hm-announce-head .x {
-  width: var(--tap);
-  height: var(--tap);
-  margin: -12px -12px -12px 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: var(--ink-2);
+.hm-announce .eyebrow:not(:first-child) {
+  margin-top: 10px;
 }
 .hm-chips,
 .hm-presets {
@@ -863,39 +813,4 @@
 .hm-announce-own button:disabled,
 .hm-presets button:disabled {
   opacity: 0.45;
-}
-
-.hm-notice {
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  transform: translateX(-50%);
-  z-index: 5;
-  max-width: 80%;
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: var(--shadow);
-  animation: hm-rise var(--std) var(--ease) both;
-}
-
-@keyframes hm-fade {
-  from {
-    opacity: 0;
-  }
-}
-@keyframes hm-pop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -46%) scale(0.96);
-  }
-}
-@keyframes hm-rise {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 8px);
-  }
 }
