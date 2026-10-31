@@ -104,6 +104,8 @@
   touch-action: pan-y;
 }
 .month .cell {
+  /* The chore chart's global .cell sets a fixed height; a day fills its grid row. */
+  height: auto;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
