@@ -192,7 +192,7 @@ export function TodayScreen() {
               onAdd={onAdd}
               onDay={onDay}
               onList={() => nav.go('lists')}
-              rows={layout.todayRows}
+              rows={layout.todayRows.filter((r) => !cards.some((k) => k.kind === r))}
               variant={c.w >= 5 && c.h >= 6 ? 'full' : 'short'}
               toggle={hasWeek ? undefined : toggle}
             />

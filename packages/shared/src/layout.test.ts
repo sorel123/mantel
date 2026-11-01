@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CARD_MIN,
+  CARD_STARTERS,
   DEFAULT_LAYOUT,
   LayoutSettings,
   CARD_ZOOM_MIN,
@@ -35,6 +37,7 @@ describe('resolveLayout', () => {
       monthDensity: 'roomy',
       todayRows: ['tonight', 'week'],
       todayCards: DEFAULT_TODAY_CARDS,
+      savedToday: [],
       fit: 'scale',
       scale: 1.2,
     });
@@ -144,5 +147,24 @@ describe('Custom layout half cells and sizes', () => {
     expect(cardSize(4)).toBe('4');
     expect(cardSize(4.5)).toBe('4½');
     expect(cardSize(0.5)).toBe('½');
+  });
+});
+
+describe('Saved and starter layouts', () => {
+  it('keeps saved layouts that parse and drops the rest', () => {
+    const good = { id: 'l1', name: 'Kitchen', cards: DEFAULT_TODAY_CARDS };
+    const out = resolveLayout({ savedToday: [good, { id: 'x', name: '' }] } as never);
+    expect(out.savedToday).toEqual([good]);
+    expect(resolveLayout({}).savedToday).toEqual([]);
+  });
+  it('gives starters that fit the grid without overlaps or cards below their smallest size', () => {
+    for (const s of CARD_STARTERS) {
+      expect(tidyCards(s.cards)).toHaveLength(s.cards.length);
+      for (const c of s.cards) {
+        expect(cardFits(c, s.cards)).toBe(true);
+        expect(c.w).toBeGreaterThanOrEqual(CARD_MIN[c.kind][0]);
+        expect(c.h).toBeGreaterThanOrEqual(CARD_MIN[c.kind][1]);
+      }
+    }
   });
 });

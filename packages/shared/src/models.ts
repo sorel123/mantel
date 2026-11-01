@@ -422,6 +422,14 @@ export const DEFAULT_TODAY_CARDS: TodayCard[] = [
   { id: 'agenda', kind: 'agenda', x: 4, y: 0, w: 8, h: 8 },
 ];
 
+/** A Custom Today layout saved by name. */
+export const SavedTodayLayout = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().trim().min(1).max(40),
+  cards: z.array(TodayCard).max(24),
+});
+export type SavedTodayLayout = z.infer<typeof SavedTodayLayout>;
+
 /** How tightly the Month grid packs a day: `roomy` (bigger type), `compact`, or `dense` (most events). */
 export const MonthDensity = z.enum(['roomy', 'compact', 'dense']);
 export type MonthDensity = z.infer<typeof MonthDensity>;
@@ -433,6 +441,8 @@ export const Layout = z.object({
   todayRows: z.array(TodayRow).max(5).default(['tonight', 'week']),
   /** The cards of the Custom Today layout. */
   todayCards: z.array(TodayCard).max(24).default(DEFAULT_TODAY_CARDS),
+  /** Custom Today layouts the household saved by name, to switch back to later. */
+  savedToday: z.array(SavedTodayLayout).max(20).default([]),
   fit: Fit.default('fit'),
   /** Used when `fit` is `scale`: 0.9 to 1.3. */
   scale: z.number().min(0.5).max(2).default(1),
@@ -500,6 +510,7 @@ export const Settings = z.object({
     monthDensity: 'roomy',
     todayRows: ['tonight', 'week'],
     todayCards: DEFAULT_TODAY_CARDS,
+    savedToday: [],
     fit: 'fit',
     scale: 1,
   }),

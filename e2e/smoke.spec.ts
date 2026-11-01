@@ -476,7 +476,7 @@ test('layout presets switch, and the day sheet and quick add still work in each'
   expect(problems).toEqual([]);
 });
 
-test('Your own layout: the cards from the address, and the editor moves, resizes in half cells and adds', async ({
+test('Your own layout: the cards from the address, and the editor moves, resizes, adds, saves and previews', async ({
   page,
 }) => {
   const problems = watchConsole(page);
@@ -494,9 +494,9 @@ test('Your own layout: the cards from the address, and the editor moves, resizes
   const canvas = page.getByRole('group', { name: 'Today layout' });
   await expect(canvas.getByRole('button', { name: 'Date, 4 by 2' })).toBeVisible();
 
-  // Drag the date's corner up one row to shrink it.
+  // Drag the date's bottom edge up one row to shrink it.
   await canvas.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-  const grip = canvas.getByRole('button', { name: 'Date, 4 by 2' }).locator('.ced-grip');
+  const grip = canvas.getByRole('button', { name: 'Date, 4 by 2' }).locator('.ced-h-s');
   const box = (await canvas.boundingBox())!;
   const g = (await grip.boundingBox())!;
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
@@ -531,6 +531,35 @@ test('Your own layout: the cards from the address, and the editor moves, resizes
   await expect(canvas.getByRole('button', { name: /^Photos, 4 by 2$/ })).toBeVisible();
   await page.getByRole('button', { name: 'Remove Photos' }).click();
   await expect(canvas.getByRole('button', { name: /^Photos,/ })).toHaveCount(0);
+
+  // The agenda's left edge moves right one cell: it shrinks from the left.
+  const left = (await canvas
+    .getByRole('button', { name: /^Agenda,/ })
+    .locator('.ced-h-w')
+    .boundingBox())!;
+  await page.mouse.move(left.x + left.width / 2, left.y + left.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(left.x + left.width / 2 + box.width / 12, left.y + left.height / 2, {
+    steps: 5,
+  });
+  await page.mouse.up();
+  await expect(canvas.getByRole('button', { name: 'Agenda, 7 by 8' })).toBeVisible();
+
+  // Save it by name, start from a starter, then switch back to the saved one.
+  await page.getByLabel('Layout name').fill('Our kitchen');
+  await page.getByRole('button', { name: 'Save as my layout' }).click();
+  await expect(page.getByRole('status')).toHaveText(/Saved as “Our kitchen”/);
+  await page.getByRole('button', { name: 'Start from Week at a glance' }).click();
+  await expect(canvas.getByRole('button', { name: 'Week, 12 by 6.5' })).toBeVisible();
+  await page.getByRole('button', { name: 'Use Our kitchen' }).click();
+  await expect(canvas.getByRole('button', { name: 'Agenda, 7 by 8' })).toBeVisible();
+
+  // The preview shows the real Today screen with this layout.
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  const frame = page.frameLocator('iframe[title="Preview of Today"]');
+  await expect(frame.locator('.today[data-preset="custom"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Delete Our kitchen' }).click();
+  await expect(page.getByRole('button', { name: 'Use Our kitchen' })).toHaveCount(0);
 
   expect(problems).toEqual([]);
 });

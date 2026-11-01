@@ -57,6 +57,7 @@ export function settings(): Settings {
       monthDensity: 'roomy',
       todayRows: ['tonight', 'week'],
       todayCards: DEFAULT_TODAY_CARDS,
+      savedToday: [],
       fit: 'fit',
       scale: 1,
     },
