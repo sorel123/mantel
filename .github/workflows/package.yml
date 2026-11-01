@@ -48,6 +48,18 @@ jobs:
       - name: Assemble the bundle
         run: node packaging/build-bundle.mjs dist/bundle "${{ steps.v.outputs.version }}"
 
+      - name: Check the PowerShell scripts parse
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem packaging\windows\*.ps1, deploy\kiosk\surface\*.ps1 | ForEach-Object {
+            $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref] $null, [ref] $errs) | Out-Null
+            if ($errs) { $bad++; $errs | ForEach-Object { Write-Host "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)" } }
+          }
+          if ($bad) { throw "$bad script(s) have syntax errors" }
+
       - name: Windows installer
         if: runner.os == 'Windows'
         shell: pwsh
@@ -95,6 +107,8 @@ jobs:
           if (-not $ok) { Get-Content "$env:RUNNER_TEMP\err.log", "$env:RUNNER_TEMP\out.log"; throw 'server did not start' }
           $r = Invoke-RestMethod -Method Post "http://127.0.0.1:8791/api/pair/local?name=ci"
           if (-not $r.deviceKey) { throw 'local pairing failed' }
+          $st = powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\tray.ps1 -Status -Port 8791 | ConvertFrom-Json
+          if (-not $st.running -or $st.port -ne 8791) { throw "tray status wrong: $($st | ConvertTo-Json)" }
           Stop-Process $p -Force
 
       - uses: actions/upload-artifact@v4

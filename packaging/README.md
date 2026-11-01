@@ -21,9 +21,15 @@ Everything is on the [Releases page](https://github.com/sorel123/mantel/releases
    the setup wizard walks through the rest.
 3. For a wall display, also tick **Open Mantel full screen when I sign in**, and install
    Chrome first (kiosk mode uses it; Edge's kiosk mode forgets the display's key).
-4. Tablets and phones on the home network open `http://<this PC's name or IP>:8787` and enter the
+4. A small icon appears near the clock (the **Mantel status icon**; it starts at sign-in). It
+   is green while the server answers and grey when it does not, with a balloon when that
+   changes. Right-click it for the address and port (click the address to copy it), **Open
+   Mantel** full screen, in a window or Settings, a **Start when Windows starts** checkbox,
+   **Start/Stop server**, and **Change port**. Starting, stopping and the port change ask
+   Windows for permission once each time. Closing the icon leaves the server running.
+5. Tablets and phones on the home network open `http://<this PC's name or IP>:8787` and enter the
    admin PIN chosen in the wizard. Windows asks to allow the network once; the installer opens
-   port 8787 for private networks only.
+   the port (8787 unless you change it) for private networks only.
 
 Settings, keys and photos live in `C:\ProgramData\Mantel`. Upgrades and uninstalls leave that
 folder alone; the log is `server.log` there. To update, run the newer setup file over the old
