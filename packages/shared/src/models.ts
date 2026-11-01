@@ -379,6 +379,10 @@ export type MonthPreset = z.infer<typeof MonthPreset>;
 /** `fit`: letterbox the panel. `fill`: stretch the grid to the viewport. `scale`: fixed factor. */
 export const Fit = z.enum(['fit', 'fill', 'scale']);
 export type Fit = z.infer<typeof Fit>;
+/** Rows under today's agenda on the Agenda and Photo layouts, top to bottom. */
+export const TodayRow = z.enum(['tonight', 'week', 'countdowns', 'list', 'photo']);
+export type TodayRow = z.infer<typeof TodayRow>;
+export const DEFAULT_TODAY_ROWS: TodayRow[] = ['tonight', 'week'];
 /** How tightly the Month grid packs a day: `roomy` (bigger type) or `compact` (more events). */
 export const MonthDensity = z.enum(['roomy', 'compact']);
 export type MonthDensity = z.infer<typeof MonthDensity>;
@@ -387,6 +391,7 @@ export const Layout = z.object({
   todayPreset: TodayPreset.default('agenda'),
   monthPreset: MonthPreset.default('grid'),
   monthDensity: MonthDensity.default('roomy'),
+  todayRows: z.array(TodayRow).max(5).default(['tonight', 'week']),
   fit: Fit.default('fit'),
   /** Used when `fit` is `scale`: 0.9 to 1.3. */
   scale: z.number().min(0.5).max(2).default(1),
@@ -452,6 +457,7 @@ export const Settings = z.object({
     todayPreset: 'agenda',
     monthPreset: 'grid',
     monthDensity: 'roomy',
+    todayRows: ['tonight', 'week'],
     fit: 'fit',
     scale: 1,
   }),

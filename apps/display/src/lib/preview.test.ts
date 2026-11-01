@@ -17,6 +17,7 @@ describe('preview on the wall', () => {
         todayPreset: 'family',
         monthPreset: 'week',
         monthDensity: 'compact',
+        todayRows: ['photo', 'week'],
         fit: 'scale',
         scale: 1.1,
       },
@@ -30,6 +31,7 @@ describe('preview on the wall', () => {
       todayPreset: 'family',
       monthPreset: 'week',
       monthDensity: 'compact',
+      todayRows: ['photo', 'week'],
       fit: 'scale',
       scale: 1.1,
     });

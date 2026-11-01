@@ -58,6 +58,21 @@ export const todayLayouts: Record<TodayPreset, PresetLayout<TodayPreset>> = {
   },
 };
 
+/**
+ * Today's Week view (the Day/Week switch on the agenda): the date and weather on one line,
+ * the Month screen's seven-day strip across the whole width.
+ */
+export const todayWeekLayout: PresetLayout = {
+  id: 'week',
+  rows: 'auto minmax(0, 1fr)',
+  areas: '"top" "board"',
+  gap: 'gap',
+  regions: [
+    { area: 'top', slots: ['date-line', 'weather-line'], direction: 'row' },
+    { area: 'board', slots: ['week-strip'] },
+  ],
+};
+
 /** Month's slots: `month-grid` (six weeks) and `week-strip` (seven days with full agendas). */
 export const monthLayouts: Record<MonthPreset, PresetLayout<MonthPreset>> = {
   grid: { id: 'grid', areas: '"cal"', regions: [{ area: 'cal', slots: ['month-grid'] }] },

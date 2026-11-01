@@ -132,6 +132,20 @@ describe('Today', () => {
     expect(new Date(q.url.searchParams.get('from')!).getTime()).toBe(startOfDay(NOW).getTime());
   });
 
+  it('flips to the week strip and back', async () => {
+    mount(<TodayScreen />);
+    const views = await screen.findByRole('group', { name: 'Today view' });
+    fireEvent.click(within(views).getByRole('button', { name: 'Week' }));
+    expect(await screen.findByRole('list', { name: /^Week of October 25/ })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Today' })).toBeNull();
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Today view' })).getByRole('button', {
+        name: 'Day',
+      }),
+    );
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeTruthy();
+  });
+
   it('opens quick add for today and posts the event', async () => {
     mount(<TodayScreen />);
     fireEvent.click(await screen.findByRole('button', { name: 'Add an event today' }));

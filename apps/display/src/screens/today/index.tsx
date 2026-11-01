@@ -4,16 +4,18 @@
  * preset shares the data hooks; `?today=<preset>` on the display's address pins one.
  */
 import { addDays, startOfDay } from '@mantel/shared';
-import { Component, type ReactNode } from 'react';
+import { Component, useState, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
-import { Slots, todayLayouts, useLayout } from '../../app/layout';
+import { Slots, todayLayouts, todayWeekLayout, useLayout } from '../../app/layout';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useNav } from '../../app/nav';
 import { WeatherCard, useWeather } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
 import { useDaySheet } from '../month/DaySheet';
+import { WeekStrip } from '../month/WeekStrip';
+import '../month/month.css';
 import { Agenda, Countdowns, TonightSlot } from './Agenda';
 import { AmbientNextEvent } from './AmbientNext';
 import { Bill } from './Bill';
@@ -29,6 +31,28 @@ import './presets.css';
 // Ambient shows the next event under the weather line.
 registerAmbientSlot({ id: 'next-event', Component: AmbientNextEvent, order: 1 });
 
+type View = 'day' | 'week';
+/** Day or Week, remembered while the display runs (leaving Today and coming back keeps it). */
+let chosenView: View = 'day';
+
+function ViewToggle({ value, onChange }: { value: View; onChange: (v: View) => void }) {
+  return (
+    <div className="seg view-toggle" role="group" aria-label="Today view">
+      {(['day', 'week'] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          className="btn"
+          aria-pressed={value === v}
+          onClick={() => onChange(v)}
+        >
+          {v === 'day' ? 'Day' : 'Week'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function TodayScreen() {
   const now = useNow(30_000);
   const today = startOfDay(now);
@@ -36,7 +60,14 @@ export function TodayScreen() {
   const openDay = useDaySheet();
   const nav = useNav();
   const boot = useBootstrap();
-  const preset = useLayout().todayPreset;
+  const layout = useLayout();
+  const preset = layout.todayPreset;
+  const [view, setViewState] = useState<View>(chosenView);
+  const setView = (v: View) => {
+    chosenView = v;
+    setViewState(v);
+  };
+  const toggle = <ViewToggle value={view} onChange={setView} />;
   const weather = useWeather();
   const onAdd = () => openDay(today, { add: true });
   const onDay = (day: Date) => openDay(day);
@@ -75,17 +106,26 @@ export function TodayScreen() {
             <WeekAhead />
           </Guard>
         );
+      case 'week-strip':
+        return (
+          <div className="cal month today-week">
+            <WeekStrip toggle={toggle} />
+          </div>
+        );
       case 'agenda':
-      case 'agenda-short':
         return (
           <Agenda
             now={now}
             events={events}
             onAdd={onAdd}
             onDay={onDay}
-            variant={slot === 'agenda' ? 'full' : 'short'}
+            onList={() => nav.go('lists')}
+            rows={layout.todayRows}
+            toggle={toggle}
           />
         );
+      case 'agenda-short':
+        return <Agenda now={now} events={events} onAdd={onAdd} onDay={onDay} variant="short" />;
       case 'grocery':
         return (
           <Guard name="grocery">
@@ -117,7 +157,11 @@ export function TodayScreen() {
     }
   };
 
-  return <Slots className="cal today" layout={todayLayouts[preset]} render={render} />;
+  // Week swaps the whole screen for the date and weather on a line over the seven-day strip;
+  // only layouts with the full agenda (which carries the switch) offer it.
+  const hasSwitch = todayLayouts[preset].regions.some((r) => r.slots.includes('agenda'));
+  const layoutNow = view === 'week' && hasSwitch ? todayWeekLayout : todayLayouts[preset];
+  return <Slots className="cal today" layout={layoutNow} render={render} />;
 }
 
 /**

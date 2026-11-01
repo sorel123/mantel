@@ -11,12 +11,14 @@ import {
   SCALE_MIN,
   SCALE_STEP,
   TODAY_PRESETS,
+  TODAY_ROWS,
   type Fit,
   type LayoutSettings,
   type MonthDensity,
   type MonthPreset,
   type PresetInfo,
   type TodayPreset,
+  type TodayRow,
 } from '@mantel/shared';
 import type { ComponentType, CSSProperties } from 'react';
 import { openPreview } from '../../../lib/preview';
@@ -46,6 +48,12 @@ export function LayoutSection({
         Thumb={TodayThumb}
         onChange={(todayPreset) => onChange({ ...value, todayPreset })}
       />
+      {(value.todayPreset === 'agenda' || value.todayPreset === 'photo') && (
+        <RowsPicker
+          value={value.todayRows ?? ['tonight', 'week']}
+          onChange={(todayRows) => onChange({ ...value, todayRows })}
+        />
+      )}
       <Picker<MonthPreset>
         label="Month screen"
         options={MONTH_PRESETS}
@@ -169,6 +177,81 @@ function Picker<T extends string>({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The rows under today's agenda, in order: each chosen row with up, down and remove, and the
+ * rest as chips to add. The last stretchy row (photo, next days, list) takes the spare room.
+ */
+function RowsPicker({ value, onChange }: { value: TodayRow[]; onChange: (v: TodayRow[]) => void }) {
+  const name = (id: TodayRow) => TODAY_ROWS.find((r) => r.id === id)?.name ?? id;
+  const move = (i: number, by: number) => {
+    const next = [...value];
+    const [r] = next.splice(i, 1);
+    next.splice(i + by, 0, r!);
+    onChange(next);
+  };
+  const unused = TODAY_ROWS.filter((r) => !value.includes(r.id));
+  return (
+    <div className="set-sub">
+      <div className="set-label">
+        Under today&rsquo;s agenda
+        <span className="set-hint">
+          Rows below the day&rsquo;s events, top to bottom. The events take only the room they need;
+          a photo, the next days or a list fills the rest.
+        </span>
+      </div>
+      <ol className="lay-rows" aria-label="Rows under the agenda">
+        {value.map((id, i) => (
+          <li key={id}>
+            <b>{name(id)}</b>
+            <button
+              type="button"
+              className="set-btn quiet"
+              aria-label={`Move ${name(id)} up`}
+              disabled={i === 0}
+              onClick={() => move(i, -1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className="set-btn quiet"
+              aria-label={`Move ${name(id)} down`}
+              disabled={i === value.length - 1}
+              onClick={() => move(i, 1)}
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              className="set-btn quiet"
+              aria-label={`Remove ${name(id)}`}
+              onClick={() => onChange(value.filter((r) => r !== id))}
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+        {value.length === 0 && <li className="none">Just the day&rsquo;s events.</li>}
+      </ol>
+      {unused.length > 0 && (
+        <div className="lay-addrow" role="group" aria-label="Add a row">
+          {unused.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              className="set-btn"
+              title={r.description}
+              onClick={() => onChange([...value, r.id])}
+            >
+              + {r.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

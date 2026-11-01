@@ -1,10 +1,14 @@
 /**
  * The agenda card: all-day bands, countdown chips, a timeline with the now line and leave-by
- * chips, tonight's meal, and (in the full variant) the next three days with their dinners.
+ * chips, then (in the full variant) the rows chosen in Settings › Layout: tonight's meal, the
+ * next three days, countdowns, the pinned list, a photo. The timeline takes only the room its
+ * events need; the last stretchy row (photo, the next days, the list) takes the rest.
  */
-import type { CalendarEvent, Meal } from '@mantel/shared';
-import { addDays, startOfDay, toIsoDate } from '@mantel/shared';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import type { CalendarEvent, Meal, TodayRow } from '@mantel/shared';
+import { DEFAULT_TODAY_ROWS, addDays, startOfDay, toIsoDate } from '@mantel/shared';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { PhotoSlideshow } from '../../features/photos';
+import { GroceryPeek } from '../lists/GroceryPeek';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { LeaveByChip, matchLeaveBy, useCommute } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
@@ -95,14 +99,23 @@ export function Agenda({
   events,
   onAdd,
   onDay,
+  onList,
   variant = 'full',
+  rows: chosen = DEFAULT_TODAY_ROWS,
+  toggle,
 }: {
   now: Date;
   events: CalendarEvent[];
   onAdd: () => void;
   onDay: (day: Date) => void;
-  /** `short` leaves out the next three days, for presets that give the agenda less room. */
+  /** Tapping the list row (opens the Lists screen). */
+  onList?: () => void;
+  /** `short` is the timeline and tonight alone, for presets that give the agenda less room. */
   variant?: 'full' | 'short';
+  /** The rows under the timeline in the full variant, top to bottom. */
+  rows?: TodayRow[];
+  /** The Day/Week switch, shown in the header. */
+  toggle?: ReactNode;
 }) {
   const boot = useBootstrap();
   const today = startOfDay(now);
@@ -150,8 +163,46 @@ export function Agenda({
   });
   rows.splice(nowIndex === -1 ? rows.length : nowIndex, 0, line);
 
+  const full = variant === 'full';
+  const extra: TodayRow[] = full ? chosen : ['tonight'];
+  // The one row that stretches into the room the timeline doesn't need.
+  const grow = (['photo', 'week', 'list'] as const).find((r) => extra.includes(r));
+  const row = (r: TodayRow): ReactNode => {
+    const g = r === grow ? ' grow' : '';
+    switch (r) {
+      case 'tonight':
+        return boot.flags.meals ? <Tonight key={r} meals={meals.get(toIsoDate(today))} /> : null;
+      case 'countdowns':
+        return boot.flags.countdowns ? <Countdowns key={r} /> : null;
+      case 'week':
+        return (
+          <Upcoming
+            key={r}
+            className={g}
+            today={today}
+            events={events}
+            meals={meals}
+            onDay={onDay}
+            perDay={grow === 'week' ? 5 : 2}
+          />
+        );
+      case 'list':
+        return (
+          <div key={r} className={`arow list${g}`}>
+            <GroceryPeek onOpen={onList} />
+          </div>
+        );
+      case 'photo':
+        return (
+          <div key={r} className={`arow photo${g}`} aria-label="Photos">
+            <PhotoSlideshow intervalMs={20_000} />
+          </div>
+        );
+    }
+  };
+
   return (
-    <div className={`card agenda${variant === 'short' ? ' short' : ''}`}>
+    <div className={`card agenda${full ? '' : ' short'}${grow ? ' has-grow' : ''}`}>
       <div className="head">
         <div className="l">
           <h2 className="h2">Today</h2>
@@ -162,6 +213,7 @@ export function Agenda({
           </span>
         </div>
         <div className="r">
+          {toggle}
           <Avatars ids={boot.people.map((p) => p.id)} />
           <button className="add" aria-label="Add an event today" onClick={onAdd}>
             <Svg>{Icon.plus}</Svg>
@@ -179,7 +231,7 @@ export function Agenda({
           ))}
         </div>
       )}
-      {boot.flags.countdowns && <Countdowns />}
+      {boot.flags.countdowns && !(full && extra.includes('countdowns')) && <Countdowns />}
       <div className="tl" ref={tl}>
         {boot.calendars.length === 0 ? (
           <EmptyState icon={EmptyIcon.calendar} action="Connect a calendar" section="calendars">
@@ -189,40 +241,59 @@ export function Agenda({
           rows
         )}
       </div>
-      {boot.flags.meals && <Tonight meals={meals.get(toIsoDate(today))} />}
-      {variant === 'full' && (
-        <div className="upcoming">
-          {[1, 2, 3].map((n) => {
-            const d = addDays(today, n);
-            const es = eventsOn(events, d);
-            const meal = boot.flags.meals ? mainMeal(meals.get(toIsoDate(d))) : undefined;
-            return (
-              <button key={n} className="d" onClick={() => onDay(d)}>
-                <div className="dh">
-                  <b>{n === 1 ? 'Tomorrow' : dayNames[d.getDay()]}</b>
-                  <span className="tnum">
-                    {monthNames[d.getMonth()]!.slice(0, 3)} {d.getDate()}
-                  </span>
-                </div>
-                {es.slice(0, 2).map((e) => (
-                  <div key={e.id} className="r" style={pc(e.color)}>
-                    <i />
-                    {e.allDay ? 'All day' : formatTime(new Date(e.start))} · {e.title}
-                  </div>
-                ))}
-                {es.length > 2 && <div className="r more">+{es.length - 2} more</div>}
-                {es.length === 0 && <div className="r none">Nothing planned</div>}
-                {meal && (
-                  <div className="r meal">
-                    <Svg>{Icon.meal}</Svg>
-                    {meal.title}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {extra.map(row)}
+    </div>
+  );
+}
+
+/** The next three days as cards, each with its first events and dinner. */
+function Upcoming({
+  className,
+  today,
+  events,
+  meals,
+  onDay,
+  perDay,
+}: {
+  className: string;
+  today: Date;
+  events: CalendarEvent[];
+  meals: Map<string, Meal[]>;
+  onDay: (day: Date) => void;
+  perDay: number;
+}) {
+  const boot = useBootstrap();
+  return (
+    <div className={`upcoming${className}`}>
+      {[1, 2, 3].map((n) => {
+        const d = addDays(today, n);
+        const es = eventsOn(events, d);
+        const meal = boot.flags.meals ? mainMeal(meals.get(toIsoDate(d))) : undefined;
+        return (
+          <button key={n} className="d" onClick={() => onDay(d)}>
+            <div className="dh">
+              <b>{n === 1 ? 'Tomorrow' : dayNames[d.getDay()]}</b>
+              <span className="tnum">
+                {monthNames[d.getMonth()]!.slice(0, 3)} {d.getDate()}
+              </span>
+            </div>
+            {es.slice(0, perDay).map((e) => (
+              <div key={e.id} className="r" style={pc(e.color)}>
+                <i />
+                {e.allDay ? 'All day' : formatTime(new Date(e.start))} · {e.title}
+              </div>
+            ))}
+            {es.length > perDay && <div className="r more">+{es.length - perDay} more</div>}
+            {es.length === 0 && <div className="r none">Nothing planned</div>}
+            {meal && (
+              <div className="r meal">
+                <Svg>{Icon.meal}</Svg>
+                {meal.title}
+              </div>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
