@@ -1,8 +1,8 @@
 /**
  * Weather pieces for presets other than Agenda, built on the weather feature's exports: a
- * one-line summary, and the week ahead (twelve hours plus seven days) for Weather focus.
+ * one-line summary, and the next seven days for Weather focus (the card above has the hours).
  */
-import { HourlyStrip, WeatherIcon, outlook, useWeather } from '../../features/weather';
+import { WeatherIcon, outlook, useWeather } from '../../features/weather';
 import { dayNames } from './calendar';
 
 export function WeatherLine({ now }: { now: Date }) {
@@ -26,11 +26,10 @@ export function WeatherLine({ now }: { now: Date }) {
 
 export function WeekAhead() {
   const w = useWeather().data;
-  if (!w) return <div className="card ahead is-loading" aria-busy="true" />;
+  if (!w) return <div className="card wahead is-loading" aria-busy="true" />;
   const todayIso = w.daily[0]?.date;
   return (
-    <section className="card ahead" aria-label="The week ahead">
-      <HourlyStrip weather={w} hours={12} />
+    <section className="card wahead" aria-label="The week ahead">
       <ul className="days" aria-label="Next seven days">
         {w.daily.slice(0, 7).map((d) => {
           const date = new Date(`${d.date}T12:00:00`);

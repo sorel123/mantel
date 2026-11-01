@@ -161,8 +161,9 @@ function DayColumn({
             >
               <i />
               <span className="wt">
+                {/* All-day events are tinted, so they need no "All day" label. */}
                 {e.allDay ? (
-                  <b>{span ?? 'All day'}</b>
+                  span && <b>{span}</b>
                 ) : (
                   <b className="tnum">{formatTime(new Date(e.start))}</b>
                 )}

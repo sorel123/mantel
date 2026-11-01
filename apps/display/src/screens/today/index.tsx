@@ -7,7 +7,7 @@ import { addDays, startOfDay } from '@mantel/shared';
 import { Component, useState, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
-import { Slots, todayLayouts, todayWeekLayout, useLayout } from '../../app/layout';
+import { Slots, todayLayouts, todayWeekLayouts, useLayout } from '../../app/layout';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useNav } from '../../app/nav';
 import { WeatherCard, useWeather } from '../../features/weather';
@@ -125,7 +125,16 @@ export function TodayScreen() {
           />
         );
       case 'agenda-short':
-        return <Agenda now={now} events={events} onAdd={onAdd} onDay={onDay} variant="short" />;
+        return (
+          <Agenda
+            now={now}
+            events={events}
+            onAdd={onAdd}
+            onDay={onDay}
+            variant="short"
+            toggle={toggle}
+          />
+        );
       case 'grocery':
         return (
           <Guard name="grocery">
@@ -157,11 +166,13 @@ export function TodayScreen() {
     }
   };
 
-  // Week swaps the whole screen for the date and weather on a line over the seven-day strip;
-  // only layouts with the full agenda (which carries the switch) offer it.
-  const hasSwitch = todayLayouts[preset].regions.some((r) => r.slots.includes('agenda'));
-  const layoutNow = view === 'week' && hasSwitch ? todayWeekLayout : todayLayouts[preset];
-  return <Slots className="cal today" layout={layoutNow} render={render} />;
+  // Week puts the seven-day strip where the agenda was, on layouts that have an agenda.
+  const weekLayout = todayWeekLayouts[preset];
+  const week = view === 'week' && weekLayout;
+  const layoutNow = week ? weekLayout : todayLayouts[preset];
+  return (
+    <Slots className={`cal today${week ? ' week-view' : ''}`} layout={layoutNow} render={render} />
+  );
 }
 
 /**

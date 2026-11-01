@@ -214,7 +214,8 @@ export function Agenda({
         </div>
         <div className="r">
           {toggle}
-          <Avatars ids={boot.people.map((p) => p.id)} />
+          {/* The narrow agenda keeps its header to the switch and the add button. */}
+          {full && <Avatars ids={boot.people.map((p) => p.id)} />}
           <button className="add" aria-label="Add an event today" onClick={onAdd}>
             <Svg>{Icon.plus}</Svg>
           </button>

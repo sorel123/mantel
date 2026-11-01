@@ -17,7 +17,7 @@ body.phone {
 .addpage .h1 {
   font-size: 34px;
 }
-.ahead {
+.addpage .ahead {
   padding: 10px 4px 0;
   display: flex;
   flex-direction: column;

@@ -31,6 +31,16 @@ describe('weeksIn', () => {
     expect(weeksIn(new Date(2026, 7, 1))).toBe(6); // Aug 2026 starts Saturday, 31 days
     expect(weeksIn(new Date(2026, 1, 1))).toBe(4); // Feb 2026 starts Sunday, 28 days
   });
+
+  it('puts a day event in a lane no bar uses that day', () => {
+    // Sun-Mon in lane 0, Mon-Sat in lane 1: Tuesday has lane 0 free.
+    const short = allDay('2026-11-01', 2, 'Short');
+    const long = allDay('2026-11-02', 6, 'Long');
+    const one = ev(new Date(2026, 10, 3, 9).toISOString(), new Date(2026, 10, 3, 10).toISOString());
+    const [w0] = layoutWeeks(start, 5, [short, long, one]);
+    expect(w0!.bars.map((b) => b.lane)).toEqual([0, 1]);
+    expect(fillDay(w0!, 2, 4)).toEqual({ slots: [one, null], more: 0 });
+  });
 });
 
 describe('layoutWeeks', () => {
@@ -71,6 +81,16 @@ describe('layoutWeeks', () => {
     expect(lane('B')).toBe(1);
     expect(lane('C')).toBe(0);
   });
+
+  it('puts a day event in a lane no bar uses that day', () => {
+    // Sun-Mon in lane 0, Mon-Sat in lane 1: Tuesday has lane 0 free.
+    const short = allDay('2026-11-01', 2, 'Short');
+    const long = allDay('2026-11-02', 6, 'Long');
+    const one = ev(new Date(2026, 10, 3, 9).toISOString(), new Date(2026, 10, 3, 10).toISOString());
+    const [w0] = layoutWeeks(start, 5, [short, long, one]);
+    expect(w0!.bars.map((b) => b.lane)).toEqual([0, 1]);
+    expect(fillDay(w0!, 2, 4)).toEqual({ slots: [one, null], more: 0 });
+  });
 });
 
 describe('fillDay', () => {
@@ -81,9 +101,20 @@ describe('fillDay', () => {
     );
     const [w0] = layoutWeeks(start, 5, [bar, ...pills]);
     // Tuesday: one bar, four pills, three rows: the bar, one pill, "+3 more".
-    expect(fillDay(w0!, 2, 3)).toMatchObject({ lanes: 1, more: 3 });
-    expect(fillDay(w0!, 2, 3).pills).toHaveLength(1);
+    const three = fillDay(w0!, 2, 3);
+    expect(three.more).toBe(3);
+    expect(three.slots).toEqual([null, pills[0]]);
     // Five rows: the bar and all four pills.
-    expect(fillDay(w0!, 2, 5)).toMatchObject({ lanes: 1, more: 0 });
+    expect(fillDay(w0!, 2, 5)).toEqual({ slots: [null, ...pills], more: 0 });
+  });
+
+  it('puts a day event in a lane no bar uses that day', () => {
+    // Sun-Mon in lane 0, Mon-Sat in lane 1: Tuesday has lane 0 free.
+    const short = allDay('2026-11-01', 2, 'Short');
+    const long = allDay('2026-11-02', 6, 'Long');
+    const one = ev(new Date(2026, 10, 3, 9).toISOString(), new Date(2026, 10, 3, 10).toISOString());
+    const [w0] = layoutWeeks(start, 5, [short, long, one]);
+    expect(w0!.bars.map((b) => b.lane)).toEqual([0, 1]);
+    expect(fillDay(w0!, 2, 4)).toEqual({ slots: [one, null], more: 0 });
   });
 });

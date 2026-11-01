@@ -165,7 +165,7 @@ function DayCell({
   const cls = ['cell', out && 'out', isToday && 'is-today', selected && 'sel']
     .filter(Boolean)
     .join(' ');
-  const { lanes, pills, more } = fillDay(week, col, fit);
+  const { slots, more } = fillDay(week, col, fit);
   const total =
     week.bars.filter((b) => b.from <= col && b.to >= col).length + week.singles[col]!.length;
   return (
@@ -177,17 +177,18 @@ function DayCell({
       onClick={onOpen}
     >
       <span className="n tnum">{day.getDate()}</span>
-      {lanes > 0 && (
-        <span className="lanes" aria-hidden="true" style={{ '--lanes': lanes } as CSSProperties} />
+      {slots.map((e, i) =>
+        e ? (
+          <span key={e.id} className="pill" style={pc(e.color)}>
+            {!e.allDay && new Date(e.start) >= day && (
+              <span className="tnum">{formatTime(new Date(e.start), true)} </span>
+            )}
+            {e.title}
+          </span>
+        ) : (
+          <span key={`bar${i}`} className="under-bar" aria-hidden="true" />
+        ),
       )}
-      {pills.map((e) => (
-        <span key={e.id} className="pill" style={pc(e.color)}>
-          {!e.allDay && new Date(e.start) >= day && (
-            <span className="tnum">{formatTime(new Date(e.start), true)} </span>
-          )}
-          {e.title}
-        </span>
-      ))}
       {more > 0 && <span className="pill more">+{more} more</span>}
     </button>
   );
