@@ -1,3 +1,4 @@
+import { SkinDecor } from '../../../app/SkinDecor';
 import { FONTS, type Skin } from '@mantel/shared';
 import type { CSSProperties } from 'react';
 import type { Mode } from '../../../lib/theme';
@@ -43,6 +44,7 @@ export function SkinTile({
 }) {
   const art = (
     <div className="sk-art" data-card-style={skin.cardStyle} style={skinVars(skin, mode)}>
+      <SkinDecor skin={skin} />
       <div className="sk-head">
         <span className="sk-aa">Aa</span>
         <span className="sk-dot" />
