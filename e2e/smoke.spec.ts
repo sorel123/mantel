@@ -476,7 +476,7 @@ test('layout presets switch, and the day sheet and quick add still work in each'
   expect(problems).toEqual([]);
 });
 
-test('Your own layout: the cards from the address, and the editor moves, resizes and adds', async ({
+test('Your own layout: the cards from the address, and the editor moves, resizes in half cells and adds', async ({
   page,
 }) => {
   const problems = watchConsole(page);
@@ -510,9 +510,18 @@ test('Your own layout: the cards from the address, and the editor moves, resizes
   await weather.focus();
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('status').filter({ hasText: 'cover another card' })).toBeVisible();
+  // Keys go in half cells.
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Shift+ArrowUp');
+  await expect(canvas.getByRole('button', { name: 'Weather, 4 by 3.5' })).toBeVisible();
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Shift+ArrowUp');
   await expect(canvas.getByRole('button', { name: 'Weather, 4 by 3' })).toBeVisible();
+
+  // A card stops at its smallest readable size.
+  await canvas.getByRole('button', { name: 'Date, 4 by 1' }).focus();
+  await page.keyboard.press('Shift+ArrowUp');
+  await expect(page.getByRole('status')).toHaveText(/Date can't get smaller than 2 by 1/);
 
   // Add photos into the room that frees, then remove it again.
   await page

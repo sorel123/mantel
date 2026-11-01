@@ -535,13 +535,13 @@
   white-space: nowrap;
 }
 .slots.card-grid
-  .region[data-region='date']:is([data-w='1'], [data-w='2'], [data-w='3'])
+  .region[data-region='date']:is([data-w='2'], [data-w='2.5'], [data-w='3'])
   .dateline
   .wd {
   font-size: 18px;
 }
 .slots.card-grid
-  .region[data-region='date']:is([data-w='1'], [data-w='2'], [data-w='3'])
+  .region[data-region='date']:is([data-w='2'], [data-w='2.5'], [data-w='3'])
   .dateline
   b {
   font-size: 28px;

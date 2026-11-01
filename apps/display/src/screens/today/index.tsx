@@ -3,7 +3,7 @@
  * agenda, grocery, photo, people columns and the poster's bill as the chosen preset says. Every
  * preset shares the data hooks; `?today=<preset>` on the display's address pins one.
  */
-import { addDays, startOfDay, type TodayCard } from '@mantel/shared';
+import { addDays, cardZoom, startOfDay, type TodayCard } from '@mantel/shared';
 import { Component, useState, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
@@ -176,7 +176,7 @@ export function TodayScreen() {
         case 'date':
           return c.h >= 2 && c.w >= 3 ? render('date') : render('date-line');
         case 'weather':
-          return c.h >= 3 && c.w >= 3 ? (
+          return bigWeather(c) ? (
             render('weather')
           ) : (
             <div className="card cc-line">{render('weather-line')}</div>
@@ -232,6 +232,7 @@ export function TodayScreen() {
         className={`cal today${view === 'week' && !hasWeek ? ' week-view' : ''}`}
         cards={cards}
         render={renderCard}
+        zoom={(c) => cardZoom(c, c.kind === 'weather' && !bigWeather(c) ? 'line' : undefined)}
       />
     );
   }
@@ -244,6 +245,9 @@ export function TodayScreen() {
     <Slots className={`cal today${week ? ' week-view' : ''}`} layout={layoutNow} render={render} />
   );
 }
+
+/** A Custom weather card big enough for the full card; smaller ones are one line. */
+const bigWeather = (c: TodayCard) => c.h >= 3.5 && c.w >= 3;
 
 /**
  * Cards from other workstreams sit inside this, so one that throws leaves an empty slot

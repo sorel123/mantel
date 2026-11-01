@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_LAYOUT,
   LayoutSettings,
+  CARD_ZOOM_MIN,
   cardFits,
+  cardSize,
+  cardZoom,
   cardsFromParam,
   cardsToParam,
   findSpot,
@@ -109,5 +112,37 @@ describe('Custom layout cards', () => {
       todayPreset: 'custom',
       todayCards: [{ id: 'photo-0', kind: 'photo', x: 0, y: 0, w: 6, h: 8 }],
     });
+  });
+});
+
+describe('Custom layout half cells and sizes', () => {
+  it('takes half cells and writes them in the address with underscores', () => {
+    const cards = [
+      { id: 'date', kind: 'date' as const, x: 0, y: 0, w: 3.5, h: 1 },
+      { id: 'agenda', kind: 'agenda' as const, x: 3.5, y: 0, w: 8.5, h: 8 },
+    ];
+    const param = cardsToParam(cards);
+    expect(param).toBe('date:0_0_3.5_1,agenda:3.5_0_8.5_8');
+    expect(cardsFromParam(param).map(({ x, y, w, h }) => [x, y, w, h])).toEqual([
+      [0, 0, 3.5, 1],
+      [3.5, 0, 8.5, 8],
+    ]);
+    expect(cardsFromParam('date:0_0_3.3_1')).toEqual([]);
+  });
+  it('finds a spot on a half cell', () => {
+    const cards = [{ id: 'a', kind: 'agenda' as const, x: 0, y: 0, w: 11.5, h: 8 }];
+    expect(findSpot(cards, 0.5, 1)).toEqual({ x: 11.5, y: 0 });
+  });
+  it('shrinks a small card a little, never below the floor', () => {
+    expect(cardZoom({ kind: 'agenda', w: 8, h: 8 })).toBe(1);
+    expect(cardZoom({ kind: 'agenda', w: 5, h: 6 })).toBeCloseTo(0.91, 2);
+    expect(cardZoom({ kind: 'agenda', w: 3, h: 3 })).toBe(CARD_ZOOM_MIN);
+    expect(cardZoom({ kind: 'photo', w: 2, h: 2 })).toBe(1);
+    expect(cardZoom({ kind: 'weather', w: 3, h: 1 }, 'line')).toBe(0.75);
+  });
+  it('writes sizes for people', () => {
+    expect(cardSize(4)).toBe('4');
+    expect(cardSize(4.5)).toBe('4½');
+    expect(cardSize(0.5)).toBe('½');
   });
 });

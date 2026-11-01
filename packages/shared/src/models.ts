@@ -385,7 +385,7 @@ export type TodayRow = z.infer<typeof TodayRow>;
 export const DEFAULT_TODAY_ROWS: TodayRow[] = ['tonight', 'week'];
 /**
  * The Custom Today layout: cards placed on a grid of `TODAY_GRID_COLS` by `TODAY_GRID_ROWS` cells.
- * x and y are the top-left cell (from 0), w and h the size in cells.
+ * x and y are the top-left cell (from 0), w and h the size in cells; all in half-cell steps.
  */
 export const TODAY_GRID_COLS = 12;
 export const TODAY_GRID_ROWS = 8;
@@ -401,21 +401,17 @@ export const TodayCardKind = z.enum([
   'tonight',
 ]);
 export type TodayCardKind = z.infer<typeof TodayCardKind>;
+/** Cards move and resize in half cells. */
+export const TODAY_CARD_STEP = 0.5;
+const cardUnit = (min: number, max: number) =>
+  z.number().multipleOf(TODAY_CARD_STEP).min(min).max(max);
 export const TodayCard = z.object({
   id: z.string().min(1).max(40),
   kind: TodayCardKind,
-  x: z
-    .number()
-    .int()
-    .min(0)
-    .max(TODAY_GRID_COLS - 1),
-  y: z
-    .number()
-    .int()
-    .min(0)
-    .max(TODAY_GRID_ROWS - 1),
-  w: z.number().int().min(1).max(TODAY_GRID_COLS),
-  h: z.number().int().min(1).max(TODAY_GRID_ROWS),
+  x: cardUnit(0, TODAY_GRID_COLS - 1),
+  y: cardUnit(0, TODAY_GRID_ROWS - 1),
+  w: cardUnit(1, TODAY_GRID_COLS),
+  h: cardUnit(1, TODAY_GRID_ROWS),
 });
 export type TodayCard = z.infer<typeof TodayCard>;
 /** The Custom layout before anyone edits it: the Agenda preset's arrangement. */
