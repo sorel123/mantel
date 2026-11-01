@@ -8,9 +8,17 @@ import type { ProviderContext } from '../../providers/types.js';
 import type { CalendarService } from '../calendar-service.js';
 import { humanError } from '../registry.js';
 import type { Plugin, PluginStatusFields } from '../types.js';
-import { manifest } from './manifest.js';
+import { googleManifest } from './manifest.js';
+import { sharedGoogleClient, type SharedClient } from './shared-client.js';
 
-export function googlePlugin(service: CalendarService): Plugin {
+export function googlePlugin(
+  service: CalendarService,
+  shared: SharedClient | null = sharedGoogleClient(),
+): Plugin {
+  const manifest = googleManifest(Boolean(shared));
+  /** The household's own client when both halves are set, else Mantel's shared one. */
+  const own = (config: IntegrationConfig, secrets: Record<string, string | undefined>) =>
+    Boolean(config.clientId && secrets.clientSecret);
   const cal = () => {
     const c = service.current();
     if (!c) throw new HttpError('internal', 'calendar provider is starting');
@@ -26,15 +34,20 @@ export function googlePlugin(service: CalendarService): Plugin {
       service.stop();
     },
     apply(config, secrets) {
+      const useShared = !own(config, secrets) && shared;
       service.setGoogle({
-        GOOGLE_CLIENT_ID: str(config.clientId),
-        GOOGLE_CLIENT_SECRET: secrets.clientSecret,
+        GOOGLE_CLIENT_ID: useShared ? shared.clientId : str(config.clientId),
+        GOOGLE_CLIENT_SECRET: useShared ? shared.clientSecret : secrets.clientSecret,
+        GOOGLE_LOOPBACK: useShared ? '1' : undefined,
         CALENDAR_POLL_SECONDS: str(config.pollSeconds),
       });
     },
     computed(): IntegrationConfig {
       const c = service.current();
-      return c ? { redirectUri: c.redirect.uri } : {};
+      // The redirect only matters for a household's own client; the shared one needs none.
+      return c && !c.redirect.uri.startsWith('http://127.0.0.1:')
+        ? { redirectUri: c.redirect.uri }
+        : {};
     },
     async test(config, secrets): Promise<TestResult> {
       const c = cal();
@@ -49,8 +62,10 @@ export function googlePlugin(service: CalendarService): Plugin {
           return { ok: false, message: humanError(err) };
         }
       }
-      if (!config.clientId || !secrets.clientSecret)
+      if (!own(config, secrets)) {
+        if (shared) return { ok: true, message: 'Ready. Press Connect to sign in with Google.' };
         return { ok: false, message: 'Enter the client ID and client secret first.' };
+      }
       if (!/\.apps\.googleusercontent\.com$/.test(String(config.clientId)))
         return {
           ok: false,
@@ -67,7 +82,9 @@ export function googlePlugin(service: CalendarService): Plugin {
       if (!s.configured)
         return {
           state: 'not_set_up',
-          summary: 'Add a Google Cloud client to connect',
+          summary: shared
+            ? 'Press Connect to sign in with Google'
+            : 'Add a Google Cloud client to connect',
           lastOkAt: null,
           lastError: null,
         };
@@ -82,7 +99,9 @@ export function googlePlugin(service: CalendarService): Plugin {
       if (!s.connected)
         return {
           state: 'not_set_up',
-          summary: 'Client saved. Press Connect to sign in with Google.',
+          summary: shared
+            ? 'Press Connect to sign in with Google.'
+            : 'Client saved. Press Connect to sign in with Google.',
           lastOkAt: null,
           lastError: null,
         };
