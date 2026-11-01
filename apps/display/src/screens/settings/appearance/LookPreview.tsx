@@ -1,6 +1,7 @@
 import { FONTS, TEXT_SCALE, type Appearance, type Skin } from '@mantel/shared';
 import type { CSSProperties } from 'react';
 import type { Mode } from '../../../lib/theme';
+import { SkinDecor } from '../../../app/SkinDecor';
 import { skinVars } from './SkinTile';
 
 /**
@@ -30,6 +31,7 @@ export function LookPreview({
       role="img"
       aria-label={`Preview: ${skin.name}, ${FONTS[skin.fonts.display].name} headlines, ${appearance.textSize} text`}
     >
+      <SkinDecor skin={skin} />
       <div className="lk-left">
         <div className="lk-date">
           <span className="lk-dow">Saturday</span>

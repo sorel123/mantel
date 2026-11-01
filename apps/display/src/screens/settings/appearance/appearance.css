@@ -352,3 +352,24 @@ button.sk-tile:active {
   gap: 10px;
   margin-top: 10px;
 }
+
+/* The skin's decor (leaves, frost, lights...) drawn in the previews, scaled down. */
+.sk-art,
+.sk-look {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.sk-art > :not(.skin-decor),
+.sk-look > :not(.skin-decor) {
+  position: relative;
+  z-index: 1;
+}
+.sk-look .skin-decor .decor-corner {
+  width: 72px;
+  height: 72px;
+}
+.sk-art .skin-decor .decor-corner {
+  width: 34px;
+  height: 34px;
+}
