@@ -476,6 +476,56 @@ test('layout presets switch, and the day sheet and quick add still work in each'
   expect(problems).toEqual([]);
 });
 
+test('Your own layout: the cards from the address, and the editor moves, resizes and adds', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+
+  // The display draws each card where the address puts it; a one-row date is a single line.
+  await page.goto('/?mode=daylight&today=custom&cards=date:0.0.3.1,photo:0.1.5.7,agenda:5.0.7.8');
+  await expect(page.locator('.today[data-preset="custom"]')).toBeVisible();
+  await expect(page.locator('.region[data-region="date"] .dateline')).toBeVisible();
+  await expect(page.locator('.region[data-region="photo"] .photo-panel')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
+
+  // Settings › Layout › Your own: the editor starts from the Agenda layout's cards.
+  await page.goto('/settings#layout');
+  await page.getByRole('radio', { name: /Your own/ }).click();
+  const canvas = page.getByRole('group', { name: 'Today layout' });
+  await expect(canvas.getByRole('button', { name: 'Date, 4 by 2' })).toBeVisible();
+
+  // Drag the date's corner up one row to shrink it.
+  await canvas.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const grip = canvas.getByRole('button', { name: 'Date, 4 by 2' }).locator('.ced-grip');
+  const box = (await canvas.boundingBox())!;
+  const g = (await grip.boundingBox())!;
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2 - box.height / 8, { steps: 5 });
+  await page.mouse.up();
+  await expect(canvas.getByRole('button', { name: 'Date, 4 by 1' })).toBeVisible();
+
+  // Covering another card is refused with a note; keys move and resize the selected card.
+  const weather = canvas.getByRole('button', { name: /^Weather,/ });
+  await weather.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('status').filter({ hasText: 'cover another card' })).toBeVisible();
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Shift+ArrowUp');
+  await expect(canvas.getByRole('button', { name: 'Weather, 4 by 3' })).toBeVisible();
+
+  // Add photos into the room that frees, then remove it again.
+  await page
+    .getByRole('group', { name: 'Add a card' })
+    .getByRole('button', { name: '+ Photos' })
+    .click();
+  await expect(canvas.getByRole('button', { name: /^Photos, 4 by 2$/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Photos' }).click();
+  await expect(canvas.getByRole('button', { name: /^Photos,/ })).toHaveCount(0);
+
+  expect(problems).toEqual([]);
+});
+
 test('fill and scale reach the edges of the viewport', async ({ page }) => {
   const problems = watchConsole(page);
   const size = page.viewportSize()!;

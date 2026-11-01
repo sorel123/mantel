@@ -1,4 +1,4 @@
-import { DEFAULT_APPEARANCE, layoutFromSearch } from '@mantel/shared';
+import { DEFAULT_APPEARANCE, DEFAULT_TODAY_CARDS, layoutFromSearch } from '@mantel/shared';
 import { describe, expect, it } from 'vitest';
 import { appearanceFromSearch, isPreview, previewUrl } from './preview';
 
@@ -18,6 +18,7 @@ describe('preview on the wall', () => {
         monthPreset: 'week',
         monthDensity: 'compact',
         todayRows: ['photo', 'week'],
+        todayCards: DEFAULT_TODAY_CARDS,
         fit: 'scale',
         scale: 1.1,
       },
@@ -36,6 +37,24 @@ describe('preview on the wall', () => {
       scale: 1.1,
     });
     expect(new URLSearchParams(search).get('screen')).toBe('month');
+  });
+
+  it("carries the Custom layout's cards", () => {
+    const cards = [{ id: 'photo', kind: 'photo' as const, x: 0, y: 0, w: 6, h: 8 }];
+    const url = previewUrl({
+      layout: {
+        todayPreset: 'custom',
+        monthPreset: 'grid',
+        monthDensity: 'roomy',
+        todayRows: [],
+        todayCards: cards,
+        fit: 'fit',
+        scale: 1,
+      },
+    });
+    expect(layoutFromSearch(url.slice(1)).todayCards).toMatchObject([
+      { kind: 'photo', x: 0, y: 0, w: 6, h: 8 },
+    ]);
   });
 
   it('ignores a malformed look', () => {

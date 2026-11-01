@@ -23,6 +23,7 @@ import {
 import type { ComponentType, CSSProperties } from 'react';
 import { openPreview } from '../../../lib/preview';
 import { Field, Section, Seg } from '../controls';
+import { CardEditor } from './CardEditor';
 import { FitPreview } from './FitPreview';
 import { FitThumb, MonthThumb, TodayThumb } from './thumbs';
 import './layout.css';
@@ -48,7 +49,16 @@ export function LayoutSection({
         Thumb={TodayThumb}
         onChange={(todayPreset) => onChange({ ...value, todayPreset })}
       />
-      {(value.todayPreset === 'agenda' || value.todayPreset === 'photo') && (
+      {value.todayPreset === 'custom' && (
+        <CardEditor
+          value={value.todayCards}
+          onChange={(todayCards) => onChange({ ...value, todayCards })}
+        />
+      )}
+      {(value.todayPreset === 'agenda' ||
+        value.todayPreset === 'photo' ||
+        (value.todayPreset === 'custom' &&
+          value.todayCards.some((c) => c.kind === 'agenda' && c.w >= 5 && c.h >= 6))) && (
         <RowsPicker
           value={value.todayRows ?? ['tonight', 'week']}
           onChange={(todayRows) => onChange({ ...value, todayRows })}

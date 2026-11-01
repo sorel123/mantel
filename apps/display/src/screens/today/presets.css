@@ -503,3 +503,46 @@
 .today .region[data-region='foot'] .wline .out {
   display: none;
 }
+
+/* ---------- Your own (Custom): small cards ---------- */
+.today .card.cc-line {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  overflow: hidden;
+}
+.today .card.cc-pad {
+  display: flex;
+  align-items: center;
+  padding: 10px 18px;
+  overflow: hidden;
+}
+.today .card.cc-pad .countdowns {
+  flex-wrap: wrap;
+}
+.slots.card-grid .region[data-region='photo'] .photo-panel {
+  flex: 1;
+  min-height: 0;
+}
+/* A narrow date card: smaller type, and the weekday wraps above the date when it must. */
+.slots.card-grid .region[data-region='date'] .dateline {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  min-height: 0;
+  align-content: center;
+}
+.slots.card-grid .region[data-region='date'] .dateline b {
+  white-space: nowrap;
+}
+.slots.card-grid
+  .region[data-region='date']:is([data-w='1'], [data-w='2'], [data-w='3'])
+  .dateline
+  .wd {
+  font-size: 18px;
+}
+.slots.card-grid
+  .region[data-region='date']:is([data-w='1'], [data-w='2'], [data-w='3'])
+  .dateline
+  b {
+  font-size: 28px;
+}

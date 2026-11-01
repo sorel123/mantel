@@ -7,7 +7,19 @@
  */
 import { z } from 'zod';
 
-import { Fit, Layout, MonthDensity, MonthPreset, TodayPreset, TodayRow } from './models.js';
+import {
+  DEFAULT_TODAY_CARDS,
+  Fit,
+  Layout,
+  MonthDensity,
+  MonthPreset,
+  TODAY_GRID_COLS,
+  TODAY_GRID_ROWS,
+  TodayCard,
+  type TodayCardKind,
+  TodayPreset,
+  TodayRow,
+} from './models.js';
 
 /** The layout settings object (`Layout` in models.ts; this is the name the display uses). */
 export const LayoutSettings = Layout;
@@ -23,6 +35,7 @@ export const DEFAULT_LAYOUT: LayoutSettings = {
   monthPreset: 'grid',
   monthDensity: 'roomy',
   todayRows: ['tonight', 'week'],
+  todayCards: DEFAULT_TODAY_CARDS,
   fit: 'fit',
   scale: 1,
 };
@@ -37,6 +50,7 @@ export const LayoutOverride = z.object({
   monthPreset: MonthPreset.optional(),
   monthDensity: MonthDensity.optional(),
   todayRows: Layout.shape.todayRows.unwrap().optional(),
+  todayCards: Layout.shape.todayCards.unwrap().optional(),
   fit: Fit.optional(),
   scale: Layout.shape.scale.unwrap().optional(),
 });
@@ -55,7 +69,11 @@ export function resolveLayout(
 function clean(o: Partial<LayoutSettings> | null | undefined): Partial<LayoutSettings> {
   if (!o) return {};
   const parsed = LayoutOverride.safeParse(o);
-  if (parsed.success) return strip(parsed.data);
+  if (parsed.success) {
+    const out = strip(parsed.data);
+    if (out.todayCards) out.todayCards = tidyCards(out.todayCards);
+    return out;
+  }
   // Keep the fields that are fine and drop the rest, so one bad value does not lose the others.
   const out: Partial<LayoutSettings> = {};
   const t = TodayPreset.safeParse(o.todayPreset);
@@ -67,6 +85,14 @@ function clean(o: Partial<LayoutSettings> | null | undefined): Partial<LayoutSet
   if (Array.isArray(o.todayRows)) {
     const rows = o.todayRows.filter((r) => TodayRow.safeParse(r).success);
     out.todayRows = [...new Set(rows)].slice(0, 5);
+  }
+  if (Array.isArray(o.todayCards)) {
+    out.todayCards = tidyCards(
+      o.todayCards.flatMap((c) => {
+        const p = TodayCard.safeParse(c);
+        return p.success ? [p.data] : [];
+      }),
+    );
   }
   const f = Fit.safeParse(o.fit);
   if (f.success) out.fit = f.data;
@@ -86,6 +112,7 @@ export function layoutFromSearch(search: string): LayoutOverride {
   if (q.has('month')) out.monthPreset = q.get('month');
   if (q.has('density')) out.monthDensity = q.get('density');
   if (q.has('rows')) out.todayRows = q.get('rows')!.split(',').filter(Boolean);
+  if (q.has('cards')) out.todayCards = cardsFromParam(q.get('cards')!);
   if (q.has('fit')) out.fit = q.get('fit');
   if (q.has('scale')) {
     const raw = q.get('scale')!.trim().replace(/%$/, '');
@@ -118,6 +145,7 @@ export const TODAY_PRESETS: ReadonlyArray<PresetInfo<TodayPreset>> = [
     description: 'The album on the left, the day on the right.',
   },
   { id: 'poster', name: 'Poster', description: 'A flyer: huge date, the day as a bill.' },
+  { id: 'custom', name: 'Your own', description: 'Move, resize, add and remove the cards.' },
 ];
 
 export const MONTH_PRESETS: ReadonlyArray<PresetInfo<MonthPreset>> = [
@@ -148,3 +176,93 @@ export const FIT_MODES: ReadonlyArray<PresetInfo<Fit>> = [
   },
   { id: 'scale', name: 'Scale', description: 'Fill, then make everything bigger or smaller.' },
 ];
+
+/* ---------- the Custom layout's cards ---------- */
+
+export const TODAY_CARDS: ReadonlyArray<PresetInfo<TodayCardKind>> = [
+  { id: 'date', name: 'Date', description: 'The day and date; one line when short.' },
+  { id: 'weather', name: 'Weather', description: 'Now, the next hours and the quip.' },
+  { id: 'forecast', name: 'Next 7 days', description: "The week's highs, lows and rain." },
+  { id: 'agenda', name: 'Agenda', description: "Today's events, with the Day/Week switch." },
+  { id: 'week', name: 'Week', description: 'Seven days with everything in them.' },
+  { id: 'photo', name: 'Photos', description: 'The photo slideshow.' },
+  { id: 'list', name: 'List', description: 'The list pinned to Today.' },
+  { id: 'countdowns', name: 'Countdowns', description: 'Days until starred events.' },
+  { id: 'tonight', name: 'Tonight', description: "Tonight's dinner from the meal plan." },
+];
+
+/** Whether two cards share a cell. */
+export const cardsOverlap = (a: TodayCard, b: TodayCard): boolean =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** Whether a card sits inside the grid. */
+export const cardInGrid = (c: TodayCard): boolean =>
+  c.x >= 0 && c.y >= 0 && c.x + c.w <= TODAY_GRID_COLS && c.y + c.h <= TODAY_GRID_ROWS;
+
+/** Whether `card` can go where it says among `others` (itself excluded by id). */
+export const cardFits = (card: TodayCard, others: readonly TodayCard[]): boolean =>
+  cardInGrid(card) && others.every((o) => o.id === card.id || !cardsOverlap(card, o));
+
+/**
+ * Cards made safe to draw: sizes clamped into the grid, then each card that would overlap one
+ * kept before it dropped, and ids made unique.
+ */
+export function tidyCards(cards: readonly TodayCard[]): TodayCard[] {
+  const out: TodayCard[] = [];
+  const ids = new Set<string>();
+  for (const c of cards) {
+    const w = Math.min(c.w, TODAY_GRID_COLS - c.x);
+    const h = Math.min(c.h, TODAY_GRID_ROWS - c.y);
+    let id = c.id;
+    for (let n = 2; ids.has(id); n++) id = `${c.id}-${n}`;
+    const card = { ...c, id, w, h };
+    if (w < 1 || h < 1 || out.some((o) => cardsOverlap(o, card))) continue;
+    ids.add(id);
+    out.push(card);
+  }
+  return out;
+}
+
+/** The first free top-left spot for a w by h card, scanning rows then columns, or null. */
+export function findSpot(
+  cards: readonly TodayCard[],
+  w: number,
+  h: number,
+): { x: number; y: number } | null {
+  for (let y = 0; y + h <= TODAY_GRID_ROWS; y++)
+    for (let x = 0; x + w <= TODAY_GRID_COLS; x++) {
+      const probe = { id: '\u0000', kind: 'date' as const, x, y, w, h };
+      if (cards.every((c) => !cardsOverlap(c, probe))) return { x, y };
+    }
+  return null;
+}
+
+/** Starting points for the editor: the cards of a preset that has an equivalent. */
+export const CARD_STARTS: Readonly<Record<'agenda' | 'weather' | 'photo', TodayCard[]>> = {
+  agenda: DEFAULT_TODAY_CARDS,
+  weather: [
+    { id: 'date', kind: 'date', x: 0, y: 0, w: 7, h: 1 },
+    { id: 'weather', kind: 'weather', x: 0, y: 1, w: 7, h: 4 },
+    { id: 'forecast', kind: 'forecast', x: 0, y: 5, w: 7, h: 3 },
+    { id: 'agenda', kind: 'agenda', x: 7, y: 0, w: 5, h: 8 },
+  ],
+  photo: [
+    { id: 'photo', kind: 'photo', x: 0, y: 0, w: 7, h: 8 },
+    { id: 'agenda', kind: 'agenda', x: 7, y: 0, w: 5, h: 8 },
+  ],
+};
+
+/** Cards in a display address: `agenda:4.0.8.8,date:0.0.4.2` (kind:x.y.w.h). */
+export const cardsToParam = (cards: readonly TodayCard[]): string =>
+  cards.map((c) => `${c.kind}:${c.x}.${c.y}.${c.w}.${c.h}`).join(',');
+
+export function cardsFromParam(param: string): TodayCard[] {
+  const out: TodayCard[] = [];
+  for (const part of param.split(',')) {
+    const [kind, pos] = part.split(':');
+    const [x, y, w, h] = (pos ?? '').split('.').map(Number);
+    const card = TodayCard.safeParse({ id: `${kind}-${out.length}`, kind, x, y, w, h });
+    if (card.success) out.push(card.data);
+  }
+  return tidyCards(out);
+}
