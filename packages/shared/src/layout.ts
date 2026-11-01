@@ -13,6 +13,7 @@ import {
   Layout,
   MonthDensity,
   MonthPreset,
+  SavedTodayLayout,
   TODAY_CARD_STEP,
   TODAY_GRID_COLS,
   TODAY_GRID_ROWS,
@@ -37,6 +38,7 @@ export const DEFAULT_LAYOUT: LayoutSettings = {
   monthDensity: 'roomy',
   todayRows: ['tonight', 'week'],
   todayCards: DEFAULT_TODAY_CARDS,
+  savedToday: [],
   fit: 'fit',
   scale: 1,
 };
@@ -52,6 +54,7 @@ export const LayoutOverride = z.object({
   monthDensity: MonthDensity.optional(),
   todayRows: Layout.shape.todayRows.unwrap().optional(),
   todayCards: Layout.shape.todayCards.unwrap().optional(),
+  savedToday: Layout.shape.savedToday.unwrap().optional(),
   fit: Fit.optional(),
   scale: Layout.shape.scale.unwrap().optional(),
 });
@@ -94,6 +97,12 @@ function clean(o: Partial<LayoutSettings> | null | undefined): Partial<LayoutSet
         return p.success ? [p.data] : [];
       }),
     );
+  }
+  if (Array.isArray(o.savedToday)) {
+    out.savedToday = o.savedToday.flatMap((l) => {
+      const p = SavedTodayLayout.safeParse(l);
+      return p.success ? [{ ...p.data, cards: tidyCards(p.data.cards) }] : [];
+    });
   }
   const f = Fit.safeParse(o.fit);
   if (f.success) out.fit = f.data;
@@ -284,20 +293,83 @@ export function cardZoom(card: Pick<TodayCard, 'kind' | 'w' | 'h'>, shape?: 'lin
 export const cardSize = (n: number): string =>
   Number.isInteger(n) ? String(n) : `${Math.floor(n) || ''}½`;
 
-/** Starting points for the editor: the cards of a preset that has an equivalent. */
-export const CARD_STARTS: Readonly<Record<'agenda' | 'weather' | 'photo', TodayCard[]>> = {
-  agenda: DEFAULT_TODAY_CARDS,
-  weather: [
-    { id: 'date', kind: 'date', x: 0, y: 0, w: 7, h: 1 },
-    { id: 'weather', kind: 'weather', x: 0, y: 1, w: 7, h: 4 },
-    { id: 'forecast', kind: 'forecast', x: 0, y: 5, w: 7, h: 3 },
-    { id: 'agenda', kind: 'agenda', x: 7, y: 0, w: 5, h: 8 },
-  ],
-  photo: [
-    { id: 'photo', kind: 'photo', x: 0, y: 0, w: 7, h: 8 },
-    { id: 'agenda', kind: 'agenda', x: 7, y: 0, w: 5, h: 8 },
-  ],
-};
+/** Starting points for the editor, to customize and save as your own. */
+export interface CardStarter {
+  id: string;
+  name: string;
+  cards: TodayCard[];
+}
+const card = (kind: TodayCardKind, x: number, y: number, w: number, h: number): TodayCard => ({
+  id: kind,
+  kind,
+  x,
+  y,
+  w,
+  h,
+});
+export const CARD_STARTERS: readonly CardStarter[] = [
+  { id: 'agenda', name: 'Agenda', cards: DEFAULT_TODAY_CARDS },
+  {
+    id: 'weather',
+    name: 'Weather focus',
+    cards: [
+      card('date', 0, 0, 7, 1),
+      card('weather', 0, 1, 7, 4),
+      card('forecast', 0, 5, 7, 3),
+      card('agenda', 7, 0, 5, 8),
+    ],
+  },
+  {
+    id: 'photo',
+    name: 'Photo and agenda',
+    cards: [card('photo', 0, 0, 7, 8), card('agenda', 7, 0, 5, 8)],
+  },
+  {
+    id: 'week',
+    name: 'Week at a glance',
+    cards: [
+      card('date', 0, 0, 4, 1.5),
+      card('weather', 4, 0, 4, 1.5),
+      card('countdowns', 8, 0, 4, 1.5),
+      card('week', 0, 1.5, 12, 6.5),
+    ],
+  },
+  {
+    id: 'kitchen',
+    name: 'Kitchen',
+    cards: [
+      card('date', 0, 0, 4, 1.5),
+      card('tonight', 0, 1.5, 4, 1),
+      card('list', 0, 2.5, 4, 5.5),
+      card('agenda', 4, 0, 5, 8),
+      card('weather', 9, 0, 3, 4),
+      card('photo', 9, 4, 3, 4),
+    ],
+  },
+  {
+    id: 'frame',
+    name: 'Photo frame',
+    cards: [
+      card('photo', 0, 0, 12, 6.5),
+      card('date', 0, 6.5, 4, 1.5),
+      card('weather', 4, 6.5, 4, 1.5),
+      card('tonight', 8, 6.5, 4, 1.5),
+    ],
+  },
+  {
+    id: 'everything',
+    name: 'A bit of everything',
+    cards: [
+      card('date', 0, 0, 3.5, 1.5),
+      card('weather', 0, 1.5, 3.5, 6.5),
+      card('agenda', 3.5, 0, 5, 8),
+      card('photo', 8.5, 0, 3.5, 3),
+      card('tonight', 8.5, 3, 3.5, 1),
+      card('countdowns', 8.5, 4, 3.5, 1),
+      card('list', 8.5, 5, 3.5, 3),
+    ],
+  },
+];
 
 /**
  * Cards in a display address: `agenda:4.0.8.8,date:0.0.4.2` (kind:x.y.w.h). With a half cell

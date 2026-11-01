@@ -1,12 +1,16 @@
 /**
  * Settings › Layout › Your own: the Custom Today layout as a grid of cards. Drag a card to
- * move it, drag its corner to resize it, tap to select it (then Remove, or arrow keys to move
- * and Shift+arrows to resize). Cards snap to half cells and stop at their smallest readable size
- * (CARD_MIN). Moves that would overlap another card or leave the grid snap back. Changes go to the settings draft like every other field; Save keeps them.
+ * move it, drag any edge or corner to resize it, tap to select it (then Remove, or arrow keys to
+ * move and Shift+arrows to resize). Cards snap to half cells and stop at their smallest readable
+ * size (CARD_MIN). Moves that would overlap another card or leave the grid snap back.
+ *
+ * Below the grid: start from one of the starter layouts or from one the household saved, save
+ * this one by name, and preview the real Today screen with it. Everything goes to the settings
+ * draft like every other field; Save keeps it.
  */
 import {
   CARD_MIN,
-  CARD_STARTS,
+  CARD_STARTERS,
   TODAY_CARD_STEP,
   TODAY_CARDS,
   TODAY_GRID_COLS,
@@ -14,10 +18,20 @@ import {
   cardFits,
   cardSize,
   findSpot,
+  type LayoutSettings,
+  type SavedTodayLayout,
   type TodayCard,
   type TodayCardKind,
 } from '@mantel/shared';
-import { useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type PointerEvent,
+} from 'react';
+import { openPreview, previewUrl } from '../../../lib/preview';
 
 /** The size a new card asks for first, then smaller ones until one fits. */
 const START_SIZE: Record<TodayCardKind, [number, number]> = {
@@ -36,50 +50,97 @@ const nameOf = (k: TodayCardKind) => TODAY_CARDS.find((c) => c.id === k)?.name ?
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const STEP = TODAY_CARD_STEP;
 
+/** Which edges a drag moves: all four to move the card, one or two to resize it. */
+type Edges = { l?: boolean; r?: boolean; t?: boolean; b?: boolean };
+const HANDLES: ReadonlyArray<[string, Edges, string]> = [
+  ['n', { t: true }, 'top'],
+  ['s', { b: true }, 'bottom'],
+  ['w', { l: true }, 'left'],
+  ['e', { r: true }, 'right'],
+  ['nw', { t: true, l: true }, 'top left'],
+  ['ne', { t: true, r: true }, 'top right'],
+  ['sw', { b: true, l: true }, 'bottom left'],
+  ['se', { b: true, r: true }, 'bottom right'],
+];
+
 type Drag = {
   id: string;
-  mode: 'move' | 'resize';
+  edges: Edges | 'move';
   x0: number;
   y0: number;
   orig: TodayCard;
   moved: boolean;
 };
 
+/** Where a drag of dx, dy cells puts the card, and whether it ran into the smallest size. */
+function dragTo(o: TodayCard, edges: Edges | 'move', dx: number, dy: number) {
+  if (edges === 'move')
+    return {
+      card: {
+        ...o,
+        x: clamp(o.x + dx, 0, TODAY_GRID_COLS - o.w),
+        y: clamp(o.y + dy, 0, TODAY_GRID_ROWS - o.h),
+      },
+      atMin: false,
+    };
+  const mw = Math.min(CARD_MIN[o.kind][0], o.w);
+  const mh = Math.min(CARD_MIN[o.kind][1], o.h);
+  let { x, y, w, h } = o;
+  let atMin = false;
+  if (edges.r) {
+    atMin ||= o.w + dx < mw;
+    w = clamp(o.w + dx, mw, TODAY_GRID_COLS - o.x);
+  }
+  if (edges.l) {
+    atMin ||= o.w - dx < mw;
+    x = clamp(o.x + dx, 0, o.x + o.w - mw);
+    w = o.w + o.x - x;
+  }
+  if (edges.b) {
+    atMin ||= o.h + dy < mh;
+    h = clamp(o.h + dy, mh, TODAY_GRID_ROWS - o.y);
+  }
+  if (edges.t) {
+    atMin ||= o.h - dy < mh;
+    y = clamp(o.y + dy, 0, o.y + o.h - mh);
+    h = o.h + o.y - y;
+  }
+  return { card: { ...o, x, y, w, h }, atMin };
+}
+
+const minNote = (k: TodayCardKind) =>
+  `${nameOf(k)} can't get smaller than ${cardSize(CARD_MIN[k][0])} by ${cardSize(CARD_MIN[k][1])}.`;
+
+const sameCards = (a: readonly TodayCard[], b: readonly TodayCard[]) =>
+  a.length === b.length &&
+  a.every((c, i) => {
+    const d = b[i]!;
+    return c.kind === d.kind && c.x === d.x && c.y === d.y && c.w === d.w && c.h === d.h;
+  });
+
 export function CardEditor({
-  value,
+  layout,
   onChange,
 }: {
-  value: TodayCard[];
-  onChange: (cards: TodayCard[]) => void;
+  layout: LayoutSettings;
+  onChange: (layout: LayoutSettings) => void;
 }) {
+  const value = layout.todayCards;
+  const saved = layout.savedToday ?? [];
+  const setCards = (todayCards: TodayCard[]) => onChange({ ...layout, todayCards });
   const canvas = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [ghost, setGhost] = useState<TodayCard | null>(null);
   const [note, setNote] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const cell = () => {
     const r = canvas.current?.getBoundingClientRect();
     return r ? { w: r.width / TODAY_GRID_COLS, h: r.height / TODAY_GRID_ROWS } : { w: 1, h: 1 };
   };
 
-  /** Where a drag puts the card, clamped to the grid (it may still overlap another). */
-  const moveTo = (d: Drag, dx: number, dy: number): TodayCard => {
-    const o = d.orig;
-    return d.mode === 'move'
-      ? {
-          ...o,
-          x: clamp(o.x + dx, 0, TODAY_GRID_COLS - o.w),
-          y: clamp(o.y + dy, 0, TODAY_GRID_ROWS - o.h),
-        }
-      : {
-          ...o,
-          w: clamp(o.w + dx, Math.min(CARD_MIN[o.kind][0], o.w), TODAY_GRID_COLS - o.x),
-          h: clamp(o.h + dy, Math.min(CARD_MIN[o.kind][1], o.h), TODAY_GRID_ROWS - o.y),
-        };
-  };
-
-  const replace = (card: TodayCard) => onChange(value.map((c) => (c.id === card.id ? card : c)));
+  const replace = (card: TodayCard) => setCards(value.map((c) => (c.id === card.id ? card : c)));
 
   /** Commit a card's new place, or say why not. */
   const place = (card: TodayCard) => {
@@ -87,13 +148,13 @@ export function CardEditor({
     else setNote('That would cover another card. Move or shrink that one first.');
   };
 
-  const down = (e: PointerEvent, card: TodayCard, mode: Drag['mode']) => {
+  const down = (e: PointerEvent, card: TodayCard, edges: Drag['edges']) => {
     e.stopPropagation();
     e.preventDefault();
     (e.target as Element).setPointerCapture?.(e.pointerId);
     setSelected(card.id);
     setNote('');
-    setDrag({ id: card.id, mode, x0: e.clientX, y0: e.clientY, orig: card, moved: false });
+    setDrag({ id: card.id, edges, x0: e.clientX, y0: e.clientY, orig: card, moved: false });
   };
   const move = (e: PointerEvent) => {
     if (!drag) return;
@@ -102,13 +163,9 @@ export function CardEditor({
     const dy = Math.round((e.clientY - drag.y0) / c.h / STEP) * STEP;
     if (!drag.moved && dx === 0 && dy === 0) return;
     if (!drag.moved) setDrag({ ...drag, moved: true });
-    const next = moveTo(drag, dx, dy);
-    const o = drag.orig;
-    if (drag.mode === 'resize' && (o.w + dx < next.w || o.h + dy < next.h)) {
-      const [mw, mh] = CARD_MIN[o.kind];
-      setNote(`${nameOf(o.kind)} can't get smaller than ${cardSize(mw)} by ${cardSize(mh)}.`);
-    }
-    setGhost(next);
+    const next = dragTo(drag.orig, drag.edges, dx, dy);
+    if (next.atMin) setNote(minNote(drag.orig.kind));
+    setGhost(next.card);
   };
   const up = () => {
     if (drag?.moved && ghost) place(ghost);
@@ -127,19 +184,14 @@ export function CardEditor({
     if (d) {
       e.preventDefault();
       setNote('');
-      const fake: Drag = {
-        id: card.id,
-        mode: e.shiftKey ? 'resize' : 'move',
-        x0: 0,
-        y0: 0,
-        orig: card,
-        moved: true,
-      };
-      const next = moveTo(fake, d[0] * STEP, d[1] * STEP);
-      const [mw, mh] = CARD_MIN[card.kind];
-      if (e.shiftKey && next.w === card.w && next.h === card.h && (d[0] < 0 || d[1] < 0))
-        setNote(`${nameOf(card.kind)} can't get smaller than ${cardSize(mw)} by ${cardSize(mh)}.`);
-      else place(next);
+      const next = dragTo(
+        card,
+        e.shiftKey ? { r: true, b: true } : 'move',
+        d[0] * STEP,
+        d[1] * STEP,
+      );
+      if (next.atMin) setNote(minNote(card.kind));
+      else place(next.card);
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       remove(card.id);
@@ -147,7 +199,7 @@ export function CardEditor({
   };
 
   const remove = (id: string) => {
-    onChange(value.filter((c) => c.id !== id));
+    setCards(value.filter((c) => c.id !== id));
     setSelected(null);
     setNote('');
   };
@@ -161,12 +213,18 @@ export function CardEditor({
         if (!spot) continue;
         let id: string = kind;
         for (let n = 2; value.some((c) => c.id === id); n++) id = `${kind}-${n}`;
-        onChange([...value, { id, kind, ...spot, w, h }]);
+        setCards([...value, { id, kind, ...spot, w, h }]);
         setSelected(id);
         setNote('');
         return;
       }
     setNote('No room left. Make a card smaller or remove one first.');
+  };
+
+  const load = (cards: readonly TodayCard[], name: string) => {
+    setCards(cards.map((c) => ({ ...c })));
+    setSelected(null);
+    setNote(`Started from ${name}.`);
   };
 
   const box = (c: TodayCard): CSSProperties => ({
@@ -182,9 +240,9 @@ export function CardEditor({
       <div className="set-label">
         Your layout
         <span className="set-hint">
-          Drag a card to move it and its corner to resize it, in half steps. Each card stops at the
-          smallest size it stays readable at, and its contents shrink a little to fit a small card.
-          Tap one to select it; arrow keys move it and Shift with an arrow resizes it.
+          Drag a card to move it, and drag any edge or corner to resize it, in half steps. Each card
+          stops at the smallest size it stays readable at, and its contents shrink a little to fit a
+          small card. Tap one to select it; arrow keys move it and Shift with an arrow resizes it.
         </span>
       </div>
       <div
@@ -209,8 +267,8 @@ export function CardEditor({
               data-kind={c.kind}
               style={box(c)}
               aria-label={`${nameOf(c.kind)}, ${c.w} by ${c.h}`}
-              title={`Smallest: ${cardSize(CARD_MIN[c.kind][0])} × ${cardSize(CARD_MIN[c.kind][1])}`}
               aria-pressed={c.id === selected}
+              title={`Smallest: ${cardSize(CARD_MIN[c.kind][0])} × ${cardSize(CARD_MIN[c.kind][1])}`}
               onPointerDown={(e) => down(e, c, 'move')}
               onKeyDown={(e) => key(e, c)}
               onFocus={() => setSelected(c.id)}
@@ -219,11 +277,16 @@ export function CardEditor({
               <span className="tnum">
                 {cardSize(c.w)} × {cardSize(c.h)}
               </span>
-              <span
-                className="ced-grip"
-                aria-hidden="true"
-                onPointerDown={(e) => down(e, c, 'resize')}
-              />
+              {HANDLES.map(([id, edges, where]) => (
+                <span
+                  key={id}
+                  className={`ced-h ced-h-${id}`}
+                  data-edge={id}
+                  title={`Drag to resize from the ${where}`}
+                  aria-hidden="true"
+                  onPointerDown={(e) => down(e, c, edges)}
+                />
+              ))}
             </div>
           );
         })}
@@ -242,11 +305,29 @@ export function CardEditor({
             : 'Small cards change shape: a short date is one line, a short weather card a single line.')}
       </p>
       <div className="ced-tools">
-        {sel && (
-          <button type="button" className="set-btn" onClick={() => remove(sel.id)}>
-            Remove {nameOf(sel.kind)}
+        <div className="ced-row">
+          {sel && (
+            <button type="button" className="set-btn" onClick={() => remove(sel.id)}>
+              Remove {nameOf(sel.kind)}
+            </button>
+          )}
+          <button
+            type="button"
+            className="set-btn primary"
+            aria-pressed={showPreview}
+            onClick={() => setShowPreview((v) => !v)}
+          >
+            {showPreview ? 'Hide preview' : 'Preview'}
           </button>
-        )}
+          <button
+            type="button"
+            className="set-btn"
+            onClick={() => openPreview({ layout, screen: 'today' })}
+          >
+            Preview on the wall
+          </button>
+        </div>
+        {showPreview && <TodayPreview layout={layout} />}
         <div className="lay-addrow" role="group" aria-label="Add a card">
           {TODAY_CARDS.map((k) => (
             <button
@@ -260,30 +341,174 @@ export function CardEditor({
             </button>
           ))}
         </div>
-        <div className="ced-starts" role="group" aria-label="Start over from">
-          <span className="set-hint">Start over from:</span>
-          {(
-            [
-              ['agenda', 'Agenda'],
-              ['weather', 'Weather focus'],
-              ['photo', 'Photo and agenda'],
-            ] as const
-          ).map(([id, name]) => (
-            <button
-              key={id}
-              type="button"
-              className="set-btn quiet"
-              onClick={() => {
-                onChange(CARD_STARTS[id].map((c) => ({ ...c })));
-                setSelected(null);
-                setNote('');
-              }}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
+        <SaveAs
+          saved={saved}
+          cards={value}
+          onSave={(list, name) => {
+            onChange({ ...layout, savedToday: list });
+            setNote(`Saved as “${name}”. Press Save below to keep it.`);
+          }}
+        />
+        {saved.length > 0 && (
+          <Starters
+            label="Your layouts"
+            items={saved}
+            current={value}
+            onPick={(l) => load(l.cards, l.name)}
+            onDelete={(l) => {
+              onChange({ ...layout, savedToday: saved.filter((s) => s.id !== l.id) });
+              setNote(`Deleted “${l.name}”.`);
+            }}
+          />
+        )}
+        <Starters
+          label="Start from"
+          items={CARD_STARTERS}
+          current={value}
+          onPick={(l) => load(l.cards, l.name)}
+        />
       </div>
+    </div>
+  );
+}
+
+/** Save the current cards by name; a name already saved is updated. */
+function SaveAs({
+  saved,
+  cards,
+  onSave,
+}: {
+  saved: readonly SavedTodayLayout[];
+  cards: readonly TodayCard[];
+  onSave: (list: SavedTodayLayout[], name: string) => void;
+}) {
+  const [name, setName] = useState('');
+  const trimmed = name.trim();
+  const existing = saved.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
+  const full = !existing && saved.length >= 20;
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!trimmed || full) return;
+    const entry = {
+      id: existing?.id ?? `l${Date.now().toString(36)}`,
+      name: trimmed,
+      cards: [...cards],
+    };
+    onSave(
+      existing ? saved.map((s) => (s.id === existing.id ? entry : s)) : [...saved, entry],
+      trimmed,
+    );
+    setName('');
+  };
+  return (
+    <form className="ced-row ced-save" onSubmit={submit}>
+      <input
+        className="set-input"
+        aria-label="Layout name"
+        placeholder="Name this layout"
+        maxLength={40}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button type="submit" className="set-btn" disabled={!trimmed || full}>
+        {existing ? `Update “${existing.name}”` : 'Save as my layout'}
+      </button>
+      {full && <span className="set-hint">Twenty saved already; delete one first.</span>}
+    </form>
+  );
+}
+
+/** A row of layouts to start from, each drawn as a small picture of its cards. */
+function Starters<T extends { id: string; name: string; cards: readonly TodayCard[] }>({
+  label,
+  items,
+  current,
+  onPick,
+  onDelete,
+}: {
+  label: string;
+  items: readonly T[];
+  current: readonly TodayCard[];
+  onPick: (item: T) => void;
+  onDelete?: (item: T) => void;
+}) {
+  return (
+    <div className="ced-starts" role="group" aria-label={label}>
+      <span className="set-label">{label}</span>
+      <div className="ced-start-list">
+        {items.map((l) => (
+          <div key={l.id} className="ced-start">
+            <button
+              type="button"
+              className={`ced-start-btn${sameCards(l.cards, current) ? ' on' : ''}`}
+              onClick={() => onPick(l)}
+              aria-label={`${label === 'Start from' ? 'Start from' : 'Use'} ${l.name}`}
+            >
+              <CardsThumb cards={l.cards} />
+              <span>{l.name}</span>
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                className="ced-start-del"
+                aria-label={`Delete ${l.name}`}
+                onClick={() => onDelete(l)}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A small picture of a layout's cards. */
+export function CardsThumb({ cards }: { cards: readonly TodayCard[] }) {
+  return (
+    <span className="ced-thumb" aria-hidden="true">
+      {cards.map((c) => (
+        <i
+          key={c.id}
+          data-kind={c.kind}
+          style={{
+            left: `${(c.x / TODAY_GRID_COLS) * 100}%`,
+            top: `${(c.y / TODAY_GRID_ROWS) * 100}%`,
+            width: `${(c.w / TODAY_GRID_COLS) * 100}%`,
+            height: `${(c.h / TODAY_GRID_ROWS) * 100}%`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** The real Today screen with this layout, scaled down into the settings page. */
+const PANEL_W = 1180;
+const PANEL_H = 820;
+function TodayPreview({ layout }: { layout: LayoutSettings }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [k, setK] = useState(0.5);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setK(el.clientWidth / PANEL_W));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const src = previewUrl({ layout: { ...layout, fit: 'fit', scale: 1 }, screen: 'today' });
+  return (
+    <div className="ced-preview" ref={box} style={{ height: PANEL_H * k }}>
+      <iframe
+        key={src}
+        title="Preview of Today"
+        src={src}
+        width={PANEL_W}
+        height={PANEL_H}
+        style={{ transform: `scale(${k})` }}
+        tabIndex={-1}
+      />
     </div>
   );
 }

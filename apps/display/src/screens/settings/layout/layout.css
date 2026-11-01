@@ -242,16 +242,160 @@
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-.ced-grip {
+.ced-h {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 28px;
-  height: 28px;
+  z-index: 1;
+}
+/* Edges: a strip along each side; corners: a square at each corner. */
+.ced-h-n,
+.ced-h-s {
+  left: 18px;
+  right: 18px;
+  height: 14px;
+  cursor: ns-resize;
+}
+.ced-h-n {
+  top: -4px;
+}
+.ced-h-s {
+  bottom: -4px;
+}
+.ced-h-e,
+.ced-h-w {
+  top: 18px;
+  bottom: 18px;
+  width: 14px;
+  cursor: ew-resize;
+}
+.ced-h-e {
+  right: -4px;
+}
+.ced-h-w {
+  left: -4px;
+}
+.ced-h-nw,
+.ced-h-ne,
+.ced-h-sw,
+.ced-h-se {
+  width: 24px;
+  height: 24px;
+  z-index: 2;
+}
+.ced-h-nw {
+  left: -4px;
+  top: -4px;
   cursor: nwse-resize;
-  background:
-    linear-gradient(135deg, transparent 55%, var(--ink-3) 55%, var(--ink-3) 62%, transparent 62%),
-    linear-gradient(135deg, transparent 72%, var(--ink-3) 72%, var(--ink-3) 79%, transparent 79%);
+}
+.ced-h-se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+.ced-h-ne {
+  right: -4px;
+  top: -4px;
+  cursor: nesw-resize;
+}
+.ced-h-sw {
+  left: -4px;
+  bottom: -4px;
+  cursor: nesw-resize;
+}
+/* Small bars show where to grab: on the selected card, or under a mouse. */
+.ced-h::after {
+  content: '';
+  position: absolute;
+  border-radius: 3px;
+  background: var(--ink-3);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.ced-card.sel .ced-h::after,
+.ced-card:hover .ced-h::after {
+  opacity: 0.9;
+}
+.ced-card.sel .ced-h::after {
+  background: var(--accent);
+}
+.ced-h-n::after,
+.ced-h-s::after {
+  left: 50%;
+  top: 5px;
+  width: 26px;
+  height: 4px;
+  margin-left: -13px;
+}
+.ced-h-e::after,
+.ced-h-w::after {
+  top: 50%;
+  left: 5px;
+  height: 26px;
+  width: 4px;
+  margin-top: -13px;
+}
+.ced-h-nw::after,
+.ced-h-ne::after,
+.ced-h-sw::after,
+.ced-h-se::after {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  left: 8px;
+  top: 8px;
+}
+.ced-ghost {
+  position: absolute;
+  box-sizing: border-box;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.ced-card {
+  border-radius: 12px;
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  overflow: hidden;
+  cursor: grab;
+  font-size: 13px;
+  transition:
+    left var(--fast) var(--ease),
+    top var(--fast) var(--ease),
+    width var(--fast) var(--ease),
+    height var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+.ced-card b {
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.ced-card span.tnum {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.ced-card[data-kind='agenda'],
+.ced-card[data-kind='week'] {
+  background-color: var(--accent-soft);
+}
+.ced-card[data-kind='photo'] {
+  background-color: color-mix(in srgb, var(--accent) 22%, var(--surface));
+}
+.ced-card.sel {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.ced-card.lifting {
+  opacity: 0.45;
+}
+.ced-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .ced-ghost {
   border-radius: 12px;
@@ -272,9 +416,100 @@
   gap: 10px;
   align-items: flex-start;
 }
-.ced-starts {
+.ced-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 8px;
+}
+.ced-save .set-input {
+  width: 240px;
+  max-width: 100%;
+}
+.ced-starts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.ced-start-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ced-start {
+  position: relative;
+}
+.ced-start-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
+  width: 132px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 600 13px/1.2 var(--ui, inherit);
+  text-align: left;
+  cursor: pointer;
+}
+.ced-start-btn.on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.ced-start-del {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ced-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1180 / 820;
+  border-radius: 6px;
+  background: var(--bg, #000);
+}
+.ced-thumb i {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px solid var(--surface-2);
+  border-radius: 4px;
+  background: var(--ink-3);
+  opacity: 0.55;
+}
+.ced-thumb i[data-kind='agenda'],
+.ced-thumb i[data-kind='week'] {
+  background: var(--accent);
+  opacity: 0.7;
+}
+.ced-thumb i[data-kind='photo'] {
+  background: color-mix(in srgb, var(--accent) 50%, var(--ink-3));
+}
+.ced-preview {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+.ced-preview iframe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
 }

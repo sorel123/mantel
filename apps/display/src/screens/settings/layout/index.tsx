@@ -49,12 +49,7 @@ export function LayoutSection({
         Thumb={TodayThumb}
         onChange={(todayPreset) => onChange({ ...value, todayPreset })}
       />
-      {value.todayPreset === 'custom' && (
-        <CardEditor
-          value={value.todayCards}
-          onChange={(todayCards) => onChange({ ...value, todayCards })}
-        />
-      )}
+      {value.todayPreset === 'custom' && <CardEditor layout={value} onChange={onChange} />}
       {(value.todayPreset === 'agenda' ||
         value.todayPreset === 'photo' ||
         (value.todayPreset === 'custom' &&
