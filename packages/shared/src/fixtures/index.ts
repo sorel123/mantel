@@ -100,6 +100,8 @@ export function routeFixtures(now = new Date()): {
     itemPatch: { item: { ...firstItem, done: true } },
     itemDelete: { ok: true },
     listCreate: { list: { id: 'list-new', name: 'Hardware store', source: 'local', items: [] } },
+    listsReorder: { lists: allLists },
+    listPatch: { list: { ...allLists[0]!, home: true } },
     listDelete: { ok: true },
     chores: choreSet,
     choreDone: { chore: choreSet.chores[0]!, stars: choreSet.stars },

@@ -71,12 +71,46 @@ export class ListStore {
       )
       .orderBy(asc(listItems.sort))
       .all();
+    const home = this.homeId();
     return rows.map((l) => ({
       id: l.id,
       name: l.name,
       source: 'local' as const,
       items: items.filter((i) => i.listId === l.id).map(toItem),
+      ...(l.id === home ? { home: true } : {}),
     }));
+  }
+
+  /** The list chosen for the Today screen, if it still exists. */
+  private homeId(): string | null {
+    const id = kvGet<string | null>(this.db, 'lists.home') ?? null;
+    if (!id) return null;
+    return this.db.select().from(lists).where(eq(lists.id, id)).get() ? id : null;
+  }
+
+  /** Rename a list, or make it the one on Today (only one list is at a time). */
+  patchList(id: string, { name, home }: BodyOf<'listPatch'>): List {
+    if (!this.db.select().from(lists).where(eq(lists.id, id)).get()) throw notFound(`list ${id}`);
+    if (name !== undefined)
+      this.db.update(lists).set({ name: name.trim() }).where(eq(lists.id, id)).run();
+    if (home === true) kvSet(this.db, 'lists.home', id);
+    else if (home === false && this.homeId() === id) kvSet(this.db, 'lists.home', null);
+    this.changed(id);
+    return this.all().find((l) => l.id === id)!;
+  }
+
+  /** Put the lists in this order. Ids it does not know are ignored; lists left out go after. */
+  reorder(ids: string[]) {
+    const rows = this.db.select().from(lists).orderBy(asc(lists.sort)).all();
+    const known = new Set(rows.map((r) => r.id));
+    const first = [...new Set(ids)].filter((id) => known.has(id));
+    const rest = rows.map((r) => r.id).filter((id) => !first.includes(id));
+    this.db.transaction((tx) => {
+      [...first, ...rest].forEach((id, sort) =>
+        tx.update(lists).set({ sort }).where(eq(lists.id, id)).run(),
+      );
+    });
+    if (rows[0]) this.changed(rows[0].id);
   }
 
   createList(name: string, id = newId('list')): List {

@@ -375,6 +375,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('itemPatch', async ({ params, body }) => providers.lists.patchItem(params.id!, body));
   handle('itemDelete', async ({ params }) => providers.lists.deleteItem(params.id!));
   handle('listCreate', async ({ body }) => providers.lists.createList(body));
+  handle('listsReorder', async ({ body }) => providers.lists.reorderLists(body));
+  handle('listPatch', async ({ params, body }) => providers.lists.patchList(params.id!, body));
   handle('listDelete', async ({ params }) => providers.lists.deleteList(params.id!));
   handle('chores', async () => providers.lists.chores());
   handle('choreDone', async ({ params, body }) =>

@@ -100,7 +100,35 @@ export function useLists() {
       () => api.call('listDelete', { params: { id: list.id } }),
     );
 
-  return { lists: data, error, refetch, toggle, add, remove, createList, deleteList };
+  /** Show this list on Today (or stop): only one list is there at a time. */
+  const setHome = (list: List, home: boolean) =>
+    mutate(
+      (d) =>
+        d.map((l) => ({ ...l, home: home ? l.id === list.id : l.id === list.id ? false : l.home })),
+      () => api.call('listPatch', { params: { id: list.id }, body: { home } }),
+    );
+
+  /** Lists in a new order: shown at once while dragging, saved by `saveOrder`. */
+  const moveLists = (next: List[]) => setData(next);
+  const saveOrder = (ids: string[]) =>
+    mutate(
+      (d) => ids.map((id) => d.find((l) => l.id === id)).filter((l): l is List => !!l),
+      () => api.call('listsReorder', { body: { ids } }),
+    );
+
+  return {
+    lists: data,
+    error,
+    refetch,
+    toggle,
+    add,
+    remove,
+    createList,
+    deleteList,
+    setHome,
+    moveLists,
+    saveOrder,
+  };
 }
 
 const loadChores = () => api.call('chores');

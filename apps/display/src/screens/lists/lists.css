@@ -91,6 +91,63 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
 }
+.lslot {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+.lslot > .lcard {
+  flex: 1;
+  min-width: 0;
+}
+.lcard .lgrip,
+.lcard .lhome {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: -6px 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--ink-3);
+  touch-action: none;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.lcard .lgrip {
+  margin-left: -12px;
+  cursor: grab;
+}
+.lcard .lgrip svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.lcard .lhome svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.lcard .lhome {
+  margin-right: -8px;
+  touch-action: manipulation;
+}
+.lcard .lhome.on {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.lcard .lhome.on svg {
+  fill: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.lcard .lgrip:active,
+.lcard .lhome:active {
+  background: var(--surface-2);
+}
 .lcard {
   padding: 22px 22px 16px;
   display: flex;
@@ -101,8 +158,12 @@
 }
 .lcard .lh {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 8px;
+}
+.lcard .lh .h2 {
+  flex: 1;
+  min-width: 0;
 }
 .lcard .lh .n {
   color: var(--ink-2);

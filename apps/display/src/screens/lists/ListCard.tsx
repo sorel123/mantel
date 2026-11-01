@@ -1,5 +1,5 @@
 import type { List, ListItem, Person } from '@mantel/shared';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Avatar } from './Avatar';
 
 export function ListCard({
@@ -7,11 +7,17 @@ export function ListCard({
   people,
   onToggle,
   onAdd,
+  onHome,
+  handle,
 }: {
   list: List;
   people: Person[];
   onToggle: (item: ListItem) => void;
   onAdd: (text: string) => void;
+  /** Show this list on Today, or stop. Without it the card has no Today button. */
+  onHome?: (home: boolean) => void;
+  /** The drag handle, when the lists can be reordered. */
+  handle?: ReactNode;
 }) {
   const [draft, setDraft] = useState('');
   const left = list.items.filter((i) => !i.done).length;
@@ -26,8 +32,23 @@ export function ListCard({
   return (
     <section className="card lcard" aria-label={list.name}>
       <div className="lh">
+        {handle}
         <h2 className="h2">{list.name}</h2>
         <span className="n tnum">{left ? `${left} left` : 'All done'}</span>
+        {onHome && (
+          <button
+            type="button"
+            className={`lhome${list.home ? ' on' : ''}`}
+            aria-pressed={!!list.home}
+            aria-label={list.home ? `${list.name} is on Today` : `Show ${list.name} on Today`}
+            title={list.home ? 'On the Today screen' : 'Show on the Today screen'}
+            onClick={() => onHome(!list.home)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 4h6l-1 6 3.5 3.5H6.5L10 10zM12 13.5V20" />
+            </svg>
+          </button>
+        )}
       </div>
       <ul className="litems">
         {list.items.map((item) => {

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BootstrapProvider, useBootstrapState } from '../../lib/bootstrap';
 import { AddPage } from './add/AddPage';
+import { groceryList } from './GroceryPeek';
 import { GroceryPeek, ListsScreen } from './index';
 
 const fx = routeFixtures();
@@ -23,6 +24,10 @@ function fakeServer() {
     if (path === '/bootstrap') return respond(fx.bootstrap);
     if (path === '/lists') return respond(fx.lists);
     if (path === '/chores') return respond(fx.chores);
+    if (method === 'PATCH' && path.startsWith('/lists/')) {
+      const list = fx.lists.lists.find((l) => path.endsWith(l.id))!;
+      return respond({ list: { ...list, ...body } });
+    }
     if (path.startsWith('/items/')) return respond({ item: { ...fx.itemPatch.item, ...body } });
     if (path.endsWith('/items'))
       return respond({ item: { id: 'new-1', text: body.text, done: false } });
@@ -55,6 +60,23 @@ class FakeSocket {
 describe('Lists screen', () => {
   beforeEach(() => {
     vi.stubGlobal('WebSocket', FakeSocket);
+  });
+
+  it('puts a list on Today from its card, and can drag by a handle', async () => {
+    const { calls } = fakeServer();
+    renderReady(<ListsScreen />);
+    const second = fx.lists.lists[1]!;
+    const card = await screen.findByRole('region', { name: second.name });
+    expect(within(card).getByRole('button', { name: `Move ${second.name}` })).toBeTruthy();
+    fireEvent.click(within(card).getByRole('button', { name: `Show ${second.name} on Today` }));
+    await waitFor(() =>
+      expect(calls).toContainEqual({
+        method: 'PATCH',
+        path: `/lists/${second.id}`,
+        body: { home: true },
+      }),
+    );
+    expect(within(card).getByRole('button', { name: `${second.name} is on Today` })).toBeTruthy();
   });
 
   it('shows all three lists, checks an item at once and adds one', async () => {
@@ -120,6 +142,13 @@ describe('Lists screen', () => {
     ).toEqual(['Oat milk', 'Bananas', 'Chicken thighs', 'Birthday candles']);
     fireEvent.click(peek);
     expect(onOpen).toHaveBeenCalled();
+  });
+
+  it('peeks at the list chosen for Today over the grocery list', () => {
+    const [grocery, other] = fx.lists.lists;
+    expect(groceryList([grocery!, other!])).toBe(grocery);
+    const chosen = { ...other!, home: true };
+    expect(groceryList([grocery!, chosen])).toBe(chosen);
   });
 });
 

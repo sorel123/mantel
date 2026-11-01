@@ -243,6 +243,13 @@ export const ChoreDoneResponse = z.object({ chore: Chore, stars: z.array(StarTal
 
 export const CreateListRequest = z.object({ name: z.string().trim().min(1).max(60) });
 export const ListResponse = z.object({ list: List });
+/** Rename a list, or make it (or stop it being) the one on the Today screen. */
+export const PatchListRequest = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  home: z.boolean().optional(),
+});
+/** Every list id in the new order; lists left out keep their place after these. */
+export const ReorderListsRequest = z.object({ ids: z.array(Id).max(200) });
 
 export const CreateChoreRequest = z.object({
   title: z.string().trim().min(1).max(80),
@@ -598,6 +605,22 @@ export const routes = {
     path: '/lists',
     query: NoQuery,
     body: CreateListRequest,
+    response: ListResponse,
+    auth: true,
+  }),
+  listsReorder: route({
+    method: 'PUT',
+    path: '/lists/order',
+    query: NoQuery,
+    body: ReorderListsRequest,
+    response: ListsResponse,
+    auth: true,
+  }),
+  listPatch: route({
+    method: 'PATCH',
+    path: '/lists/:id',
+    query: NoQuery,
+    body: PatchListRequest,
     response: ListResponse,
     auth: true,
   }),

@@ -94,6 +94,49 @@ describe('ListStore', () => {
   });
 });
 
+describe('list order and the Today list', () => {
+  it('reorders lists, keeping ones left out at the end', () => {
+    const { db } = context(clock().now);
+    const store = new ListStore(db);
+    const [a, b, c] = ['A', 'B', 'C'].map((n) => store.createList(n));
+    store.reorder([c!.id, 'nope', a!.id]);
+    expect(store.all().map((l) => l.name)).toEqual(['C', 'A', 'B']);
+    expect(b).toBeTruthy();
+  });
+
+  it('marks one list for Today at a time, and renames', () => {
+    const { db } = context(clock().now);
+    const store = new ListStore(db);
+    const seen: string[] = [];
+    store.onChange((id) => seen.push(id));
+    const a = store.createList('Grocery');
+    const b = store.createList('Hardware');
+    expect(store.patchList(b.id, { home: true }).home).toBe(true);
+    expect(store.patchList(a.id, { home: true }).home).toBe(true);
+    expect(
+      store
+        .all()
+        .filter((l) => l.home)
+        .map((l) => l.name),
+    ).toEqual(['Grocery']);
+    store.patchList(a.id, { home: false });
+    expect(store.all().some((l) => l.home)).toBe(false);
+    expect(store.patchList(b.id, { name: ' Hardware store ' }).name).toBe('Hardware store');
+    expect(seen).toContain(b.id);
+    expect(() => store.patchList('nope', { home: true })).toThrow();
+  });
+
+  it('forgets the Today list when it is deleted', () => {
+    const { db } = context(clock().now);
+    const store = new ListStore(db);
+    const a = store.createList('Grocery');
+    store.patchList(a.id, { home: true });
+    store.deleteList(a.id);
+    const b = store.createList('Grocery');
+    expect(store.all().find((l) => l.id === b.id)?.home).toBeUndefined();
+  });
+});
+
 describe('ChoreStore', () => {
   it('counts completions, caps them at the target and tallies stars per child', () => {
     const c = clock();
