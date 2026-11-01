@@ -43,6 +43,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: REVISION=${{ github.sha }}
+          build-args: |
+            REVISION=${{ github.sha }}
+            MANTEL_GOOGLE_CLIENT_ID=${{ secrets.MANTEL_GOOGLE_CLIENT_ID }}
+            MANTEL_GOOGLE_CLIENT_SECRET=${{ secrets.MANTEL_GOOGLE_CLIENT_SECRET }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

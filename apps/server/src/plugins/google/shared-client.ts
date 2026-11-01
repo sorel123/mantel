@@ -9,9 +9,10 @@
  * `http://127.0.0.1:<PORT>/...`: on the computer running Mantel that lands directly; anywhere
  * else the paste-back step takes the address.
  *
- * Until the project publishes its client these are blank and the Google card asks for a
- * household's own client (the Advanced fields), as before. A build can also set them with
- * MANTEL_GOOGLE_CLIENT_ID and MANTEL_GOOGLE_CLIENT_SECRET. See docs/google-shared-client.md.
+ * The published Docker image sets MANTEL_GOOGLE_CLIENT_ID and MANTEL_GOOGLE_CLIENT_SECRET
+ * (from the repository's Actions secrets, see the Dockerfile). BUILT_IN is the fallback for
+ * builds from source and is blank, so those ask for a household's own client (the Advanced
+ * fields). See docs/google-shared-client.md.
  */
 const BUILT_IN = {
   clientId: '',
