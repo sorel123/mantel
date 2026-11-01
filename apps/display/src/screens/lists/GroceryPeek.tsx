@@ -2,9 +2,9 @@ import type { List } from '@mantel/shared';
 import { useLists } from './data';
 import './lists.css';
 
-/** The grocery list, or failing that the first list. */
+/** The list chosen for Today, else the grocery list, else the first list. */
 export const groceryList = (lists: List[]) =>
-  lists.find((l) => /grocer|shopping/i.test(l.name)) ?? lists[0];
+  lists.find((l) => l.home) ?? lists.find((l) => /grocer|shopping/i.test(l.name)) ?? lists[0];
 
 /**
  * The Today screen's grocery card: the first four open items. Exported for the Today screen

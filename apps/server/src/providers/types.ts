@@ -139,6 +139,8 @@ export interface ListsProvider {
   deleteItem(itemId: string): Promise<ResponseOf<'itemDelete'>>;
   createList(req: BodyOf<'listCreate'>): Promise<ResponseOf<'listCreate'>>;
   deleteList(listId: string): Promise<ResponseOf<'listDelete'>>;
+  patchList(listId: string, req: BodyOf<'listPatch'>): Promise<ResponseOf<'listPatch'>>;
+  reorderLists(req: BodyOf<'listsReorder'>): Promise<ResponseOf<'listsReorder'>>;
   chores(): Promise<ResponseOf<'chores'>>;
   choreDone(choreId: string, personId?: string): Promise<ResponseOf<'choreDone'>>;
   choreUndo(choreId: string): Promise<ResponseOf<'choreUndo'>>;

@@ -279,6 +279,8 @@ export const List = z.object({
   name: z.string(),
   source: z.enum(['reminders', 'local']),
   items: z.array(ListItem),
+  /** The list the Today screen shows. When none is chosen, Today picks the grocery list. */
+  home: z.boolean().optional(),
 });
 export type List = z.infer<typeof List>;
 

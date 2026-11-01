@@ -51,6 +51,13 @@ export function storeLists(
       store.deleteList(listId);
       return { ok: true };
     },
+    async patchList(listId, req) {
+      return { list: store.patchList(listId, req) };
+    },
+    async reorderLists({ ids }) {
+      store.reorder(ids);
+      return { lists: store.all() };
+    },
     async chores() {
       return choreStore.all();
     },
