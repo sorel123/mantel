@@ -1,11 +1,13 @@
 /**
  * The Week strip preset: seven days, Sunday to Saturday, each with everything in it. Arrows or
- * a swipe move a week; the day's header opens the day sheet.
+ * a swipe move a week; the day's header opens the day sheet. In a space too narrow for seven
+ * readable columns (a small Today card) the days keep a readable width and slide sideways,
+ * starting at today; the arrows still move a week.
  */
 import type { CalendarEvent } from '@mantel/shared';
 import { addDays, startOfDay, toIsoDate } from '@mantel/shared';
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from 'framer-motion';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useNow } from '../../app/Clock';
 import {
   dayNames,
@@ -19,6 +21,9 @@ import { Avatars, Icon, Svg, pc } from '../today/parts';
 import { useDaySheet } from './DaySheet';
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
+/** Narrower than this per day and the strip slides instead of squeezing. */
+const MIN_DAY = 128;
+const GAP = 8;
 
 /** The Sunday on or before `day`. */
 export const weekStart = (day: Date) => addDays(startOfDay(day), -day.getDay());
@@ -41,6 +46,20 @@ export function WeekStrip({ toggle }: { toggle?: React.ReactNode }) {
   const reduce = useReducedMotion();
   const openDay = useDaySheet();
   const { events } = useEvents(view, addDays(view, 7));
+  const wrap = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    setWidth(el.clientWidth);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const narrow = width > 0 && width / 7 < MIN_DAY;
+  // About three days in view, with the next one peeking in so it reads as slideable.
+  const dayW = narrow ? Math.max(MIN_DAY, Math.floor((width - 3 * GAP) / 3.3)) : 0;
 
   const go = (n: number) => {
     setDir(n);
@@ -79,11 +98,11 @@ export function WeekStrip({ toggle }: { toggle?: React.ReactNode }) {
           </button>
         </div>
       </div>
-      <div className="weekwrap">
+      <div className={`weekwrap${narrow ? ' sliding' : ''}`} ref={wrap}>
         <AnimatePresence initial={false} custom={dir} mode="popLayout">
           <motion.div
             key={toIsoDate(view)}
-            className="week"
+            className={`week${narrow ? ' slide' : ''}`}
             role="list"
             aria-label={`Week of ${weekLabel(view)}`}
             custom={dir}
@@ -91,7 +110,15 @@ export function WeekStrip({ toggle }: { toggle?: React.ReactNode }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -dir * slide, opacity: 0 }}
             transition={{ duration: reduce ? 0 : 0.32, ease: EASE }}
-            drag="x"
+            style={narrow ? ({ '--day-w': `${dayW}px` } as CSSProperties) : undefined}
+            ref={(el: HTMLDivElement | null) => {
+              // Sliding: start with today (or the week's first day) at the left edge.
+              if (!el || !narrow || el.dataset.placed === toIsoDate(view)) return;
+              el.dataset.placed = toIsoDate(view);
+              const i = thisWeek ? today.getDay() : 0;
+              el.scrollLeft = Math.min(i, 4) * (dayW + GAP);
+            }}
+            drag={narrow ? false : 'x'}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.12}
             onDragEnd={onSwipe}

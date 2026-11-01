@@ -169,8 +169,6 @@ export function TodayScreen() {
 
   if (preset === 'custom') {
     const cards = layout.todayCards;
-    // The Day/Week switch rides on the agenda card unless the page already has a week card.
-    const hasWeek = cards.some((c) => c.kind === 'week');
     const renderCard = (c: TodayCard): ReactNode => {
       switch (c.kind) {
         case 'date':
@@ -184,7 +182,7 @@ export function TodayScreen() {
         case 'forecast':
           return render('daily');
         case 'agenda':
-          if (view === 'week' && !hasWeek) return render('week-strip');
+          if (view === 'week') return render('week-strip');
           return (
             <Agenda
               now={now}
@@ -194,7 +192,7 @@ export function TodayScreen() {
               onList={() => nav.go('lists')}
               rows={layout.todayRows.filter((r) => !cards.some((k) => k.kind === r))}
               variant={c.w >= 5 && c.h >= 6 ? 'full' : 'short'}
-              toggle={hasWeek ? undefined : toggle}
+              toggle={toggle}
             />
           );
         case 'week':
@@ -229,7 +227,7 @@ export function TodayScreen() {
     };
     return (
       <CardGrid
-        className={`cal today${view === 'week' && !hasWeek ? ' week-view' : ''}`}
+        className={`cal today${view === 'week' ? ' week-view' : ''}`}
         cards={cards}
         render={renderCard}
         zoom={(c) => cardZoom(c, c.kind === 'weather' && !bigWeather(c) ? 'line' : undefined)}
