@@ -383,8 +383,8 @@ export type Fit = z.infer<typeof Fit>;
 export const TodayRow = z.enum(['tonight', 'week', 'countdowns', 'list', 'photo']);
 export type TodayRow = z.infer<typeof TodayRow>;
 export const DEFAULT_TODAY_ROWS: TodayRow[] = ['tonight', 'week'];
-/** How tightly the Month grid packs a day: `roomy` (bigger type) or `compact` (more events). */
-export const MonthDensity = z.enum(['roomy', 'compact']);
+/** How tightly the Month grid packs a day: `roomy` (bigger type), `compact`, or `dense` (most events). */
+export const MonthDensity = z.enum(['roomy', 'compact', 'dense']);
 export type MonthDensity = z.infer<typeof MonthDensity>;
 
 export const Layout = z.object({
