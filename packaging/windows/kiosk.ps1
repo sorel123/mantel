@@ -21,8 +21,8 @@ for ($i = 0; $i -lt 30; $i++) {
 
 if (-not $chrome) { Start-Process $Url; return }
 $profile = Join-Path $env:LocalAppData 'Mantel\chrome'
-$args = @("--user-data-dir=`"$profile`"", '--no-first-run', '--disable-pinch',
+$chromeArgs = @("--user-data-dir=`"$profile`"", '--no-first-run', '--disable-pinch',
   '--overscroll-history-navigation=0', '--noerrdialogs', '--disable-session-crashed-bubble',
   '--disable-features=TranslateUI')
-if ($Windowed) { $args += "--app=$Url" } else { $args += '--kiosk'; $args += $Url }
-Start-Process -FilePath $chrome -ArgumentList $args
+if ($Windowed) { $chromeArgs += "--app=$Url" } else { $chromeArgs += '--kiosk'; $chromeArgs += $Url }
+Start-Process -FilePath $chrome -ArgumentList $chromeArgs
