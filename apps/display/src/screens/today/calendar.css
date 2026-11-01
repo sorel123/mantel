@@ -185,7 +185,8 @@
   min-height: 0;
   overflow: auto;
 }
-.cal .qa-title {
+.cal .qa-title,
+.cal .qa-place {
   height: var(--tap);
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -262,6 +263,29 @@
 }
 .cal .qa-actions .addbtn {
   flex: 1;
+}
+.cal .qa-place {
+  font-size: 16px;
+}
+.cal .qa-delete {
+  height: var(--tap);
+  padding: 0 18px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+/* An event in the day sheet that can be changed: the whole row is the button. */
+.cal .evedit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  transition: background var(--fast) var(--ease);
+}
+.cal .evedit:active {
+  background: var(--surface-2);
 }
 .cal .qa-cancel {
   height: var(--tap);

@@ -18,6 +18,8 @@ const notReady = () => Promise.reject(new HttpError('internal', 'calendar provid
 const placeholder: CalendarProvider = {
   events: notReady,
   quickAdd: notReady,
+  updateEvent: notReady,
+  deleteEvent: notReady,
   countdowns: notReady,
   meals: notReady,
   calendars: async () => [],

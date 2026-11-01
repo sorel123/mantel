@@ -140,6 +140,21 @@ function fakeUpstream() {
         return json(created);
       }
       if (m) return json({ items: google[m[1]!] ?? [] });
+      const one = /^\/calendars\/([^/]+)\/events\/([^/]+)$/.exec(path);
+      if (one) {
+        const list = google[one[1]!] ?? [];
+        const i = list.findIndex((e) => e.id === one[2]);
+        if (i < 0) return json({ error: { message: 'Not Found' } }, 404);
+        if (method === 'DELETE') {
+          list.splice(i, 1);
+          return new Response(null, { status: 204 });
+        }
+        if (method === 'PATCH') {
+          const patch = JSON.parse(body!) as GEvent;
+          list[i] = { ...list[i]!, ...patch };
+          return json(list[i]);
+        }
+      }
       if (path === '/channels/stop') return new Response(null, { status: 204 });
     }
     if (url.host === 'caldav.icloud.com' && method === 'PROPFIND' && url.pathname === '/')
@@ -176,7 +191,11 @@ function fakeUpstream() {
             `<d:response><d:href>/123/calendars/sam/sam-1.ics</d:href><d:propstat><d:prop><d:getetag>"1"</d:getetag><c:calendar-data>${escapeXml(icloud.ics)}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`,
           ),
         );
-      if (method === 'PUT') return new Response(null, { status: 201 });
+      if (method === 'PUT') {
+        if (url.pathname.endsWith('/sam-1.ics')) icloud.ics = body!;
+        return new Response(null, { status: 201 });
+      }
+      if (method === 'DELETE') return new Response(null, { status: 204 });
     }
     return new Response(`unexpected ${method} ${url}`, { status: 599 });
   });
@@ -402,6 +421,74 @@ describe('RealCalendar', () => {
     const put = h.up.calls.find((c) => c.method === 'PUT')!;
     expect(put.url).toMatch(/^https:\/\/p01-caldav\.icloud\.com\/123\/calendars\/sam\/.+\.ics$/);
     expect(put.body).toContain(`DTSTART;VALUE=DATE:${date(3).replace(/-/g, '')}`);
+  });
+
+  it('edits and deletes a Google event, visible before the next sync', async () => {
+    const h = harness();
+    await connect(h);
+    const id = 'google:family@group.calendar.google.com|f1';
+    h.events.length = 0;
+    const { event } = await h.cal.updateEvent(id, {
+      title: 'Leo soccer (moved)',
+      start: at(0, 16),
+      location: '',
+    });
+    expect(event).toMatchObject({ id, title: 'Leo soccer (moved)' });
+    expect(event.location).toBeUndefined();
+    // The length stays when only the start moves.
+    expect(new Date(event.end).getTime() - new Date(event.start).getTime()).toBe(1.5 * 3600e3);
+    const patch = h.up.calls.find((c) => c.method === 'PATCH')!;
+    expect(patch.url).toMatch(/\/events\/f1$/);
+    expect(JSON.parse(patch.body!)).toMatchObject({ summary: 'Leo soccer (moved)', location: '' });
+    expect(h.events.map((e) => e.type)).toEqual(['calendar.changed']);
+    expect((await h.cal.events(...dayRange())).events.map((e) => e.title)).toContain(
+      'Leo soccer (moved)',
+    );
+
+    await h.cal.deleteEvent(id);
+    expect(h.up.calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/events/f1'))).toBe(
+      true,
+    );
+    expect((await h.cal.events(...dayRange())).events.map((e) => e.id)).not.toContain(id);
+  });
+
+  it('edits and deletes a one-off iCloud event, and refuses repeating ones', async () => {
+    const h = harness();
+    await connect(h);
+    const [book] = (await h.cal.events(...dayRange(1))).events.filter(
+      (e) => e.title === 'Book club',
+    );
+    const { event } = await h.cal.updateEvent(book!.id, { title: 'Book club at Ana’s' });
+    expect(event.title).toBe('Book club at Ana’s');
+    const put = h.up.calls.find((c) => c.method === 'PUT')!;
+    expect(put.url).toMatch(/\/123\/calendars\/sam\/sam-1\.ics$/);
+    expect(put.body).toContain('SUMMARY:Book club at Ana’s');
+    expect(put.body).toContain('SEQUENCE:1');
+
+    await h.cal.deleteEvent(event.id);
+    expect(h.up.calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/sam-1.ics'))).toBe(
+      true,
+    );
+
+    // A weekly series can't be changed from the wall.
+    h.up.icloud.ics = h.up.icloud.ics.replace('END:VEVENT', 'RRULE:FREQ=WEEKLY\r\nEND:VEVENT');
+    h.up.icloud.ctag = 'ctag-2';
+    await h.cal.sync();
+    const [series] = (await h.cal.events(...dayRange(1))).events.filter((e) =>
+      e.title.startsWith('Book club'),
+    );
+    await expect(h.cal.deleteEvent(series!.id)).rejects.toThrow(/repeating/);
+  });
+
+  it('refuses to edit read-only calendars and unknown events', async () => {
+    const h = harness();
+    await connect(h);
+    await expect(
+      h.cal.updateEvent('google:holidays@group.v.calendar.google.com|h1', { title: 'x' }),
+    ).rejects.toThrow(/read-only|not on the wall/);
+    await expect(h.cal.deleteEvent('google:jay@example.com|nope')).rejects.toThrow(
+      /not on the wall/,
+    );
   });
 
   it('refuses read-only calendars', async () => {

@@ -168,6 +168,17 @@ export const QuickEventRequest = z.object({
 });
 export const QuickEventResponse = z.object({ event: CalendarEvent });
 
+/** Change an event; fields left out stay as they are. */
+export const EventPatchRequest = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  start: IsoDateTime.optional(),
+  end: IsoDateTime.optional(),
+  allDay: z.boolean().optional(),
+  /** Empty string clears it. */
+  location: z.string().max(300).optional(),
+  personIds: z.array(Id).optional(),
+});
+
 export const CountdownsResponse = z.object({ countdowns: z.array(Countdown) });
 
 /** `week` is any date in the wanted week; omitted means this week. Weeks start on Monday. */
@@ -355,6 +366,23 @@ export const routes = {
     query: NoQuery,
     body: QuickEventRequest,
     response: QuickEventResponse,
+    auth: true,
+  }),
+  /** Change one event (one occurrence of a repeating Google event). Read-only calendars answer 403. */
+  calendarEventPatch: route({
+    method: 'PATCH',
+    path: '/calendar/events/:id',
+    query: NoQuery,
+    body: EventPatchRequest,
+    response: QuickEventResponse,
+    auth: true,
+  }),
+  calendarEventDelete: route({
+    method: 'DELETE',
+    path: '/calendar/events/:id',
+    query: NoQuery,
+    body: NoBody,
+    response: Ok,
     auth: true,
   }),
   countdowns: route({

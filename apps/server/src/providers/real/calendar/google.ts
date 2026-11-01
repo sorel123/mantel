@@ -8,7 +8,7 @@ import { addDays, fromIsoDate, toLocalIso } from '@mantel/shared';
 import { HttpError } from '../../../errors.js';
 import { log } from '../../../log.js';
 import type { CalendarStore } from './store.js';
-import type { NewEvent, RawEvent, Source, SourceCalendar } from './types.js';
+import type { EditEvent, NewEvent, RawEvent, Source, SourceCalendar } from './types.js';
 
 export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
@@ -354,6 +354,40 @@ export class GoogleSource implements Source {
     const raw = fromGoogle(cal.id, created);
     if (!raw) throw new HttpError('upstream_error', 'Google did not return the new event');
     return raw;
+  }
+
+  async update(cal: SourceCalendar, uid: string, ev: EditEvent): Promise<RawEvent> {
+    // Switching between all-day and timed needs the other field cleared explicitly.
+    const time = (d: Date) =>
+      ev.allDay ? { date: dateOnly(d), dateTime: null } : { dateTime: d.toISOString(), date: null };
+    const body = {
+      summary: ev.title,
+      start: time(ev.start),
+      end: time(ev.end),
+      ...(ev.location !== undefined ? { location: ev.location.trim() } : {}),
+      ...(ev.personIds !== undefined
+        ? { extendedProperties: { private: { [PEOPLE_PROP]: ev.personIds.join(',') } } }
+        : {}),
+    };
+    const updated = await this.call<GEvent>(
+      `/calendars/${encodeURIComponent(cal.ref)}/events/${encodeURIComponent(uid)}`,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    );
+    const raw = fromGoogle(cal.id, updated);
+    if (!raw) throw new HttpError('upstream_error', 'Google did not return the event');
+    return raw;
+  }
+
+  async remove(cal: SourceCalendar, uid: string): Promise<void> {
+    try {
+      await this.call(
+        `/calendars/${encodeURIComponent(cal.ref)}/events/${encodeURIComponent(uid)}`,
+        { method: 'DELETE' },
+      );
+    } catch (err) {
+      // Already gone upstream: that is what was asked for.
+      if (!(err instanceof HttpError && / (404|410):/.test(err.message))) throw err;
+    }
   }
 
   /** Ask Google to POST to `address` when the calendar changes. */

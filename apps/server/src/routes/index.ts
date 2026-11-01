@@ -254,6 +254,10 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     providers.calendar.events(new Date(query.from), new Date(query.to)),
   );
   handle('calendarQuick', async ({ body }) => providers.calendar.quickAdd(body));
+  handle('calendarEventPatch', async ({ params, body }) =>
+    providers.calendar.updateEvent(params.id!, body),
+  );
+  handle('calendarEventDelete', async ({ params }) => providers.calendar.deleteEvent(params.id!));
   handle('countdowns', async () => providers.calendar.countdowns());
   handle('meals', async ({ query }) =>
     providers.calendar.meals(query.week ? fromIsoDate(query.week) : undefined),
