@@ -192,6 +192,19 @@ export function calendarEvents(now: Date): CalendarEvent[] {
       }
     }
   }
+  // An all-day event over several days, drawn as a bar on Month.
+  const tripStart = addDays(today, 10);
+  out.push({
+    id: 'evt-trip',
+    calendarId: 'cal-family',
+    title: 'Cabin weekend',
+    start: toLocalIso(tripStart),
+    end: toLocalIso(addDays(tripStart, 4)),
+    allDay: true,
+    personIds: ['jay', 'sam', 'ava', 'leo'],
+    color: personColor('jay'),
+    countdown: false,
+  });
   return out.sort((a, b) => a.start.localeCompare(b.start));
 }
 

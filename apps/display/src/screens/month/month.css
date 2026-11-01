@@ -3,6 +3,22 @@
   flex: 1;
   min-height: 0;
 }
+.month .mgrid {
+  /* Day cell metrics; MonthGrid reads them to work out how many rows fit. */
+  --m-cell-gap: 8px;
+  --m-pad: 6px;
+  --m-num: 26px;
+  --m-gap: 3px;
+  --m-pill: 20px;
+}
+.month .mgrid.compact {
+  --m-cell-gap: 6px;
+  --m-pad: 4px;
+  --m-num: 20px;
+  --m-gap: 2px;
+  --m-pill: 17px;
+  gap: 8px;
+}
 .month .mgrid,
 .month .wstrip {
   display: flex;
@@ -100,7 +116,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-template-rows: repeat(6, 1fr);
-  gap: 8px;
+  gap: var(--m-cell-gap);
   touch-action: pan-y;
 }
 .month .cell {
@@ -109,10 +125,10 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 6px 8px;
+  padding: var(--m-pad) 8px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--m-gap);
   min-height: 0;
   min-width: 0;
   overflow: hidden;
@@ -131,8 +147,8 @@
 }
 .month .cell .n {
   font: 500 17px/1 var(--display);
-  width: 26px;
-  height: 26px;
+  width: var(--m-num);
+  height: var(--m-num);
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -147,6 +163,8 @@
   box-shadow: 0 0 0 2px var(--accent);
 }
 .month .pill {
+  box-sizing: border-box;
+  height: var(--m-pill);
   font-size: 12px;
   line-height: 16px;
   font-weight: 600;
@@ -159,6 +177,69 @@
   text-overflow: ellipsis;
   border-left: 3px solid var(--pc);
   flex: none;
+}
+/* Room left under the date for the bars drawn across the week. */
+.month .cell .lanes {
+  flex: none;
+  height: calc(var(--lanes) * (var(--m-pill) + var(--m-gap)) - var(--m-gap));
+}
+/* An event covering several days: one bar across the week, over the day cells. */
+.month .pill.bar {
+  /* Opaque, so the gaps and cell edges it crosses don't show through. */
+  background: color-mix(in srgb, var(--pc) 18%, var(--surface));
+  align-self: start;
+  margin: calc(
+      var(--m-pad) + var(--m-num) + var(--m-gap) + var(--lane) * (var(--m-pill) + var(--m-gap)) +
+        1px
+    )
+    9px 0;
+  pointer-events: none;
+  z-index: 1;
+  min-width: 0;
+}
+.month .pill.bar.before {
+  margin-left: 0;
+  border-left-width: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.month .pill.bar.after {
+  margin-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.month .mgrid.compact .head .title {
+  font-size: 32px;
+}
+.month .mgrid.compact .head .title .yr {
+  font-size: 22px;
+}
+.month .mgrid.compact .wdh div {
+  font-size: 11px;
+}
+.month .mgrid.compact .cell {
+  border-radius: 10px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.month .mgrid.compact .cell .n {
+  font-size: 14px;
+}
+.month .mgrid.compact .pill {
+  font-size: 11px;
+  line-height: 14px;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+}
+.month .mgrid.compact .pill.bar {
+  margin-left: 7px;
+  margin-right: 7px;
+}
+.month .mgrid.compact .pill.bar.before {
+  margin-left: 0;
+}
+.month .mgrid.compact .pill.bar.after {
+  margin-right: 0;
 }
 .month .pill.more {
   background: transparent;

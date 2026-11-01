@@ -18,9 +18,15 @@ describe('resolveLayout', () => {
     expect(resolveLayout(base, { fit: 'fill' }, { fit: 'scale', scale: 1.2 })).toEqual({
       todayPreset: 'weather',
       monthPreset: 'grid',
+      monthDensity: 'roomy',
       fit: 'scale',
       scale: 1.2,
     });
+  });
+  it('reads the Month density, and drops one it does not know', () => {
+    expect(resolveLayout(undefined, { monthDensity: 'compact' }).monthDensity).toBe('compact');
+    expect(resolveLayout(undefined, { monthDensity: 'tiny' } as never).monthDensity).toBe('roomy');
+    expect(layoutFromSearch('?density=compact')).toEqual({ monthDensity: 'compact' });
   });
   it('ignores values it does not know and keeps the rest', () => {
     expect(

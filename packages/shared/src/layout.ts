@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 
-import { Fit, Layout, MonthPreset, TodayPreset } from './models.js';
+import { Fit, Layout, MonthDensity, MonthPreset, TodayPreset } from './models.js';
 
 /** The layout settings object (`Layout` in models.ts; this is the name the display uses). */
 export const LayoutSettings = Layout;
@@ -21,6 +21,7 @@ export const SCALE_STEP = 0.05;
 export const DEFAULT_LAYOUT: LayoutSettings = {
   todayPreset: 'agenda',
   monthPreset: 'grid',
+  monthDensity: 'roomy',
   fit: 'fit',
   scale: 1,
 };
@@ -33,6 +34,7 @@ export const DEFAULT_LAYOUT: LayoutSettings = {
 export const LayoutOverride = z.object({
   todayPreset: TodayPreset.optional(),
   monthPreset: MonthPreset.optional(),
+  monthDensity: MonthDensity.optional(),
   fit: Fit.optional(),
   scale: Layout.shape.scale.unwrap().optional(),
 });
@@ -58,6 +60,8 @@ function clean(o: Partial<LayoutSettings> | null | undefined): Partial<LayoutSet
   if (t.success) out.todayPreset = t.data;
   const m = MonthPreset.safeParse(o.monthPreset);
   if (m.success) out.monthPreset = m.data;
+  const d = MonthDensity.safeParse(o.monthDensity);
+  if (d.success) out.monthDensity = d.data;
   const f = Fit.safeParse(o.fit);
   if (f.success) out.fit = f.data;
   const s = LayoutOverride.shape.scale.safeParse(o.scale);
@@ -74,6 +78,7 @@ export function layoutFromSearch(search: string): LayoutOverride {
   const out: Record<string, unknown> = {};
   if (q.has('today')) out.todayPreset = q.get('today');
   if (q.has('month')) out.monthPreset = q.get('month');
+  if (q.has('density')) out.monthDensity = q.get('density');
   if (q.has('fit')) out.fit = q.get('fit');
   if (q.has('scale')) {
     const raw = q.get('scale')!.trim().replace(/%$/, '');
@@ -109,8 +114,13 @@ export const TODAY_PRESETS: ReadonlyArray<PresetInfo<TodayPreset>> = [
 ];
 
 export const MONTH_PRESETS: ReadonlyArray<PresetInfo<MonthPreset>> = [
-  { id: 'grid', name: 'Grid', description: 'Six weeks, a few events a day.' },
+  { id: 'grid', name: 'Grid', description: 'The whole month, a few events a day.' },
   { id: 'week', name: 'Week strip', description: 'Seven days with everything in them.' },
+];
+
+export const MONTH_DENSITIES: ReadonlyArray<PresetInfo<MonthDensity>> = [
+  { id: 'roomy', name: 'Roomy', description: 'Bigger type, two or three events a day.' },
+  { id: 'compact', name: 'Compact', description: 'Smaller type, room for more events.' },
 ];
 
 export const FIT_MODES: ReadonlyArray<PresetInfo<Fit>> = [

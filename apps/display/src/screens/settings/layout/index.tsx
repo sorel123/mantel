@@ -5,6 +5,7 @@
  */
 import {
   FIT_MODES,
+  MONTH_DENSITIES,
   MONTH_PRESETS,
   SCALE_MAX,
   SCALE_MIN,
@@ -12,13 +13,14 @@ import {
   TODAY_PRESETS,
   type Fit,
   type LayoutSettings,
+  type MonthDensity,
   type MonthPreset,
   type PresetInfo,
   type TodayPreset,
 } from '@mantel/shared';
 import type { ComponentType, CSSProperties } from 'react';
 import { openPreview } from '../../../lib/preview';
-import { Field, Section } from '../controls';
+import { Field, Section, Seg } from '../controls';
 import { FitPreview } from './FitPreview';
 import { FitThumb, MonthThumb, TodayThumb } from './thumbs';
 import './layout.css';
@@ -51,6 +53,14 @@ export function LayoutSection({
         Thumb={MonthThumb}
         onChange={(monthPreset) => onChange({ ...value, monthPreset })}
       />
+      <Field label="Month density" hint="Compact fits four or five events in each day.">
+        <Seg<MonthDensity>
+          label="Month density"
+          value={value.monthDensity ?? 'roomy'}
+          options={MONTH_DENSITIES.map((d) => [d.id, d.name])}
+          onChange={(monthDensity) => onChange({ ...value, monthDensity })}
+        />
+      </Field>
       <Picker<Fit>
         label="Screen fit"
         options={FIT_MODES}
