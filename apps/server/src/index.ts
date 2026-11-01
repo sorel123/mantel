@@ -1,12 +1,10 @@
-import { existsSync } from 'node:fs';
+import './env-files.js';
 import type { Server } from 'node:http';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { log, setLogLevel } from './log.js';
 import { VERSION } from './version.js';
-
-for (const file of ['.env', '../../.env']) if (existsSync(file)) process.loadEnvFile(file);
 
 const config = loadConfig();
 setLogLevel(config.LOG_LEVEL);

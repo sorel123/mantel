@@ -48,6 +48,15 @@ export function routeFixtures(now = new Date()): {
   const events = eventsInRange(now, today, addDays(today, 1));
   return {
     pair: { deviceId: 'dev-mock', deviceKey: MOCK_DEVICE_KEY },
+    pairLocal: { deviceId: 'dev-mock', deviceKey: MOCK_DEVICE_KEY },
+    updateCheck: {
+      current: '0.1.0',
+      checked: true,
+      latest: '0.2.0',
+      available: true,
+      url: 'https://github.com/sorel123/mantel/releases/latest',
+      notes: 'Sample release notes.',
+    },
     bootstrap: {
       version: '0.1.0',
       mock: true,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { api } from '../../lib/api';
 import { errorText, getHealthDetails } from './client';
-import type { HealthDetails } from '@mantel/shared';
+import type { HealthDetails, UpdateCheckResponse } from '@mantel/shared';
 import { CopyButton, Section, StatusBadge } from './controls';
 
 const ago = (iso: string | null) => {
@@ -24,6 +25,13 @@ const uptime = (s: number) => {
 export function HealthSection({ version, mock }: { version: string; mock: boolean }) {
   const [health, setHealth] = useState<HealthDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [update, setUpdate] = useState<UpdateCheckResponse | null>(null);
+  useEffect(() => {
+    api
+      .call('updateCheck')
+      .then(setUpdate)
+      .catch(() => setUpdate(null));
+  }, []);
   const load = useCallback(() => {
     getHealthDetails()
       .then((h) => {
@@ -72,6 +80,20 @@ export function HealthSection({ version, mock }: { version: string; mock: boolea
           </span>
         </span>
       </div>
+      {update?.available && update.url && (
+        <div className="set-field">
+          <span className="set-label">
+            Mantel {update.latest} is out
+            <span className="set-hint">
+              You have {update.current}. Download the new version and run it over the old one; your
+              settings and keys stay.
+            </span>
+          </span>
+          <a className="set-btn" href={update.url} target="_blank" rel="noreferrer">
+            Get it
+          </a>
+        </div>
+      )}
       {health?.integrations.map((i) => (
         <div className="set-field" key={i.id}>
           <span className="set-label">

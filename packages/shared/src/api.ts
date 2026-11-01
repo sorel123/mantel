@@ -129,6 +129,18 @@ export const PairRequest = z
   .refine((r) => r.code || r.pin, { message: 'give a pairing code or the admin PIN' });
 export const PairResponse = z.object({ deviceId: Id, deviceKey: z.string().min(16) });
 
+/** Whether a newer Mantel release is out. `checked: false` when the check is off or could not run. */
+export const UpdateCheckResponse = z.object({
+  current: z.string(),
+  checked: z.boolean(),
+  latest: z.string().nullable(),
+  available: z.boolean(),
+  /** The release page to download from. */
+  url: z.string().nullable(),
+  notes: z.string().nullable(),
+});
+export type UpdateCheckResponse = z.infer<typeof UpdateCheckResponse>;
+
 export const BootstrapResponse = z.object({
   version: z.string(),
   mock: z.boolean(),
@@ -343,6 +355,26 @@ export const routes = {
     body: PairRequest,
     response: PairResponse,
     auth: false,
+  }),
+  /**
+   * The installed app pairs its own display: only from the same computer (loopback, no proxy
+   * headers) and only when the server was started with LOCAL_PAIR=1.
+   */
+  pairLocal: route({
+    method: 'POST',
+    path: '/pair/local',
+    query: z.object({ name: z.string().min(1).max(60).optional() }).strict(),
+    body: NoBody,
+    response: PairResponse,
+    auth: false,
+  }),
+  updateCheck: route({
+    method: 'GET',
+    path: '/update',
+    query: NoQuery,
+    body: NoBody,
+    response: UpdateCheckResponse,
+    auth: true,
   }),
   bootstrap: route({
     method: 'GET',

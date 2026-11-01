@@ -97,6 +97,11 @@ export class DeviceAuth {
     return this.createDevice(name);
   }
 
+  /** Pair a display on this same computer, with no code. The caller has checked it is loopback. */
+  pairLocal(name = 'This computer'): { deviceId: string; deviceKey: string } {
+    return this.createDevice(name);
+  }
+
   private createDevice(name: string) {
     const deviceId = randomUUID();
     const deviceKey = randomBytes(32).toString('base64url');
