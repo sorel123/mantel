@@ -479,6 +479,7 @@ test('fill and scale reach the edges of the viewport', async ({ page }) => {
   await page.goto('/?mode=daylight&fit=fill');
   await expect(page.getByRole('navigation', { name: 'Screens' })).toBeVisible();
   let box = await panelBox();
+  expect(Math.abs(box.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(box.width - size.width)).toBeLessThanOrEqual(2);
   expect(Math.abs(box.height - size.height)).toBeLessThanOrEqual(2);
 
@@ -493,6 +494,18 @@ test('fill and scale reach the edges of the viewport', async ({ page }) => {
   }));
   expect(logical.height).toBe(Math.round(820 / 1.2));
   expect(Math.abs(logical.width * 1.2 - size.width * (820 / size.height))).toBeLessThan(3);
+
+  // A short, wide browser window (a laptop): the panel is wider than the viewport before it is
+  // scaled, and must still sit at the left edge, not slide off to the right.
+  await page.setViewportSize({ width: 1000, height: 545 });
+  for (const q of ['fit=fill', 'fit=scale&scale=1', 'fit=scale&scale=1.2']) {
+    await page.goto(`/?mode=daylight&${q}`);
+    await expect(page.getByRole('navigation', { name: 'Screens' })).toBeVisible();
+    box = await panelBox();
+    expect(Math.abs(box.x), q).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.y), q).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.width - 1000), q).toBeLessThanOrEqual(2);
+  }
 
   expect(problems).toEqual([]);
 });

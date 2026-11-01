@@ -102,7 +102,11 @@ export function Stage({
     <div className="stage">
       <div
         className="panel"
-        style={{ width: fit.width, height: fit.height, transform: `scale(${fit.scale})` }}
+        style={{
+          width: fit.width,
+          height: fit.height,
+          transform: `translate(-50%, -50%) scale(${fit.scale})`,
+        }}
       >
         {children}
       </div>
