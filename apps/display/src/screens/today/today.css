@@ -310,3 +310,63 @@
   min-height: 0;
   min-width: 0;
 }
+
+/* In a narrow column the strip tightens up: smaller type and padding, no faces. */
+.today .today-week {
+  container-type: inline-size;
+}
+@container (max-width: 860px) {
+  .today .today-week .head .title {
+    font-size: 30px;
+  }
+  .today .today-week .head .title .yr {
+    display: none;
+  }
+  .today .today-week .navbtns {
+    gap: 6px;
+  }
+  .today .today-week .navbtns .view-toggle {
+    margin-right: 4px;
+  }
+  .today .today-week .week {
+    gap: 6px;
+  }
+  .today .today-week .week .dh {
+    padding: 8px 6px 4px 8px;
+    min-height: 40px;
+    gap: 2px;
+  }
+  .today .today-week .week .dh .wd {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .today .today-week .week .dh .n {
+    font-size: 19px;
+    width: 30px;
+    height: 30px;
+  }
+  .today .today-week .week .dlist {
+    padding: 0 4px 4px;
+    gap: 3px;
+  }
+  .today .today-week .week .wev {
+    min-height: 0;
+    padding: 4px 4px 4px 2px;
+    gap: 5px;
+    border-radius: 7px;
+  }
+  .today .today-week .week .wev .wt {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .today .today-week .week .wev .wt b {
+    font-size: 10px;
+  }
+  .today .today-week .week .wev .avs {
+    display: none;
+  }
+  .today .today-week .week .dadd {
+    height: 36px;
+    margin: 0 4px 4px;
+  }
+}

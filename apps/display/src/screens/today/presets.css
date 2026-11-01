@@ -60,7 +60,7 @@
 }
 
 /* ---------- Weather focus: the week ahead ---------- */
-.today .ahead {
+.today .wahead {
   padding: 16px 22px;
   display: flex;
   flex-direction: column;
@@ -69,23 +69,21 @@
   min-height: 0;
   overflow: hidden;
 }
-.today .ahead.is-loading {
+.today .wahead.is-loading {
   min-height: 200px;
 }
-.today .ahead .hourly {
+.today .wahead .hourly {
   border-top: 0;
   padding-top: 0;
 }
-.today .ahead .days {
+.today .wahead .days {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
 }
-.today .ahead .days li {
+.today .wahead .days li {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,17 +97,17 @@
   color: var(--ink-2);
   min-width: 0;
 }
-.today .ahead .days li:first-child {
+.today .wahead .days li:first-child {
   background: var(--accent-soft);
 }
-.today .ahead .days .dn {
+.today .wahead .days .dn {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 11.5px;
   color: var(--ink-3);
 }
-.today .ahead .days svg {
+.today .wahead .days svg {
   width: 26px;
   height: 26px;
   color: var(--ink);
@@ -119,18 +117,18 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.today .ahead .days small {
+.today .wahead .days small {
   font-size: 11.5px;
   font-weight: 700;
   color: var(--accent);
   min-height: 13px;
   line-height: 13px;
 }
-.today .ahead .days b {
+.today .wahead .days b {
   font: 500 19px/1 var(--display);
   color: var(--ink);
 }
-.today .ahead .days .lo {
+.today .wahead .days .lo {
   font-size: 13px;
 }
 .today .agenda.short .tl {

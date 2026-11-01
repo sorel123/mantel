@@ -130,21 +130,30 @@ export function weeksIn(month: Date): number {
   return Math.ceil((first.getDay() + days) / 7);
 }
 
-/** What one day cell shows: how many bar lanes to leave room for, its pills, and the "+n more". */
+/**
+ * What one day cell shows, row by row: `null` where a bar crosses the cell (the bar is drawn over
+ * it), otherwise the day's own event. A lane that no bar uses on this day takes an event, so a
+ * bar in the second lane doesn't leave a hole above it. When not everything fits, the last row
+ * is "+n more".
+ */
 export function fillDay(
   week: WeekLayout,
   col: number,
   rows: number,
-): { lanes: number; pills: CalendarEvent[]; more: number } {
+): { slots: Array<CalendarEvent | null>; more: number } {
   // Bars may use every row but one, so a day always has room for "+n more" or a pill.
   const maxLanes = Math.max(1, rows - 1);
   const covering = week.bars.filter((b) => b.from <= col && b.to >= col);
-  const shownLanes = covering.filter((b) => b.lane < maxLanes);
-  const hiddenBars = covering.length - shownLanes.length;
-  const lanes = shownLanes.length ? Math.max(...shownLanes.map((b) => b.lane)) + 1 : 0;
+  const barLanes = new Set(covering.filter((b) => b.lane < maxLanes).map((b) => b.lane));
+  const hiddenBars = covering.length - barLanes.size;
   const singles = week.singles[col] ?? [];
-  const room = Math.max(0, rows - lanes);
-  if (singles.length + hiddenBars <= room) return { lanes, pills: singles, more: hiddenBars };
-  const pills = singles.slice(0, Math.max(0, room - 1));
-  return { lanes, pills, more: singles.length - pills.length + hiddenBars };
+  const fitsAll = hiddenBars === 0 && singles.length <= rows - barLanes.size;
+  const usable = fitsAll ? rows : rows - 1;
+  const slots: Array<CalendarEvent | null> = [];
+  let next = 0;
+  const top = barLanes.size ? Math.max(...barLanes) + 1 : 0;
+  for (let r = 0; r < usable && (r < top || next < singles.length); r++) {
+    slots.push(barLanes.has(r) ? null : singles[next++]!);
+  }
+  return { slots, more: singles.length - next + hiddenBars };
 }
