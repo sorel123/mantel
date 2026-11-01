@@ -126,8 +126,9 @@ export const MONTH_PRESETS: ReadonlyArray<PresetInfo<MonthPreset>> = [
 ];
 
 export const MONTH_DENSITIES: ReadonlyArray<PresetInfo<MonthDensity>> = [
-  { id: 'roomy', name: 'Roomy', description: 'Bigger type, two or three events a day.' },
+  { id: 'roomy', name: 'Roomy', description: 'Bigger type, fewer events a day.' },
   { id: 'compact', name: 'Compact', description: 'Smaller type, room for more events.' },
+  { id: 'dense', name: 'Dense', description: 'Smallest type, the most events a day.' },
 ];
 
 export const TODAY_ROWS: ReadonlyArray<PresetInfo<TodayRow>> = [
