@@ -7,7 +7,8 @@ import type { PresetLayout } from './Slots';
  * `agenda-short` (the timeline alone), `grocery`, `meals`, `countdowns`, `photo`, `people`
  * (a column per person), `bill` (the poster's event list), `add` (a round add button).
  */
-export const todayLayouts: Record<TodayPreset, PresetLayout<TodayPreset>> = {
+/** The fixed presets; `custom` is drawn from the household's cards by `CardGrid`. */
+export const todayLayouts: Record<Exclude<TodayPreset, 'custom'>, PresetLayout<TodayPreset>> = {
   agenda: {
     id: 'agenda',
     columns: '392px minmax(0, 1fr)',

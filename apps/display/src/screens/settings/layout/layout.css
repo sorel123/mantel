@@ -167,3 +167,114 @@
   gap: 8px;
   margin-top: 10px;
 }
+
+/* ---------- Your own: the card editor ---------- */
+.ced-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1132 / 700;
+  max-width: 760px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background-color: var(--surface-2);
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--cols)) 100%,
+    100% calc(100% / var(--rows));
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ced-card,
+.ced-ghost {
+  position: absolute;
+  box-sizing: border-box;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.ced-card {
+  border-radius: 12px;
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  overflow: hidden;
+  cursor: grab;
+  font-size: 13px;
+  transition:
+    left var(--fast) var(--ease),
+    top var(--fast) var(--ease),
+    width var(--fast) var(--ease),
+    height var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+.ced-card b {
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.ced-card span.tnum {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.ced-card[data-kind='agenda'],
+.ced-card[data-kind='week'] {
+  background-color: var(--accent-soft);
+}
+.ced-card[data-kind='photo'] {
+  background-color: color-mix(in srgb, var(--accent) 22%, var(--surface));
+}
+.ced-card.sel {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.ced-card.lifting {
+  opacity: 0.45;
+}
+.ced-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.ced-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 55%, var(--ink-3) 55%, var(--ink-3) 62%, transparent 62%),
+    linear-gradient(135deg, transparent 72%, var(--ink-3) 72%, var(--ink-3) 79%, transparent 79%);
+}
+.ced-ghost {
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  pointer-events: none;
+}
+.ced-ghost.bad {
+  background-color: color-mix(in srgb, #d33 22%, transparent);
+  box-shadow: inset 0 0 0 2px #d33;
+}
+.ced-note {
+  min-height: 1.4em;
+}
+.ced-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.ced-starts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}

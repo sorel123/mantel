@@ -4,7 +4,7 @@
  * the appearance draft as base64url JSON (a custom skin included); the layout keys are the
  * ones the display already reads (`today`, `month`, `fit`, `scale`).
  */
-import { Appearance, type LayoutSettings } from '@mantel/shared';
+import { Appearance, cardsToParam, type LayoutSettings } from '@mantel/shared';
 
 function toBase64Url(text: string): string {
   const bytes = new TextEncoder().encode(text);
@@ -37,6 +37,7 @@ export function previewUrl(opts: PreviewOptions): string {
     q.set('month', opts.layout.monthPreset);
     q.set('density', opts.layout.monthDensity);
     q.set('rows', opts.layout.todayRows.join(','));
+    if (opts.layout.todayPreset === 'custom') q.set('cards', cardsToParam(opts.layout.todayCards));
     q.set('fit', opts.layout.fit);
     q.set('scale', String(opts.layout.scale));
   }

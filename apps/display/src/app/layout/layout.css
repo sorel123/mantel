@@ -23,3 +23,11 @@
 .slots .region > * {
   min-height: 0;
 }
+
+/* The Custom layout's grid: tighter gaps than the presets, so small cards keep their room. */
+.slots.card-grid {
+  gap: var(--gap);
+}
+.slots.card-grid .region > * {
+  flex: 1;
+}

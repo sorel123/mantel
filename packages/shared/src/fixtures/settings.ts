@@ -1,4 +1,4 @@
-import { DEFAULT_SCREENS, type Settings } from '../models.js';
+import { DEFAULT_SCREENS, DEFAULT_TODAY_CARDS, type Settings } from '../models.js';
 import { DEFAULT_APPEARANCE } from '../skins.js';
 import { people } from './people.js';
 
@@ -56,6 +56,7 @@ export function settings(): Settings {
       monthPreset: 'grid',
       monthDensity: 'roomy',
       todayRows: ['tonight', 'week'],
+      todayCards: DEFAULT_TODAY_CARDS,
       fit: 'fit',
       scale: 1,
     },

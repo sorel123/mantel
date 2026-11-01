@@ -372,7 +372,7 @@ export type Location = z.infer<typeof Location>;
 // `Appearance` and `TextSize` live in skins.ts (workstream E) and are re-exported from the index.
 
 /** Layout presets (workstream F renders them; import these rather than redefining). */
-export const TodayPreset = z.enum(['agenda', 'weather', 'family', 'photo', 'poster']);
+export const TodayPreset = z.enum(['agenda', 'weather', 'family', 'photo', 'poster', 'custom']);
 export type TodayPreset = z.infer<typeof TodayPreset>;
 export const MonthPreset = z.enum(['grid', 'week']);
 export type MonthPreset = z.infer<typeof MonthPreset>;
@@ -383,6 +383,49 @@ export type Fit = z.infer<typeof Fit>;
 export const TodayRow = z.enum(['tonight', 'week', 'countdowns', 'list', 'photo']);
 export type TodayRow = z.infer<typeof TodayRow>;
 export const DEFAULT_TODAY_ROWS: TodayRow[] = ['tonight', 'week'];
+/**
+ * The Custom Today layout: cards placed on a grid of `TODAY_GRID_COLS` by `TODAY_GRID_ROWS` cells.
+ * x and y are the top-left cell (from 0), w and h the size in cells.
+ */
+export const TODAY_GRID_COLS = 12;
+export const TODAY_GRID_ROWS = 8;
+export const TodayCardKind = z.enum([
+  'date',
+  'weather',
+  'forecast',
+  'agenda',
+  'week',
+  'photo',
+  'list',
+  'countdowns',
+  'tonight',
+]);
+export type TodayCardKind = z.infer<typeof TodayCardKind>;
+export const TodayCard = z.object({
+  id: z.string().min(1).max(40),
+  kind: TodayCardKind,
+  x: z
+    .number()
+    .int()
+    .min(0)
+    .max(TODAY_GRID_COLS - 1),
+  y: z
+    .number()
+    .int()
+    .min(0)
+    .max(TODAY_GRID_ROWS - 1),
+  w: z.number().int().min(1).max(TODAY_GRID_COLS),
+  h: z.number().int().min(1).max(TODAY_GRID_ROWS),
+});
+export type TodayCard = z.infer<typeof TodayCard>;
+/** The Custom layout before anyone edits it: the Agenda preset's arrangement. */
+export const DEFAULT_TODAY_CARDS: TodayCard[] = [
+  { id: 'date', kind: 'date', x: 0, y: 0, w: 4, h: 2 },
+  { id: 'weather', kind: 'weather', x: 0, y: 2, w: 4, h: 4 },
+  { id: 'list', kind: 'list', x: 0, y: 6, w: 4, h: 2 },
+  { id: 'agenda', kind: 'agenda', x: 4, y: 0, w: 8, h: 8 },
+];
+
 /** How tightly the Month grid packs a day: `roomy` (bigger type), `compact`, or `dense` (most events). */
 export const MonthDensity = z.enum(['roomy', 'compact', 'dense']);
 export type MonthDensity = z.infer<typeof MonthDensity>;
@@ -392,6 +435,8 @@ export const Layout = z.object({
   monthPreset: MonthPreset.default('grid'),
   monthDensity: MonthDensity.default('roomy'),
   todayRows: z.array(TodayRow).max(5).default(['tonight', 'week']),
+  /** The cards of the Custom Today layout. */
+  todayCards: z.array(TodayCard).max(24).default(DEFAULT_TODAY_CARDS),
   fit: Fit.default('fit'),
   /** Used when `fit` is `scale`: 0.9 to 1.3. */
   scale: z.number().min(0.5).max(2).default(1),
@@ -458,6 +503,7 @@ export const Settings = z.object({
     monthPreset: 'grid',
     monthDensity: 'roomy',
     todayRows: ['tonight', 'week'],
+    todayCards: DEFAULT_TODAY_CARDS,
     fit: 'fit',
     scale: 1,
   }),

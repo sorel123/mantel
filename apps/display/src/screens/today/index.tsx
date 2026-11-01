@@ -3,13 +3,14 @@
  * agenda, grocery, photo, people columns and the poster's bill as the chosen preset says. Every
  * preset shares the data hooks; `?today=<preset>` on the display's address pins one.
  */
-import { addDays, startOfDay } from '@mantel/shared';
+import { addDays, startOfDay, type TodayCard } from '@mantel/shared';
 import { Component, useState, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
-import { Slots, todayLayouts, todayWeekLayouts, useLayout } from '../../app/layout';
+import { CardGrid, Slots, todayLayouts, todayWeekLayouts, useLayout } from '../../app/layout';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useNav } from '../../app/nav';
+import { PhotoSlideshow } from '../../features/photos';
 import { WeatherCard, useWeather } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
@@ -165,6 +166,75 @@ export function TodayScreen() {
         return null;
     }
   };
+
+  if (preset === 'custom') {
+    const cards = layout.todayCards;
+    // The Day/Week switch rides on the agenda card unless the page already has a week card.
+    const hasWeek = cards.some((c) => c.kind === 'week');
+    const renderCard = (c: TodayCard): ReactNode => {
+      switch (c.kind) {
+        case 'date':
+          return c.h >= 2 && c.w >= 3 ? render('date') : render('date-line');
+        case 'weather':
+          return c.h >= 3 && c.w >= 3 ? (
+            render('weather')
+          ) : (
+            <div className="card cc-line">{render('weather-line')}</div>
+          );
+        case 'forecast':
+          return render('daily');
+        case 'agenda':
+          if (view === 'week' && !hasWeek) return render('week-strip');
+          return (
+            <Agenda
+              now={now}
+              events={events}
+              onAdd={onAdd}
+              onDay={onDay}
+              onList={() => nav.go('lists')}
+              rows={layout.todayRows}
+              variant={c.w >= 5 && c.h >= 6 ? 'full' : 'short'}
+              toggle={hasWeek ? undefined : toggle}
+            />
+          );
+        case 'week':
+          return (
+            <div className="cal month today-week">
+              <WeekStrip />
+            </div>
+          );
+        case 'photo':
+          return (
+            <Guard name="photo">
+              <div className="card photo-panel" aria-label="Photos">
+                <PhotoSlideshow intervalMs={20_000} />
+              </div>
+            </Guard>
+          );
+        case 'list':
+          return render('grocery');
+        case 'countdowns':
+          return boot.flags.countdowns ? (
+            <div className="card cc-pad">
+              <Countdowns />
+            </div>
+          ) : null;
+        case 'tonight':
+          return (
+            <div className="card cc-pad">
+              <TonightSlot today={today} />
+            </div>
+          );
+      }
+    };
+    return (
+      <CardGrid
+        className={`cal today${view === 'week' && !hasWeek ? ' week-view' : ''}`}
+        cards={cards}
+        render={renderCard}
+      />
+    );
+  }
 
   // Week puts the seven-day strip where the agenda was, on layouts that have an agenda.
   const weekLayout = todayWeekLayouts[preset];
