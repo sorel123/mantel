@@ -13,6 +13,7 @@ import {
   Layout,
   MonthDensity,
   MonthPreset,
+  TODAY_CARD_STEP,
   TODAY_GRID_COLS,
   TODAY_GRID_ROWS,
   TodayCard,
@@ -229,13 +230,59 @@ export function findSpot(
   w: number,
   h: number,
 ): { x: number; y: number } | null {
-  for (let y = 0; y + h <= TODAY_GRID_ROWS; y++)
-    for (let x = 0; x + w <= TODAY_GRID_COLS; x++) {
+  for (let y = 0; y + h <= TODAY_GRID_ROWS; y += TODAY_CARD_STEP)
+    for (let x = 0; x + w <= TODAY_GRID_COLS; x += TODAY_CARD_STEP) {
       const probe = { id: '\u0000', kind: 'date' as const, x, y, w, h };
       if (cards.every((c) => !cardsOverlap(c, probe))) return { x, y };
     }
   return null;
 }
+
+/**
+ * The smallest each card may get in the editor, [w, h] in cells: below this it stops being
+ * readable on the wall.
+ */
+export const CARD_MIN: Readonly<Record<TodayCardKind, readonly [number, number]>> = {
+  date: [2, 1],
+  weather: [2.5, 1],
+  forecast: [4.5, 1.5],
+  agenda: [3, 3],
+  week: [6, 3],
+  photo: [1.5, 1.5],
+  list: [2, 1.5],
+  countdowns: [2.5, 1],
+  tonight: [2.5, 1],
+};
+
+/**
+ * The size each card is drawn for, [w, h] in cells. A card smaller than this draws its content
+ * a little smaller to fit (see cardZoom), down to CARD_ZOOM_MIN. Cards that change shape when
+ * small (the date, the weather) give the size of each shape.
+ */
+const CARD_COMFORT: Readonly<Record<TodayCardKind, readonly [number, number] | null>> = {
+  date: null,
+  weather: [4, 4],
+  forecast: [6, 2],
+  agenda: [5.5, 6],
+  week: [8, 4],
+  photo: null,
+  list: [3, 2.5],
+  countdowns: [4, 1],
+  tonight: [4, 1],
+};
+export const CARD_ZOOM_MIN = 0.75;
+
+/** How much to shrink a card's content (1 = not at all) so it fits the card. */
+export function cardZoom(card: Pick<TodayCard, 'kind' | 'w' | 'h'>, shape?: 'line'): number {
+  const comfort = shape === 'line' ? ([4, 1] as const) : CARD_COMFORT[card.kind];
+  if (!comfort) return 1;
+  const k = Math.min(card.w / comfort[0], card.h / comfort[1], 1);
+  return Math.round(Math.max(CARD_ZOOM_MIN, k) * 100) / 100;
+}
+
+/** A size written for people: 4½ for 4.5. */
+export const cardSize = (n: number): string =>
+  Number.isInteger(n) ? String(n) : `${Math.floor(n) || ''}½`;
 
 /** Starting points for the editor: the cards of a preset that has an equivalent. */
 export const CARD_STARTS: Readonly<Record<'agenda' | 'weather' | 'photo', TodayCard[]>> = {
@@ -252,15 +299,23 @@ export const CARD_STARTS: Readonly<Record<'agenda' | 'weather' | 'photo', TodayC
   ],
 };
 
-/** Cards in a display address: `agenda:4.0.8.8,date:0.0.4.2` (kind:x.y.w.h). */
+/**
+ * Cards in a display address: `agenda:4.0.8.8,date:0.0.4.2` (kind:x.y.w.h). With a half cell
+ * anywhere the numbers are joined by `_` instead: `date:0_0_3.5_1`.
+ */
 export const cardsToParam = (cards: readonly TodayCard[]): string =>
-  cards.map((c) => `${c.kind}:${c.x}.${c.y}.${c.w}.${c.h}`).join(',');
+  cards
+    .map((c) => {
+      const n = [c.x, c.y, c.w, c.h];
+      return `${c.kind}:${n.join(n.every(Number.isInteger) ? '.' : '_')}`;
+    })
+    .join(',');
 
 export function cardsFromParam(param: string): TodayCard[] {
   const out: TodayCard[] = [];
   for (const part of param.split(',')) {
-    const [kind, pos] = part.split(':');
-    const [x, y, w, h] = (pos ?? '').split('.').map(Number);
+    const [kind, pos = ''] = part.split(':');
+    const [x, y, w, h] = pos.split(pos.includes('_') ? '_' : '.').map(Number);
     const card = TodayCard.safeParse({ id: `${kind}-${out.length}`, kind, x, y, w, h });
     if (card.success) out.push(card.data);
   }

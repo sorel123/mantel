@@ -30,4 +30,5 @@
 }
 .slots.card-grid .region > * {
   flex: 1;
+  zoom: var(--card-zoom, 1);
 }
