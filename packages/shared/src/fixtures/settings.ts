@@ -55,6 +55,7 @@ export function settings(): Settings {
       todayPreset: 'agenda',
       monthPreset: 'grid',
       monthDensity: 'roomy',
+      todayRows: ['tonight', 'week'],
       fit: 'fit',
       scale: 1,
     },

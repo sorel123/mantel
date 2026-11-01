@@ -191,6 +191,7 @@
   flex: none;
 }
 .today .upcoming {
+  flex: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
@@ -255,4 +256,57 @@
 .today .tl + .upcoming {
   border-top: 1px solid var(--line);
   padding-top: 14px;
+}
+
+/* ---------- rows under the agenda, and the Day/Week switch ---------- */
+/* With a stretchy row, the timeline only takes the room its events need. */
+.today .agenda.has-grow .tl {
+  flex: 0 1 auto;
+  min-height: 72px;
+}
+.today .agenda .grow {
+  flex: 1 1 0;
+  min-height: 120px;
+}
+.today .upcoming.grow {
+  align-items: stretch;
+}
+.today .upcoming.grow .d {
+  min-height: 0;
+  overflow: hidden;
+}
+.today .agenda .arow {
+  flex: none;
+  min-height: 0;
+  display: flex;
+}
+.today .agenda .arow.list .gpeek {
+  background: var(--surface-2);
+  box-shadow: none;
+  border: 0;
+}
+.today .agenda .arow.photo {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 160px;
+}
+.today .agenda .head .view-toggle button {
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-weight: 600;
+}
+.today .agenda .head .view-toggle button[aria-pressed='true'] {
+  background: var(--surface);
+}
+/* Week view in Today's main column: the Month strip, sized to the slot. */
+.today .today-week {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }

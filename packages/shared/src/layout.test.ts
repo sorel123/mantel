@@ -19,6 +19,7 @@ describe('resolveLayout', () => {
       todayPreset: 'weather',
       monthPreset: 'grid',
       monthDensity: 'roomy',
+      todayRows: ['tonight', 'week'],
       fit: 'scale',
       scale: 1.2,
     });
@@ -27,6 +28,13 @@ describe('resolveLayout', () => {
     expect(resolveLayout(undefined, { monthDensity: 'compact' }).monthDensity).toBe('compact');
     expect(resolveLayout(undefined, { monthDensity: 'tiny' } as never).monthDensity).toBe('roomy');
     expect(layoutFromSearch('?density=compact')).toEqual({ monthDensity: 'compact' });
+  });
+  it('keeps the rows under the agenda, dropping unknown ones and repeats', () => {
+    expect(
+      resolveLayout(undefined, { todayRows: ['photo', 'nope', 'photo', 'week'] } as never)
+        .todayRows,
+    ).toEqual(['photo', 'week']);
+    expect(layoutFromSearch('?rows=list,tonight')).toEqual({ todayRows: ['list', 'tonight'] });
   });
   it('ignores values it does not know and keeps the rest', () => {
     expect(

@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 
-import { Fit, Layout, MonthDensity, MonthPreset, TodayPreset } from './models.js';
+import { Fit, Layout, MonthDensity, MonthPreset, TodayPreset, TodayRow } from './models.js';
 
 /** The layout settings object (`Layout` in models.ts; this is the name the display uses). */
 export const LayoutSettings = Layout;
@@ -22,6 +22,7 @@ export const DEFAULT_LAYOUT: LayoutSettings = {
   todayPreset: 'agenda',
   monthPreset: 'grid',
   monthDensity: 'roomy',
+  todayRows: ['tonight', 'week'],
   fit: 'fit',
   scale: 1,
 };
@@ -35,6 +36,7 @@ export const LayoutOverride = z.object({
   todayPreset: TodayPreset.optional(),
   monthPreset: MonthPreset.optional(),
   monthDensity: MonthDensity.optional(),
+  todayRows: Layout.shape.todayRows.unwrap().optional(),
   fit: Fit.optional(),
   scale: Layout.shape.scale.unwrap().optional(),
 });
@@ -62,6 +64,10 @@ function clean(o: Partial<LayoutSettings> | null | undefined): Partial<LayoutSet
   if (m.success) out.monthPreset = m.data;
   const d = MonthDensity.safeParse(o.monthDensity);
   if (d.success) out.monthDensity = d.data;
+  if (Array.isArray(o.todayRows)) {
+    const rows = o.todayRows.filter((r) => TodayRow.safeParse(r).success);
+    out.todayRows = [...new Set(rows)].slice(0, 5);
+  }
   const f = Fit.safeParse(o.fit);
   if (f.success) out.fit = f.data;
   const s = LayoutOverride.shape.scale.safeParse(o.scale);
@@ -79,6 +85,7 @@ export function layoutFromSearch(search: string): LayoutOverride {
   if (q.has('today')) out.todayPreset = q.get('today');
   if (q.has('month')) out.monthPreset = q.get('month');
   if (q.has('density')) out.monthDensity = q.get('density');
+  if (q.has('rows')) out.todayRows = q.get('rows')!.split(',').filter(Boolean);
   if (q.has('fit')) out.fit = q.get('fit');
   if (q.has('scale')) {
     const raw = q.get('scale')!.trim().replace(/%$/, '');
@@ -121,6 +128,14 @@ export const MONTH_PRESETS: ReadonlyArray<PresetInfo<MonthPreset>> = [
 export const MONTH_DENSITIES: ReadonlyArray<PresetInfo<MonthDensity>> = [
   { id: 'roomy', name: 'Roomy', description: 'Bigger type, two or three events a day.' },
   { id: 'compact', name: 'Compact', description: 'Smaller type, room for more events.' },
+];
+
+export const TODAY_ROWS: ReadonlyArray<PresetInfo<TodayRow>> = [
+  { id: 'tonight', name: 'Tonight', description: "Tonight's dinner from the meal plan." },
+  { id: 'week', name: 'Next three days', description: 'Tomorrow and the two days after.' },
+  { id: 'countdowns', name: 'Countdowns', description: 'Days until starred events.' },
+  { id: 'list', name: 'List', description: 'The list pinned to Today.' },
+  { id: 'photo', name: 'Photo', description: 'The photo slideshow.' },
 ];
 
 export const FIT_MODES: ReadonlyArray<PresetInfo<Fit>> = [

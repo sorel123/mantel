@@ -18,6 +18,19 @@ function Harness({ onChange }: { onChange: (v: LayoutSettings) => void }) {
 }
 
 describe('LayoutSection', () => {
+  it('adds, orders and removes the rows under the agenda', () => {
+    const changes: LayoutSettings[] = [];
+    render(<Harness onChange={(v) => changes.push(v)} />);
+    fireEvent.click(screen.getByRole('button', { name: '+ Photo' }));
+    expect(changes.at(-1)?.todayRows).toEqual(['tonight', 'week', 'photo']);
+    fireEvent.click(screen.getByRole('button', { name: 'Move Photo up' }));
+    expect(changes.at(-1)?.todayRows).toEqual(['tonight', 'photo', 'week']);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Tonight' }));
+    expect(changes.at(-1)?.todayRows).toEqual(['photo', 'week']);
+    fireEvent.click(screen.getByRole('radio', { name: /Family board/ }));
+    expect(screen.queryByRole('list', { name: 'Rows under the agenda' })).toBeNull();
+  });
+
   it('picks presets and a fit, and the slider only counts in Scale', () => {
     const changes: LayoutSettings[] = [];
     render(<Harness onChange={(v) => changes.push(v)} />);

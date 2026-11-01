@@ -36,6 +36,7 @@ export function previewUrl(opts: PreviewOptions): string {
     q.set('today', opts.layout.todayPreset);
     q.set('month', opts.layout.monthPreset);
     q.set('density', opts.layout.monthDensity);
+    q.set('rows', opts.layout.todayRows.join(','));
     q.set('fit', opts.layout.fit);
     q.set('scale', String(opts.layout.scale));
   }
