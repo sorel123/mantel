@@ -488,6 +488,15 @@ test('Your own layout: the cards from the address, and the editor moves, resizes
   await expect(page.locator('.region[data-region="photo"] .photo-panel')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
 
+  // A narrow agenda keeps its Day/Week switch, even beside a week card, and its week slides.
+  await page.goto('/?mode=daylight&today=custom&cards=agenda:0_0_3_5,date:3_0_4_2,week:3_2_9_6');
+  await page.getByRole('button', { name: 'Week', exact: true }).first().click();
+  const narrowWeek = page.locator('.region[data-region="agenda"] .week.slide');
+  await expect(narrowWeek).toBeVisible();
+  expect(await narrowWeek.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Day', exact: true }).first().click();
+  await expect(page.locator('.region[data-region="agenda"] .agenda')).toBeVisible();
+
   // Settings › Layout › Your own: the editor starts from the Agenda layout's cards.
   await page.goto('/settings#layout');
   await page.getByRole('radio', { name: /Your own/ }).click();

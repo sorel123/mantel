@@ -286,6 +286,25 @@
   gap: 10px;
   touch-action: pan-y;
 }
+/* Too narrow for seven readable days: they keep a width and slide sideways. */
+.month .week.slide {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.month .week.slide::-webkit-scrollbar {
+  display: none;
+}
+.month .week.slide .day {
+  flex: 0 0 var(--day-w, 140px);
+  scroll-snap-align: start;
+}
 .month .week .day {
   display: flex;
   flex-direction: column;
