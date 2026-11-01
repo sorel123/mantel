@@ -4,7 +4,7 @@
  */
 import ICAL from 'ical.js';
 import { fromIsoDate, toLocalIso } from '@mantel/shared';
-import type { NewEvent, RawEvent } from './types.js';
+import type { EditEvent, NewEvent, RawEvent } from './types.js';
 
 /** Caps per series: occurrences stepped through (a daily series from years ago) and kept. */
 const MAX_STEPS = 50_000;
@@ -163,4 +163,56 @@ export function buildIcs(uid: string, ev: NewEvent, now = new Date()): string {
     'END:VCALENDAR',
   ];
   return lines.map(fold).join('\r\n') + '\r\n';
+}
+
+/** The UID of the iCalendar object an occurrence key (`<UID>@<start>`) came from. */
+export const icsUid = (key: string) => {
+  const at = key.lastIndexOf('@');
+  return at > 0 ? key.slice(0, at) : key;
+};
+
+/** True when the object is a repeating series (or has edited occurrences). */
+export function isRecurringIcs(ics: string): boolean {
+  const root = new ICAL.Component(ICAL.parse(ics));
+  const vevents = root.getAllSubcomponents('vevent');
+  return (
+    vevents.length > 1 || vevents.some((v) => v.hasProperty('rrule') || v.hasProperty('rdate'))
+  );
+}
+
+/**
+ * The same iCalendar object with its single event changed: title, times, place and people.
+ * Other properties (alarms, notes, attendees) are kept. Throws for a repeating series.
+ */
+export function editIcs(ics: string, ev: EditEvent, now = new Date()): string {
+  if (isRecurringIcs(ics)) throw new Error('repeating event');
+  const root = new ICAL.Component(ICAL.parse(ics));
+  const vevent = root.getFirstSubcomponent('vevent');
+  if (!vevent) throw new Error('no event in the object');
+  const when = (d: Date): ICAL.Time =>
+    ev.allDay
+      ? ICAL.Time.fromDateString(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+      : ICAL.Time.fromJSDate(d, true);
+  const set = (name: string, value: string | ICAL.Time) => {
+    vevent.removeAllProperties(name);
+    vevent.addPropertyWithValue(name, value);
+  };
+  set('summary', ev.title);
+  set('dtstart', when(ev.start));
+  vevent.removeAllProperties('duration');
+  set('dtend', when(ev.end));
+  if (ev.location !== undefined) {
+    vevent.removeAllProperties('location');
+    if (ev.location.trim()) vevent.addPropertyWithValue('location', ev.location.trim());
+  }
+  if (ev.personIds !== undefined) {
+    vevent.removeAllProperties(PEOPLE_PROP);
+    if (ev.personIds.length) vevent.addPropertyWithValue(PEOPLE_PROP, ev.personIds.join(' '));
+  }
+  set('dtstamp', ICAL.Time.fromJSDate(now, true));
+  set('last-modified', ICAL.Time.fromJSDate(now, true));
+  const seq = Number(vevent.getFirstPropertyValue('sequence') ?? 0);
+  vevent.removeAllProperties('sequence');
+  vevent.addPropertyWithValue('sequence', (Number.isFinite(seq) ? seq : 0) + 1);
+  return root.toString();
 }

@@ -405,6 +405,64 @@ export class RealCalendar implements CalendarProvider {
     return { event };
   }
 
+  /** The calendar, its source and the cached occurrence behind a display event id. */
+  private editable(id: string) {
+    const bar = id.indexOf('|');
+    const calendarId = bar > 0 ? id.slice(0, bar) : '';
+    const uid = bar > 0 ? id.slice(bar + 1) : '';
+    const cal = this.sourceCalendars().find((c) => c.id === calendarId);
+    const raw = cal && this.store.getEvent(cal.id, uid);
+    if (!cal || !raw) throw new HttpError('not_found', 'that event is not on the wall any more');
+    if (cal.readOnly) throw new HttpError('forbidden', `${cal.name} is read-only`);
+    const source = this.sources.find((s) => s.kind === cal.source);
+    if (!source?.update || !source.remove)
+      throw new HttpError('forbidden', `${cal.name} can't be changed from Mantel`);
+    if (!source.ready()) throw new HttpError('upstream_error', `${cal.source} is not connected`);
+    return { cal, raw, uid, source: source as Required<typeof source> };
+  }
+
+  async updateEvent(id: string, req: Parameters<CalendarProvider['updateEvent']>[1]) {
+    const prefs = this.prefs();
+    const { cal, raw, uid, source } = this.editable(id);
+    const allDay = req.allDay ?? raw.allDay;
+    const oldStart = new Date(raw.start);
+    const length = new Date(raw.end).getTime() - oldStart.getTime();
+    let start = req.start ? new Date(req.start) : oldStart;
+    let end = req.end ? new Date(req.end) : new Date(start.getTime() + length);
+    if (allDay) {
+      start = startOfDay(start);
+      end = startOfDay(end) > start ? startOfDay(end) : addDays(start, 1);
+    } else if (raw.allDay && !req.end) {
+      end = new Date(start.getTime() + 3600e3);
+    }
+    if (end <= start) throw new HttpError('bad_request', 'end must be after start');
+
+    const next = await source.update(cal, uid, {
+      title: req.title?.trim() || raw.title,
+      start,
+      end,
+      allDay,
+      ...(req.location !== undefined ? { location: req.location } : {}),
+      ...(req.personIds !== undefined ? { personIds: req.personIds } : {}),
+    });
+    this.store.removeEvent(cal.id, uid);
+    this.store.put(next);
+    const from = raw.start < next.start ? raw.start : next.start;
+    const to = raw.end > next.end ? raw.end : next.end;
+    this.ctx.emit({ type: 'calendar.changed', payload: { from, to } });
+    const [event] = this.toEvents([next], prefs);
+    if (!event) throw new HttpError('internal', 'edited event has no calendar');
+    return { event };
+  }
+
+  async deleteEvent(id: string) {
+    const { cal, raw, uid, source } = this.editable(id);
+    await source.remove(cal, uid);
+    this.store.removeEvent(cal.id, uid);
+    this.ctx.emit({ type: 'calendar.changed', payload: { from: raw.start, to: raw.end } });
+    return { ok: true as const };
+  }
+
   mount(api: Hono, auth: DeviceAuth) {
     mountCalendarSetup(api, auth, this, this.ctx);
   }

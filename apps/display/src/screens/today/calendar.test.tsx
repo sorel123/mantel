@@ -37,7 +37,11 @@ function stubServer() {
       const reply =
         path === '/calendar/quick'
           ? { event: { ...fixtures.calendarQuick.event, title: body.title } }
-          : (byPath[path] ?? {});
+          : path.startsWith('/calendar/events/')
+            ? method === 'DELETE'
+              ? { ok: true }
+              : { event: { ...fixtures.calendarQuick.event, ...body } }
+            : (byPath[path] ?? {});
       return new Response(JSON.stringify(reply), {
         headers: { 'content-type': 'application/json' },
       });
@@ -166,6 +170,33 @@ describe('Month', () => {
     expect(await screen.findByRole('grid', { name: 'November 2026' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Today' }));
     expect(await screen.findByRole('grid', { name: 'October 2026' })).toBeTruthy();
+  });
+
+  it('edits and deletes an event from the day sheet', async () => {
+    mount(<MonthScreen />);
+    fireEvent.click(await screen.findByRole('gridcell', { name: /October 30,/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Friday, October 30' });
+    fireEvent.click(
+      await within(sheet).findByRole('button', { name: 'Edit Dinner with the Nguyens' }),
+    );
+    const title = within(sheet).getByLabelText('Event title') as HTMLInputElement;
+    expect(title.value).toBe('Dinner with the Nguyens');
+    fireEvent.change(title, { target: { value: 'Dinner at the Nguyens' } });
+    fireEvent.change(within(sheet).getByLabelText('Place'), { target: { value: 'Their place' } });
+    await act(async () => {
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+    });
+    const patch = calls.find((c) => c.method === 'PATCH')!;
+    expect(decodeURIComponent(patch.url.pathname)).toMatch(/^\/api\/calendar\/events\/.+/);
+    expect(patch.body).toMatchObject({ title: 'Dinner at the Nguyens', location: 'Their place' });
+
+    fireEvent.click(await within(sheet).findByRole('button', { name: /^Edit Dinner/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Delete' }));
+    const ask = await screen.findByRole('alertdialog');
+    await act(async () => {
+      fireEvent.click(within(ask).getByRole('button', { name: 'Delete' }));
+    });
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(true);
   });
 
   it('flips between Month and Week on the wall', async () => {

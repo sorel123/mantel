@@ -63,6 +63,11 @@ export interface Stoppable {
 export interface CalendarProvider {
   events(from: Date, to: Date): Promise<ResponseOf<'calendar'>>;
   quickAdd(req: BodyOf<'calendarQuick'>): Promise<ResponseOf<'calendarQuick'>>;
+  updateEvent(
+    id: string,
+    req: BodyOf<'calendarEventPatch'>,
+  ): Promise<ResponseOf<'calendarEventPatch'>>;
+  deleteEvent(id: string): Promise<ResponseOf<'calendarEventDelete'>>;
   countdowns(): Promise<ResponseOf<'countdowns'>>;
   meals(week?: Date): Promise<ResponseOf<'meals'>>;
   calendars(): Promise<ResponseOf<'bootstrap'>['calendars']>;

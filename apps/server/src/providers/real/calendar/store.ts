@@ -131,6 +131,21 @@ export class CalendarStore {
       );
   }
 
+  /** One cached occurrence, or undefined. */
+  getEvent(calendarId: string, uid: string): RawEvent | undefined {
+    const row = this.sql
+      .prepare(`SELECT data FROM calendar_events WHERE calendar_id = ? AND uid = ?`)
+      .get(calendarId, uid) as Pick<Row, 'data'> | undefined;
+    return row ? (JSON.parse(row.data) as RawEvent) : undefined;
+  }
+
+  /** Forget one occurrence (after an edit moved it or a delete), without waiting for a sync. */
+  removeEvent(calendarId: string, uid: string): void {
+    this.sql
+      .prepare(`DELETE FROM calendar_events WHERE calendar_id = ? AND uid = ?`)
+      .run(calendarId, uid);
+  }
+
   /** Forget calendars that no longer exist upstream. */
   dropCalendarsExcept(keep: string[]): void {
     if (!keep.length) {

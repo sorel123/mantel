@@ -42,6 +42,16 @@ export interface NewEvent {
   personIds: string[];
 }
 
+/** An edited event: the whole event as it should be. `personIds` and `location` undefined leave them. */
+export interface EditEvent {
+  title: string;
+  start: Date;
+  end: Date;
+  allDay: boolean;
+  location?: string;
+  personIds?: string[];
+}
+
 /** One upstream account: Google or iCloud. */
 export interface Source {
   readonly kind: CalendarSource;
@@ -50,6 +60,9 @@ export interface Source {
   calendars(): Promise<SourceCalendar[]>;
   events(cal: SourceCalendar, from: Date, to: Date): Promise<RawEvent[]>;
   create(cal: SourceCalendar, event: NewEvent): Promise<RawEvent>;
+  /** Change one event (`uid` as `events` reported it). Absent: the source can't edit. */
+  update?(cal: SourceCalendar, uid: string, event: EditEvent): Promise<RawEvent>;
+  remove?(cal: SourceCalendar, uid: string): Promise<void>;
 }
 
 /** Household choices per calendar, edited on the setup page. */

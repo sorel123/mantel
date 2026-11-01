@@ -72,6 +72,8 @@ export function routeFixtures(now = new Date()): {
     },
     calendar: { events: eventsInRange(now, addDays(today, -35), addDays(today, 42)) },
     calendarQuick: { event: events[0]! },
+    calendarEventPatch: { event: events[0]! },
+    calendarEventDelete: { ok: true },
     countdowns: { countdowns: countdowns(now) },
     meals: meals(now),
     weather: weather(now),

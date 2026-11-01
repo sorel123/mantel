@@ -5,8 +5,8 @@
 import { randomUUID } from 'node:crypto';
 import { XMLParser } from 'fast-xml-parser';
 import { HttpError } from '../../../errors.js';
-import { buildIcs, expandIcs } from './ics.js';
-import type { NewEvent, RawEvent, Source, SourceCalendar } from './types.js';
+import { buildIcs, editIcs, expandIcs, icsUid, isRecurringIcs } from './ics.js';
+import type { EditEvent, NewEvent, RawEvent, Source, SourceCalendar } from './types.js';
 
 export interface CalDavOptions {
   url: string;
@@ -231,4 +231,71 @@ export class CalDavSource implements Source {
     if (!raw) throw new HttpError('internal', 'could not read back the new event');
     return raw;
   }
+
+  /** The resource holding the event with this occurrence key: its address, etag and text. */
+  private async resource(cal: SourceCalendar, key: string) {
+    const uid = icsUid(key).replace(/[<&>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+    const res = await this.dav(
+      'REPORT',
+      cal.ref,
+      `<?xml version="1.0"?><c:calendar-query ${NS}>
+        <d:prop><d:getetag/><c:calendar-data/></d:prop>
+        <c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT">
+          <c:prop-filter name="UID"><c:text-match collation="i;octet">${uid}</c:text-match></c:prop-filter>
+        </c:comp-filter></c:comp-filter></c:filter>
+      </c:calendar-query>`,
+      '1',
+    );
+    const r = parseMultistatus(res.text).find((x) => textOf(x.props['calendar-data']));
+    if (!r) throw new HttpError('not_found', 'that event is no longer in iCloud');
+    return {
+      url: new URL(r.href, res.url).toString(),
+      etag: textOf(r.props.getetag),
+      ics: textOf(r.props['calendar-data'])!,
+    };
+  }
+
+  private async write(method: 'PUT' | 'DELETE', url: string, etag?: string, body?: string) {
+    const auth = Buffer.from(`${this.opts.username}:${this.opts.password}`).toString('base64');
+    const res = await this.fetch(url, {
+      method,
+      headers: {
+        authorization: `Basic ${auth}`,
+        ...(etag ? { 'if-match': etag } : {}),
+        ...(body ? { 'content-type': 'text/calendar; charset=utf-8' } : {}),
+      },
+      ...(body ? { body } : {}),
+    });
+    if (res.status === 412)
+      throw new HttpError('upstream_error', 'the event changed in iCloud; try again');
+    if (!res.ok && !(method === 'DELETE' && res.status === 404))
+      throw new HttpError('upstream_error', `iCloud ${method} ${res.status}`);
+  }
+
+  async update(cal: SourceCalendar, key: string, ev: EditEvent): Promise<RawEvent> {
+    const r = await this.resource(cal, key);
+    if (isRecurringIcs(r.ics)) throw repeating();
+    const ics = editIcs(r.ics, ev);
+    await this.write('PUT', r.url, r.etag, ics);
+    const [raw] = expandIcs(
+      ics,
+      cal.id,
+      new Date(ev.start.getTime() - 1),
+      new Date(ev.end.getTime() + 864e5),
+    );
+    if (!raw) throw new HttpError('internal', 'could not read back the event');
+    return raw;
+  }
+
+  async remove(cal: SourceCalendar, key: string): Promise<void> {
+    const r = await this.resource(cal, key);
+    if (isRecurringIcs(r.ics)) throw repeating();
+    await this.write('DELETE', r.url, r.etag);
+  }
 }
+
+const repeating = () =>
+  new HttpError(
+    'bad_request',
+    'This is a repeating iCloud event. Change it in the Calendar app on a phone or Mac.',
+  );
