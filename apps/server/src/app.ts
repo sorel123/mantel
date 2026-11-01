@@ -1,5 +1,6 @@
 import { API_PREFIX, WsEvent, toLocalIso, type WsEventInput } from '@mantel/shared';
 import { serveStatic } from '@hono/node-server/serve-static';
+import { UpdateChecker } from './update.js';
 import { Hono } from 'hono';
 import { DeviceAuth } from './auth.js';
 import type { Config } from './config.js';
@@ -34,6 +35,7 @@ export interface AppDeps {
   registry: PluginRegistry;
   setup: SetupStore;
   geocoder: Geocoder;
+  updates: UpdateChecker;
 }
 
 export interface CreateAppOptions {
@@ -121,6 +123,11 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     registry,
     setup,
     geocoder,
+    updates: new UpdateChecker({
+      enabled: config.UPDATE_CHECK && !config.MOCK,
+      repo: config.UPDATE_REPO,
+      ...(overrides.fetch ? { fetch: overrides.fetch } : {}),
+    }),
   };
   const scheduler = new DisplayScheduler(settings, (e) => hub.broadcast(e), ctx.now);
   scheduler.start();

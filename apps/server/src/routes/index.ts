@@ -6,6 +6,7 @@ import {
   scheduleStateAt,
   toLocalIso,
 } from '@mantel/shared';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import { DEFAULT_PANEL } from '@mantel/shared/fixtures';
 import { decryptSecrets, encryptSecrets } from '../backup.js';
 import type { Handle, HandlerArgs } from '../contract.js';
@@ -40,6 +41,26 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     if (!paired) throw new HttpError('forbidden', 'pairing code is wrong or expired');
     return paired;
   });
+
+  handle('pairLocal', async ({ c, query }) => {
+    if (!config.LOCAL_PAIR) throw new HttpError('forbidden', 'this server does not pair itself');
+    // Only a request that really came from this computer: loopback peer, and no proxy in between.
+    let peer = '';
+    try {
+      peer = getConnInfo(c).remote.address ?? '';
+    } catch {
+      /* no socket (an in-process request): not the local computer */
+    }
+    const loopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer);
+    const proxied = ['x-forwarded-for', 'x-real-ip', 'forwarded'].some((h) => c.req.header(h));
+    if (!loopback || proxied)
+      throw new HttpError('forbidden', 'only the computer running Mantel can pair itself');
+    const name = query.name ?? 'This computer';
+    const paired = auth.pairLocal(name);
+    setup.markDone('wall');
+    return paired;
+  });
+  handle('updateCheck', async () => deps.updates.check());
 
   handle('bootstrap', async ({ deviceId }) => {
     const s = settings.get();

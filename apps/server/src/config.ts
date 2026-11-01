@@ -20,6 +20,15 @@ const Env = z.object({
   DISPLAY_DIST: z.string().optional(),
   /** Origin of the server as the tablet sees it, used for OAuth redirects. */
   PUBLIC_URL: z.string().default('http://localhost:8787'),
+  /** The installed app sets this: a display on this same computer may pair itself (loopback only). */
+  LOCAL_PAIR: flag,
+  /** Look for a newer release on GitHub (Settings shows a notice). `0` turns it off. */
+  UPDATE_CHECK: z
+    .string()
+    .optional()
+    .transform((v) => v !== '0' && v !== 'false'),
+  /** `owner/name` whose Releases the update check reads. */
+  UPDATE_REPO: z.string().default('sorel123/mantel'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 

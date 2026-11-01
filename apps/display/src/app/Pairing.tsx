@@ -15,11 +15,21 @@ export function Pairing({ onPaired }: { onPaired: () => void }) {
   const [showCode, setShowCode] = useState(false);
 
   useEffect(() => {
+    // The installed app opens http://localhost: the computer running Mantel pairs itself.
+    if (['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+      api
+        .call('pairLocal', { query: { name: 'This computer' } })
+        .then(({ deviceKey }) => {
+          setDeviceKey(deviceKey);
+          onPaired();
+        })
+        .catch(() => undefined);
+    }
     api
       .call('setupState')
       .then((s) => setFirstRun(s.firstRun && !s.completed))
       .catch(() => setFirstRun(false));
-  }, []);
+  }, [onPaired]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

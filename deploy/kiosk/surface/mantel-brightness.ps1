@@ -13,6 +13,10 @@
 
     .\mantel-brightness.ps1 -Install -Server http://192.168.1.10:8787 -Code 123456
 
+  With the Windows installer (Mantel on this same Surface) no code is needed:
+
+    .\mantel-brightness.ps1 -Install -Local
+
   The code is a pairing code: from the server log, or "Show a code" under Displays on the
   settings page. The helper appears there as its own display and can be revoked like one.
 
@@ -24,12 +28,18 @@ param(
   [Parameter(ParameterSetName = 'Install', Mandatory = $true)]
   [switch] $Install,
 
-  [Parameter(ParameterSetName = 'Install', Mandatory = $true)]
-  [string] $Server,
+  # Where Mantel runs. Defaults to this computer (the Windows installer's setup).
+  [Parameter(ParameterSetName = 'Install')]
+  [string] $Server = 'http://127.0.0.1:8787',
 
-  [Parameter(ParameterSetName = 'Install', Mandatory = $true)]
+  # A pairing code, for a Mantel on another machine.
+  [Parameter(ParameterSetName = 'Install')]
   [ValidatePattern('^\d{6}$')]
   [string] $Code,
+
+  # Pair without a code. Works only against a Mantel on this same computer.
+  [Parameter(ParameterSetName = 'Install')]
+  [switch] $Local,
 
   [Parameter(ParameterSetName = 'Uninstall', Mandatory = $true)]
   [switch] $Uninstall
@@ -66,8 +76,15 @@ if ($Install) {
   $Server = $Server.TrimEnd('/')
   New-Item -ItemType Directory -Force -Path $Dir | Out-Null
 
-  $body = @{ code = $Code; name = "$env:COMPUTERNAME brightness" } | ConvertTo-Json
-  $paired = Invoke-RestMethod -Method Post -Uri "$Server/api/pair" -ContentType 'application/json' -Body $body
+  $name = "$env:COMPUTERNAME brightness"
+  if ($Code) {
+    $body = @{ code = $Code; name = $name } | ConvertTo-Json
+    $paired = Invoke-RestMethod -Method Post -Uri "$Server/api/pair" -ContentType 'application/json' -Body $body
+  } elseif ($Local -or $Server -match '^http://(127\.0\.0\.1|localhost)') {
+    $paired = Invoke-RestMethod -Method Post -Uri "$Server/api/pair/local?name=$([uri]::EscapeDataString($name))"
+  } else {
+    throw 'Give -Code with a pairing code for a Mantel on another machine.'
+  }
   @{ server = $Server; deviceKey = $paired.deviceKey } | ConvertTo-Json | Set-Content -Path $ConfigFile -Encoding UTF8
   # Only administrators and SYSTEM may read the stored key.
   icacls $ConfigFile /inheritance:r /grant:r 'SYSTEM:F' 'Administrators:F' | Out-Null

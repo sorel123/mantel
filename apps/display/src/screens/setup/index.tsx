@@ -485,8 +485,9 @@ function WallStep() {
       </div>
       <ol className="set-steps">
         <li>
-          <b>iPad:</b> open the address in Safari, Share, Add to Home Screen, then open Mantel from
-          the icon and enter the PIN. Turn Auto-Lock off and start Guided Access so it stays put.
+          <b>iPad:</b> a tablet only shows Mantel; this computer has to stay on to run it. Open the
+          address in Safari, Share, Add to Home Screen, then open Mantel from the icon and enter the
+          PIN. Turn Auto-Lock off and start Guided Access so it stays put.
         </li>
         <li>
           <b>Surface or Windows PC:</b> Chrome in kiosk mode on its own Windows account. If the same
