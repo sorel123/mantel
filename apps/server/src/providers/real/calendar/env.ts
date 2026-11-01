@@ -12,6 +12,8 @@ const CalendarEnv = z.object({
    * when PUBLIC_URL is https or localhost, else `http://localhost:${PORT}/...` with paste-back.
    */
   GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  /** Set when the client is Mantel's shared Desktop client: sign-in returns to a loopback address. */
+  GOOGLE_LOOPBACK: z.enum(['1']).optional(),
   ICLOUD_USERNAME: z.string().optional(),
   ICLOUD_APP_PASSWORD: z.string().optional(),
   ICLOUD_CALDAV_URL: z.string().url().default('https://caldav.icloud.com/'),

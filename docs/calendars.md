@@ -26,7 +26,11 @@ No Cloud console and no account sign-in. Each Google calendar has a private read
 
 Any `.ics` or `webcal://` link works the same way: an Outlook published calendar, a school or sports-team feed, a shared iCloud calendar's public link. Links are read-only, so quick add writes to iCloud or to a Google account connected the full way below. If you press **Reset** on the secret address in Google, paste the new one. `ICAL_URLS` (links separated by spaces) is the environment fallback.
 
-### Google (two-way, for quick add)
+### Google (two-way, for quick add and editing)
+
+**With Mantel's sign-in** (when the build includes Mantel's shared Google client, see [google-shared-client.md](google-shared-client.md)): on the Google card press **Connect Google** and sign in. Google says it hasn't verified Mantel yet: press **Advanced**, then **Go to Mantel**, then **Continue**. If the next page doesn't load (it is `http://127.0.0.1:8787/...`, the computer running Mantel), copy its whole address into the box on the card and press Finish. On the computer that runs Mantel it finishes on its own. Nothing else to set up.
+
+**With your own Google Cloud app** (the client fields under Advanced; needed when the build has no shared client):
 
 1. In the [Google Cloud console](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com), create a project and enable the **Google Calendar API**.
 2. In **Google Auth Platform**, set the audience to **External**, then press **Publish app**. Publishing matters: while an app is in "Testing", Google expires its sign-in after 7 days. Google will show an "unverified app" warning when you sign in; for an app only your household uses, that is expected and you can continue.
@@ -40,7 +44,7 @@ Any `.ics` or `webcal://` link works the same way: an Outlook published calendar
 
 4. In **Settings › Calendars** paste the client ID and secret (or drop the downloaded client JSON on the card to fill both), press **Save**, then **Connect Google**. No restart is needed. (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the environment still work as fallbacks until something is saved.)
 
-Mantel asks for two scopes: see the list of calendars, and view and edit events (quick add writes events). The refresh token is stored in the server's SQLite file in `DATA_DIR`.
+Mantel asks for two scopes: see the list of calendars, and view and edit events (quick add and editing write events). Your own client, once saved, always wins over the shared one; switching between them means pressing Connect again. The refresh token is stored in the server's SQLite file in `DATA_DIR`.
 
 ### iCloud
 
