@@ -2,13 +2,16 @@
 .stage {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   background: var(--bg);
   transition: background var(--slow) var(--ease);
 }
+/* Centred by position, not grid alignment: a grid item wider than the viewport (Fill or Scale on
+   a wide window) starts at the left edge, so scaling about its centre pushed it off the right. */
 .panel {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   background: var(--bg);
   color: var(--ink);
   overflow: hidden;
