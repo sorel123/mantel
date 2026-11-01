@@ -16,7 +16,7 @@ Mantel can ship one Google OAuth client so a household only presses **Connect Go
 4. [Audience](https://console.cloud.google.com/auth/audience): **External**, then **Publish app**. Don't leave it in Testing, or every sign-in expires after 7 days.
 5. [Data access](https://console.cloud.google.com/auth/scopes): add `https://www.googleapis.com/auth/calendar.calendarlist.readonly` and `https://www.googleapis.com/auth/calendar.events`.
 6. [Clients](https://console.cloud.google.com/auth/clients) › **Create client** › Application type **Desktop app**, name **Mantel**. Download the JSON.
-7. Put the client ID and secret into `BUILT_IN` in `apps/server/src/plugins/google/shared-client.ts` (or send them to Claude to commit). A build can also set `MANTEL_GOOGLE_CLIENT_ID` and `MANTEL_GOOGLE_CLIENT_SECRET` instead.
+7. In the repo's [Actions secrets](https://github.com/sorel123/mantel/settings/secrets/actions), add `MANTEL_GOOGLE_CLIENT_ID` and `MANTEL_GOOGLE_CLIENT_SECRET`. The **Publish image** workflow builds them into the Docker image, so the next published image has Mantel sign-in. (They stay out of the source, which keeps GitHub's secret scanner happy and lets you swap the client without a code change.) `BUILT_IN` in `apps/server/src/plugins/google/shared-client.ts` is the fallback for builds from source; it's blank.
 
 ## What households see until it's verified
 

@@ -19,11 +19,18 @@ RUN pnpm --filter @mantel/server deploy --prod --legacy /out
 # ---- runtime: Node, production deps, the server bundle and the static display ----
 FROM node:22-bookworm-slim
 ARG REVISION=dev
+# Mantel's shared Google sign-in client (a Desktop client, whose secret Google treats as
+# public). The publish workflow passes them from repository secrets; blank means each
+# household uses its own client. See docs/google-shared-client.md.
+ARG MANTEL_GOOGLE_CLIENT_ID=
+ARG MANTEL_GOOGLE_CLIENT_SECRET=
 LABEL org.opencontainers.image.title="Mantel" \
       org.opencontainers.image.description="Family wall display: calendars, weather, photos, lists and Home Assistant controls" \
       org.opencontainers.image.source="https://github.com/sorel123/mantel" \
       org.opencontainers.image.revision="${REVISION}"
 ENV NODE_ENV=production \
+    MANTEL_GOOGLE_CLIENT_ID=${MANTEL_GOOGLE_CLIENT_ID} \
+    MANTEL_GOOGLE_CLIENT_SECRET=${MANTEL_GOOGLE_CLIENT_SECRET} \
     HOST=0.0.0.0 \
     PORT=8787 \
     DATA_DIR=/data \
