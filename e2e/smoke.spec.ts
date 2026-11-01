@@ -90,7 +90,12 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await dock.getByRole('button', { name: 'Month' }).click();
   const grid = page.getByRole('grid');
   await expect(grid).toBeVisible();
-  await expect(grid.getByRole('gridcell')).toHaveCount(42);
+  // Four to six weeks, whatever the month needs.
+  await expect(grid.getByRole('gridcell').first()).toBeVisible();
+  const cells = await grid.getByRole('gridcell').count();
+  expect(cells % 7).toBe(0);
+  expect(cells).toBeGreaterThanOrEqual(28);
+  expect(cells).toBeLessThanOrEqual(42);
   await grid.locator('.cell.is-today').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('dialog').getByRole('button', { name: 'Quick add' })).toBeVisible();

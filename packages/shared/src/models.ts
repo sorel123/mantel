@@ -377,10 +377,14 @@ export type MonthPreset = z.infer<typeof MonthPreset>;
 /** `fit`: letterbox the panel. `fill`: stretch the grid to the viewport. `scale`: fixed factor. */
 export const Fit = z.enum(['fit', 'fill', 'scale']);
 export type Fit = z.infer<typeof Fit>;
+/** How tightly the Month grid packs a day: `roomy` (bigger type) or `compact` (more events). */
+export const MonthDensity = z.enum(['roomy', 'compact']);
+export type MonthDensity = z.infer<typeof MonthDensity>;
 
 export const Layout = z.object({
   todayPreset: TodayPreset.default('agenda'),
   monthPreset: MonthPreset.default('grid'),
+  monthDensity: MonthDensity.default('roomy'),
   fit: Fit.default('fit'),
   /** Used when `fit` is `scale`: 0.9 to 1.3. */
   scale: z.number().min(0.5).max(2).default(1),
@@ -442,7 +446,13 @@ export const Settings = z.object({
   flags: FeatureFlags,
   // v2 additions, each with a default so settings saved before them still parse.
   appearance: Appearance.default(DEFAULT_APPEARANCE),
-  layout: Layout.default({ todayPreset: 'agenda', monthPreset: 'grid', fit: 'fit', scale: 1 }),
+  layout: Layout.default({
+    todayPreset: 'agenda',
+    monthPreset: 'grid',
+    monthDensity: 'roomy',
+    fit: 'fit',
+    scale: 1,
+  }),
   screens: z.array(ScreenConfig).default(() => structuredClone(DEFAULT_SCREENS)),
   /** The screen shown after a wake and after the display reloads. */
   defaultScreen: Id.default('today'),

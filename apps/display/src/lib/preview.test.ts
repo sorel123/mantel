@@ -13,7 +13,13 @@ describe('preview on the wall', () => {
     };
     const url = previewUrl({
       appearance,
-      layout: { todayPreset: 'family', monthPreset: 'week', fit: 'scale', scale: 1.1 },
+      layout: {
+        todayPreset: 'family',
+        monthPreset: 'week',
+        monthDensity: 'compact',
+        fit: 'scale',
+        scale: 1.1,
+      },
       screen: 'month',
       mode: 'dusk',
     });
@@ -23,6 +29,7 @@ describe('preview on the wall', () => {
     expect(layoutFromSearch(search)).toMatchObject({
       todayPreset: 'family',
       monthPreset: 'week',
+      monthDensity: 'compact',
       fit: 'scale',
       scale: 1.1,
     });

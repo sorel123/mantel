@@ -150,10 +150,11 @@ describe('Today', () => {
 });
 
 describe('Month', () => {
-  it('renders six weeks, pages, and opens the day sheet', async () => {
+  it('renders the weeks the month needs, pages, and opens the day sheet', async () => {
     mount(<MonthScreen />);
     expect(await screen.findByRole('grid', { name: 'October 2026' })).toBeTruthy();
-    expect(screen.getAllByRole('gridcell')).toHaveLength(42);
+    // October 2026 starts on a Thursday and fits in five weeks.
+    expect(screen.getAllByRole('gridcell')).toHaveLength(35);
     const today = await screen.findByRole('gridcell', { name: /October 30,/ });
     expect(today.className).toContain('is-today');
     fireEvent.click(today);
