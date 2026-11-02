@@ -14,13 +14,14 @@ import {
 } from '../lib/theme';
 import { AmbientWeather, useWeather } from '../features/weather';
 import { Ambient, ScreenOff, registerAmbientSlot, useIdle } from './ambient';
-import { formatClock, useNow } from './Clock';
+import { formatClock, formatDockDate, useNow } from './Clock';
 import { Dock } from './Dock';
 import { FeatureLayers } from './FeatureLayers';
+import { AWAKE_CHOICES, awakeLabel, useKeepAwake } from './keepAwake';
 import { useLayout } from './layout';
 import { useMotionPreference } from './motion';
 import { NavProvider } from './nav';
-import { OverlayProvider, useOverlay } from './overlay';
+import { OverlayProvider, SheetHeader, useOverlay } from './overlay';
 import { Pairing } from './Pairing';
 import { msToNextMinute, scheduleAt, type Phase } from './schedule';
 import { screens as allScreens, type ScreenId } from './screens';
@@ -36,7 +37,19 @@ const params = new URLSearchParams(location.search);
 const pinned = params.get('mode');
 if (pinned === 'daylight' || pinned === 'dusk') setModeOverride(pinned);
 if (params.get('skin')) setSkinOverride(params.get('skin'));
-const firstScreen = (params.get('screen') ?? 'today') as ScreenId;
+const RELOAD_KEY = 'mantel.screenAtReload';
+/** The screen showing when the page last unloaded, if that was a moment ago (a reload). */
+function screenBeforeReload(): string | null {
+  try {
+    const raw = sessionStorage.getItem(RELOAD_KEY);
+    sessionStorage.removeItem(RELOAD_KEY);
+    const saved = raw ? (JSON.parse(raw) as { id?: string; at?: number }) : null;
+    return saved?.id && Date.now() - (saved.at ?? 0) < 20_000 ? saved.id : null;
+  } catch {
+    return null;
+  }
+}
+const firstScreen = (params.get('screen') ?? screenBeforeReload() ?? 'today') as ScreenId;
 // "Preview on the wall" from Settings: unsaved appearance choices ride in `?look=`.
 const previewLook = appearanceFromSearch(location.search);
 const previewing = isPreview(location.search);
@@ -127,7 +140,7 @@ export type DisplayMode = 'active' | 'ambient' | 'off';
  * the off window. The minute tick moves Ambient to black at `offFrom` and wakes the screen at
  * `onAt`. Server `display.sleep` and `display.wake` events, and a doorbell, override all of it.
  */
-export function useDisplayMode(schedule: ScreenSchedule) {
+export function useDisplayMode(schedule: ScreenSchedule, held = false) {
   const [mode, setMode] = useState<DisplayMode>('active');
   const [waking, setWaking] = useState(false);
   const [{ phase, brightness }, setSchedule] = useState(() => scheduleAt(schedule, new Date()));
@@ -162,6 +175,10 @@ export function useDisplayMode(schedule: ScreenSchedule) {
     });
   }, []);
   const rest = useCallback(() => setMode(phase === 'off' ? 'off' : 'ambient'), [phase]);
+  // Kept awake by hand: no idle timeout and no server sleep until the hold ends.
+  const restUnlessHeld = useCallback(() => {
+    if (!held) rest();
+  }, [held, rest]);
 
   // Phase changes: lights out at offFrom (unless someone is using it), back on at onAt.
   useEffect(() => {
@@ -171,9 +188,9 @@ export function useDisplayMode(schedule: ScreenSchedule) {
     else if (phase === 'on') setMode((m) => (m === 'off' ? 'active' : m));
   }, [phase]);
 
-  const touch = useIdle(schedule.idleSeconds * 1000, rest, mode === 'active');
+  const touch = useIdle(schedule.idleSeconds * 1000, rest, mode === 'active' && !held);
 
-  return { mode, phase, brightness, waking, wake, rest, touch, setMode };
+  return { mode, phase, brightness, waking, wake, rest: restUnlessHeld, touch, setMode };
 }
 
 function Display() {
@@ -203,7 +220,68 @@ function DisplayInner() {
   const [current, setCurrent] = useState<ScreenId>(() =>
     screens.some((s) => s.id === firstScreen) ? firstScreen : 'today',
   );
-  const { mode, wake, rest, setMode } = useDisplayMode(boot.settings.schedule);
+  const awake = useKeepAwake();
+  const { mode, wake, rest, setMode } = useDisplayMode(boot.settings.schedule, awake.held);
+
+  // A settings change reloads every display; come back to the same screen afterwards.
+  useEffect(() => {
+    const save = () => {
+      try {
+        sessionStorage.setItem(RELOAD_KEY, JSON.stringify({ id: current, at: Date.now() }));
+      } catch {
+        // Storage blocked: the display starts on Today as before.
+      }
+    };
+    window.addEventListener('pagehide', save);
+    return () => window.removeEventListener('pagehide', save);
+  }, [current]);
+
+  const openAwake = () =>
+    overlay.openSheet(
+      (close) => (
+        <>
+          <SheetHeader
+            title={awake.held ? `Staying on ${awakeLabel(awake.until)}` : 'Keep the screen on'}
+            onClose={close}
+          />
+          <div className="awake-sheet">
+            <p>
+              No photo frame and no sleeping while this is on. Turn it off and the display rests
+              again after {Math.round(boot.settings.schedule.idleSeconds / 60) || 1} min without a
+              touch.
+            </p>
+            <div className="awake-choices">
+              {AWAKE_CHOICES.map((c) => (
+                <button
+                  key={c.label}
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    awake.hold(c.minutes);
+                    close();
+                  }}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            {awake.held && (
+              <button
+                type="button"
+                className="btn primary block"
+                onClick={() => {
+                  awake.release();
+                  close();
+                }}
+              >
+                Turn off, rest as usual
+              </button>
+            )}
+          </div>
+        </>
+      ),
+      { label: 'Keep the screen on' },
+    );
   const connection = useConnection();
   useEffect(connectEvents, []);
 
@@ -257,8 +335,11 @@ function DisplayInner() {
         current={current}
         onSelect={go}
         clock={formatClock(now)}
+        date={formatDockDate(now, boot.settings.layout.dockDate)}
         onClockHold={openSettings}
         onAmbient={() => setMode('ambient')}
+        awake={{ held: awake.held, label: awakeLabel(awake.until, now) }}
+        onAwake={openAwake}
       />
       <div className="status">
         {previewing && (

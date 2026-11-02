@@ -10,12 +10,28 @@ import type { HomeArea, HomeEntity, MediaPlayer, Presence } from '../models.js';
 import { toLocalIso } from '../time.js';
 
 const bri = (pct: number) => Math.round((pct / 100) * 255);
-const light = (id: string, name: string, on: boolean, pct: number): HomeEntity => ({
+const light = (
+  id: string,
+  name: string,
+  on: boolean,
+  pct: number,
+  color?: { rgb?: [number, number, number]; kelvin?: number },
+): HomeEntity => ({
   id: `light.${id}`,
   kind: 'light',
   name,
   state: on ? 'on' : 'off',
-  attrs: { brightness: on ? bri(pct) : null, supported_color_modes: ['brightness'] },
+  attrs: color
+    ? {
+        brightness: on ? bri(pct) : null,
+        supported_color_modes: ['color_temp', 'hs'],
+        color_mode: on ? (color.rgb ? 'hs' : 'color_temp') : null,
+        rgb_color: on ? (color.rgb ?? null) : null,
+        color_temp_kelvin: on && !color.rgb ? (color.kelvin ?? 2700) : null,
+        min_color_temp_kelvin: 2000,
+        max_color_temp_kelvin: 6500,
+      }
+    : { brightness: on ? bri(pct) : null, supported_color_modes: ['brightness'] },
 });
 const sensor = (
   id: string,
@@ -43,12 +59,12 @@ export function homeState(now: Date): {
   const minsAgo = (m: number) => toLocalIso(new Date(now.getTime() - m * 60e3));
   const base: HomeEntity[] = [
     light('living_room_ceiling', 'Ceiling', true, 70),
-    light('living_room_lamp', 'Lamp', true, 40),
+    light('living_room_lamp', 'Lamp', true, 40, { kelvin: 2700 }),
     light('kitchen_counter', 'Counter', true, 100),
     light('kitchen_island', 'Island', false, 60),
     light('bedroom_bedside', 'Bedside', false, 30),
     light('bedroom_closet', 'Closet', false, 80),
-    light('ava_lamp', "Ava's lamp", true, 55),
+    light('ava_lamp', "Ava's lamp", true, 55, { rgb: [180, 120, 255] }),
     light('leo_lamp', "Leo's lamp", false, 50),
     {
       id: 'climate.main_floor',

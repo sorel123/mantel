@@ -40,6 +40,7 @@ describe('resolveLayout', () => {
       savedToday: [],
       fit: 'scale',
       scale: 1.2,
+      dockDate: 'off',
     });
   });
   it('reads the Month density, and drops one it does not know', () => {

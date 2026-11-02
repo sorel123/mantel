@@ -223,7 +223,12 @@ describe('Home Assistant provider against a fake HA', () => {
 
     const ceiling = state.entities.find((e) => e.id === 'light.living_room_ceiling')!;
     expect(ceiling).toMatchObject({ kind: 'light', name: 'Ceiling', state: 'on' });
-    expect(ceiling.attrs).toEqual({ brightness: 180, supported_color_modes: ['color_temp', 'xy'] });
+    // Colour lights pass their colour through for the colour sheet; other attributes stay behind.
+    expect(ceiling.attrs).toEqual({
+      brightness: 180,
+      supported_color_modes: ['color_temp', 'xy'],
+      rgb_color: [1, 2, 3],
+    });
     const thermostat = state.entities.find((e) => e.id === 'climate.main_floor')!;
     expect(thermostat.attrs.unit_of_measurement).toBe('°F');
     expect(state.entities.find((e) => e.id === 'scene.movie')!.lastChanged).toBe(

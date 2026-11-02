@@ -13,6 +13,7 @@ import {
   TODAY_PRESETS,
   TODAY_ROWS,
   type Fit,
+  type DockDate,
   type LayoutSettings,
   type MonthDensity,
   type MonthPreset,
@@ -72,6 +73,21 @@ export function LayoutSection({
           value={value.monthDensity ?? 'roomy'}
           options={MONTH_DENSITIES.map((d) => [d.id, d.name])}
           onChange={(monthDensity) => onChange({ ...value, monthDensity })}
+        />
+      </Field>
+      <Field
+        label="Date in the dock"
+        hint="The day or the date beside the clock at the bottom of the screen."
+      >
+        <Seg<DockDate>
+          label="Date in the dock"
+          value={value.dockDate ?? 'off'}
+          options={[
+            ['off', 'Off'],
+            ['day', 'Day (Sun 2)'],
+            ['date', 'Date (Sun, Nov 2)'],
+          ]}
+          onChange={(dockDate) => onChange({ ...value, dockDate })}
         />
       </Field>
       <Picker<Fit>

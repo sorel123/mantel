@@ -41,6 +41,7 @@ export const DEFAULT_LAYOUT: LayoutSettings = {
   savedToday: [],
   fit: 'fit',
   scale: 1,
+  dockDate: 'off',
 };
 
 /**

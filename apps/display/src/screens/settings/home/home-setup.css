@@ -247,6 +247,32 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.hs-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.hs-filter .set-btn {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+.hs-filter .set-btn[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.hs-loose {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  font-size: 14px;
+  color: var(--ink-2);
 }
 .hs-candidates .set-btn {
   height: 44px;

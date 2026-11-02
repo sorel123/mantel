@@ -1,6 +1,15 @@
 import type { HomeArea, HomeEntity } from '@mantel/shared';
 import { useEffect, useRef, useState } from 'react';
-import { dimmable, fmtTime, isOn, isUnavailable, sensorValue, toPct } from './format';
+import {
+  dimmable,
+  fmtTime,
+  isOn,
+  isUnavailable,
+  lightCaps,
+  lightCss,
+  sensorValue,
+  toPct,
+} from './format';
 import { Icon } from './icons';
 import type { CallFn } from './useHome';
 
@@ -26,12 +35,15 @@ export function RoomCard({
   call,
   confirm,
   now,
+  onColor,
 }: {
   area: HomeArea;
   entities: HomeEntity[];
   call: CallFn;
   confirm: (req: ConfirmRequest) => void;
   now: Date;
+  /** Opens the colour sheet for a colour or tunable-white light. */
+  onColor?: (e: HomeEntity) => void;
 }) {
   const switches = entities.filter((e) => e.kind === 'light' || e.kind === 'switch');
   const locks = entities.filter((e) => e.kind === 'lock');
@@ -52,7 +64,7 @@ export function RoomCard({
       </div>
       {switches.map((e) =>
         e.kind === 'light' ? (
-          <LightRow key={e.id} e={e} call={call} />
+          <LightRow key={e.id} e={e} call={call} onColor={onColor} />
         ) : (
           <SwitchRow key={e.id} e={e} call={call} />
         ),
@@ -129,7 +141,7 @@ function SwitchRow({ e, call }: RowProps) {
 
 const SLIDER_SETTLE_MS = 250;
 
-function LightRow({ e, call }: RowProps) {
+function LightRow({ e, call, onColor }: RowProps & { onColor?: (e: HomeEntity) => void }) {
   const on = isOn(e);
   const pct = toPct(e.attrs.brightness);
   const remembered = useRef(pct ?? 60);
@@ -141,6 +153,8 @@ function LightRow({ e, call }: RowProps) {
   useEffect(() => () => clearTimeout(timer.current), []);
   const value = drag ?? pct ?? remembered.current;
   const canDim = dimmable(e);
+  const caps = lightCaps(e);
+  const colorful = !!onColor && (caps.color || caps.white);
 
   const toggle = () =>
     call(e, on ? 'turn_off' : 'turn_on', undefined, {
@@ -177,18 +191,32 @@ function LightRow({ e, call }: RowProps) {
         <span>{e.name}</span>
         <Switch on={on} />
       </button>
-      {canDim && (
-        <input
-          className="hm-bri"
-          type="range"
-          min={1}
-          max={100}
-          value={value}
-          disabled={readOnly(e) || !on}
-          style={{ '--v': `${value}%` } as React.CSSProperties}
-          aria-label={`${e.name} brightness`}
-          onChange={(ev) => slide(Number(ev.target.value))}
-        />
+      {(canDim || colorful) && (
+        <div className="hm-lctl">
+          {canDim && (
+            <input
+              className="hm-bri"
+              type="range"
+              min={1}
+              max={100}
+              value={value}
+              disabled={readOnly(e) || !on}
+              style={{ '--v': `${value}%` } as React.CSSProperties}
+              aria-label={`${e.name} brightness`}
+              onChange={(ev) => slide(Number(ev.target.value))}
+            />
+          )}
+          {colorful && (
+            <button
+              type="button"
+              className={`hm-lcolor${on ? '' : ' off'}`}
+              style={{ '--lc': lightCss(e) ?? 'var(--surface-2)' } as React.CSSProperties}
+              disabled={readOnly(e)}
+              aria-label={`${e.name} colour`}
+              onClick={() => onColor?.(e)}
+            />
+          )}
+        </div>
       )}
     </div>
   );
