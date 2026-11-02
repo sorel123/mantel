@@ -11,7 +11,13 @@ on:
       - '.github/workflows/package.yml'
   push:
     tags: ['v*']
+  # Actions tab, Package apps, Run workflow: fill in a version (for example 0.2.0) to publish a release.
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to publish, like 0.2.0 (leave empty to only build)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -43,7 +49,7 @@ jobs:
         id: v
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"; else v="$(node -p "require('./apps/server/package.json').version")-${GITHUB_SHA::7}"; fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"; elif [[ -n "${{ inputs.version }}" ]]; then v="${{ inputs.version }}"; v="${v#v}"; else v="$(node -p "require('./apps/server/package.json').version")-${GITHUB_SHA::7}"; fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: Assemble the bundle
         run: node packaging/build-bundle.mjs dist/bundle "${{ steps.v.outputs.version }}"
@@ -121,7 +127,7 @@ jobs:
 
   release:
     name: Publish release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
     needs: bundle
     runs-on: ubuntu-latest
     permissions:
@@ -131,7 +137,15 @@ jobs:
         with:
           path: assets
           merge-multiple: true
-      - name: Create the release
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" assets/* --repo "$GITHUB_REPOSITORY" --title "Mantel ${GITHUB_REF_NAME#v}" --generate-notes
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then tag="$GITHUB_REF_NAME"; else v="${{ inputs.version }}"; tag="v${v#v}"; fi
+          # A release made by hand on GitHub already exists; add the files to it. Otherwise create it
+          # (which also creates the tag at this commit).
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" assets/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" assets/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Mantel ${tag#v}" --generate-notes
+          fi

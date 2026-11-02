@@ -46,9 +46,11 @@ one. Settings › Health says when a newer release is out.
 - `LOCAL_PAIR=1` (set by the launchers) lets a browser on the same computer pair itself:
   `POST /api/pair/local` accepts only a loopback connection with no proxy headers. The kiosk
   shortcut and the brightness helper use it, so there is no code to type.
-- `.github/workflows/package.yml` builds all three on a version tag (`git tag v0.2.0 && git push
---tags`), smoke-tests each bundle (starts it, checks health and local pairing), and publishes
-  the Release. It also runs on pull requests that touch this folder.
+- `.github/workflows/package.yml` builds all three, smoke-tests each bundle (starts it, checks
+  health and local pairing), and publishes the Release. Start a release from the website
+  (**Actions**, **Package apps**, **Run workflow**, type a version such as `0.2.0`), by
+  publishing a release on GitHub, or with `git tag v0.2.0 && git push --tags`. It also runs on
+  pull requests that touch this folder.
 
 ## Not here yet
 
