@@ -38,6 +38,7 @@ describe('Home screen', () => {
         if (url.startsWith('/api/bootstrap')) return json(fx.bootstrap);
         if (url.startsWith('/api/home/state')) return json(fx.homeState);
         if (url.startsWith('/api/media')) return json(fx.media);
+        if (url.startsWith('/api/settings')) return json(body ?? fx.settings);
         if (url.startsWith('/api/home/call')) {
           const entity = fx.homeState.entities.find((e) => e.id === body.entityId)!;
           return json({ ok: true, entity: { ...entity, state: 'unlocked' } });
@@ -103,6 +104,42 @@ describe('Home screen', () => {
     expect(screen.getByRole('switch', { name: 'Island' }).getAttribute('aria-checked')).toBe(
       'true',
     );
+  });
+
+  it('opens the colour sheet for a colour light and sends the colour picked', async () => {
+    await open();
+    // A brightness-only light has no colour button.
+    expect(screen.queryByRole('button', { name: 'Ceiling colour' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: "Ava's lamp colour" }));
+    const sheet = await screen.findByRole('dialog', { name: "Ava's lamp colour" });
+    expect(within(sheet).getByRole('slider', { name: 'Hue' })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: 'Warm' })).toBeTruthy();
+    await act(async () =>
+      fireEvent.click(within(sheet).getAllByRole('button', { name: /^Colour, hue 215/ })[0]!),
+    );
+    expect(calls.find((c) => c.url === '/api/home/call')?.body).toEqual({
+      entityId: 'light.ava_lamp',
+      service: 'turn_on',
+      data: { hs_color: [215, 100] },
+    });
+  });
+
+  it('arranges the cards and saves the layout to settings', async () => {
+    await open();
+    fireEvent.click(screen.getByRole('button', { name: 'Arrange the Home screen' }));
+    const region = screen.getByRole('region', { name: 'Arrange Home' });
+    fireEvent.click(within(region).getByRole('button', { name: 'Separate' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Thermostats' }));
+    expect(screen.getByRole('button', { name: 'Show Thermostats' })).toBeTruthy();
+    await act(async () => fireEvent.click(within(region).getByRole('button', { name: 'Done' })));
+    const put = calls.find((c) => c.url === '/api/settings' && c.body);
+    const layout = (
+      put?.body as {
+        homeLayout: { cameraStyle: string; cards: { key: string; hidden: boolean }[] };
+      }
+    ).homeLayout;
+    expect(layout.cameraStyle).toBe('cards');
+    expect(layout.cards.find((c) => c.key === 'climate')?.hidden).toBe(true);
   });
 
   it('pops the live view over any screen when the doorbell rings', async () => {

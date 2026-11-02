@@ -22,6 +22,7 @@ describe('preview on the wall', () => {
         savedToday: [],
         fit: 'scale',
         scale: 1.1,
+        dockDate: 'off',
       },
       screen: 'month',
       mode: 'dusk',
@@ -52,6 +53,7 @@ describe('preview on the wall', () => {
         savedToday: [],
         fit: 'fit',
         scale: 1,
+        dockDate: 'off',
       },
     });
     expect(layoutFromSearch(url.slice(1)).todayCards).toMatchObject([

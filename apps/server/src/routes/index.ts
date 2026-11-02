@@ -81,6 +81,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
         schedule: s.schedule,
         appearance: s.appearance,
         layout: s.layout,
+        homeLayout: s.homeLayout,
         screens: s.screens,
         defaultScreen: s.defaultScreen,
         integrations: s.integrations,

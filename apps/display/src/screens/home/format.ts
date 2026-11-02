@@ -136,3 +136,51 @@ export const numAttr = (e: HomeEntity, key: string) => {
   const v = e.attrs[key];
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 };
+
+const COLOR_MODES = ['hs', 'xy', 'rgb', 'rgbw', 'rgbww'];
+
+/** What a light can do beyond on, off and brightness. */
+export function lightCaps(e: HomeEntity): { color: boolean; white: boolean } {
+  const modes = Array.isArray(e.attrs.supported_color_modes)
+    ? (e.attrs.supported_color_modes as unknown[]).map(String)
+    : [];
+  const color = modes.some((m) => COLOR_MODES.includes(m));
+  // Home Assistant turns a colour temperature into a colour for lights without white LEDs.
+  return { color, white: color || modes.includes('color_temp') };
+}
+
+/** The light's colour temperature range in kelvin, from Home Assistant or a common default. */
+export function kelvinRange(e: HomeEntity): [number, number] {
+  const lo = Number(e.attrs.min_color_temp_kelvin);
+  const hi = Number(e.attrs.max_color_temp_kelvin);
+  return [Number.isFinite(lo) && lo > 0 ? lo : 2000, Number.isFinite(hi) && hi > 0 ? hi : 6500];
+}
+
+/** An approximate sRGB colour for a white of `k` kelvin (Tanner Helland's fit). */
+export function kelvinToRgb(k: number): [number, number, number] {
+  const t = k / 100;
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  const r = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
+  const g =
+    t <= 66
+      ? 99.4708025861 * Math.log(t) - 161.1195681661
+      : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
+  const b = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+  return [clamp(r), clamp(g), clamp(b)];
+}
+
+/** CSS hsl() for HA's hs colour (hue 0-360, saturation 0-100). */
+export const hsCss = (h: number, s: number) =>
+  `hsl(${Math.round(h)} ${Math.round(s)}% ${100 - s / 2}%)`;
+
+/** The colour a light is showing, as CSS, or null when it is off or has no colour. */
+export function lightCss(e: HomeEntity): string | null {
+  if (e.state !== 'on') return null;
+  const rgb = e.attrs.rgb_color;
+  if (Array.isArray(rgb) && rgb.length >= 3) return `rgb(${rgb.slice(0, 3).join(' ')})`;
+  const hs = e.attrs.hs_color;
+  if (Array.isArray(hs) && hs.length >= 2) return hsCss(Number(hs[0]), Number(hs[1]));
+  const k = Number(e.attrs.color_temp_kelvin);
+  if (Number.isFinite(k) && k > 0) return `rgb(${kelvinToRgb(k).join(' ')})`;
+  return null;
+}
