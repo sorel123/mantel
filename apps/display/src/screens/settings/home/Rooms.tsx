@@ -28,6 +28,18 @@ const KIND_LABEL: Record<string, string> = {
   scene: 'Scene',
 };
 
+const KIND_ORDER = ['light', 'switch', 'scene', 'climate', 'lock', 'cover', 'camera', 'sensor'];
+const KIND_PLURAL: Record<string, string> = {
+  light: 'Lights',
+  switch: 'Switches',
+  climate: 'Thermostats',
+  lock: 'Locks',
+  cover: 'Doors',
+  sensor: 'Sensors',
+  camera: 'Cameras',
+  scene: 'Scenes',
+};
+
 type Edit = (next: HomeConfig) => void;
 
 /**
@@ -225,11 +237,43 @@ function RoomBody({
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
 
+  const [kind, setKind] = useState<string>('all');
+  const [onlyLoose, setOnlyLoose] = useState(false);
+
   const q = query.trim().toLowerCase();
-  const candidates = (discovery?.entities ?? [])
-    .filter((e) => showable(e) && !entities.some((x) => x.id === e.id))
-    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.id.includes(q))
-    .slice(0, 12);
+  const areaName = useMemo(
+    () => new Map((discovery?.areas ?? []).map((a) => [a.id, a.name])),
+    [discovery],
+  );
+  // Everything already on the Home screen in some room, for "not in a room yet".
+  const placed = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of roomRows(config, discovery))
+      if (r.room)
+        for (const e of roomEntities(r.room, discovery, r.area))
+          if (entityIncluded(r.room, e, r.area)) ids.add(e.id);
+    return ids;
+  }, [config, discovery]);
+  const pool = (discovery?.entities ?? []).filter(
+    (e) =>
+      showable(e) &&
+      !entities.some((x) => x.id === e.id) &&
+      (!onlyLoose || !placed.has(e.id)) &&
+      (!q || e.name.toLowerCase().includes(q) || e.id.includes(q)),
+  );
+  const kinds = KIND_ORDER.filter((k) => pool.some((e) => e.kind === k));
+  const candidates = pool
+    .filter((e) => kind === 'all' || e.kind === kind)
+    .sort(
+      (a, b) =>
+        KIND_ORDER.indexOf(a.kind ?? '') - KIND_ORDER.indexOf(b.kind ?? '') ||
+        a.name.localeCompare(b.name),
+    );
+  const addAll = () => {
+    let next = config;
+    for (const e of candidates) next = setEntity(next, room.id, e, true, row.area);
+    onChange(next);
+  };
 
   return (
     <div className="hs-room-body">
@@ -249,7 +293,35 @@ function RoomBody({
             value={query}
             onChange={setQuery}
           />
-          <div className="hs-candidates">
+          <div className="hs-filter" role="group" aria-label="Show">
+            {['all', ...kinds].map((k) => (
+              <button
+                key={k}
+                type="button"
+                className="set-btn quiet"
+                aria-pressed={kind === k}
+                onClick={() => setKind(k)}
+              >
+                {k === 'all'
+                  ? `All (${pool.length})`
+                  : `${KIND_PLURAL[k]} (${pool.filter((e) => e.kind === k).length})`}
+              </button>
+            ))}
+            <label className="hs-loose">
+              <input
+                type="checkbox"
+                checked={onlyLoose}
+                onChange={(ev) => setOnlyLoose(ev.target.checked)}
+              />
+              Only ones not in a room yet
+            </label>
+          </div>
+          {kind !== 'all' && candidates.length > 1 && (
+            <button type="button" className="set-btn" onClick={addAll}>
+              Add all {candidates.length} {KIND_PLURAL[kind]?.toLowerCase()}
+            </button>
+          )}
+          <div className="hs-candidates" aria-label="Devices to add">
             {candidates.map((e) => (
               <button
                 key={e.id}
@@ -261,7 +333,10 @@ function RoomBody({
                 }}
               >
                 {e.name}
-                <small>{e.kind ? KIND_LABEL[e.kind] : e.domain}</small>
+                <small>
+                  {e.kind ? KIND_LABEL[e.kind] : e.domain}
+                  {e.areaId && areaName.get(e.areaId) ? ` · ${areaName.get(e.areaId)}` : ''}
+                </small>
               </button>
             ))}
             {candidates.length === 0 && /^[a-z_]+\.[a-z0-9_]+$/.test(q) && (

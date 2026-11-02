@@ -21,16 +21,24 @@ export function Dock({
   current,
   onSelect,
   clock,
+  date,
   onClockHold,
   onAmbient,
+  awake,
+  onAwake,
   trailing,
 }: {
   items: DockItem[];
   current: string;
   onSelect: (id: string) => void;
   clock?: string;
+  /** Shown before the time, e.g. `Sun 2`. */
+  date?: string;
   onClockHold?: () => void;
   onAmbient?: () => void;
+  /** The keep-awake pin: lit while the display is held out of Ambient. */
+  awake?: { held: boolean; label: string };
+  onAwake?: () => void;
   trailing?: ReactNode;
 }) {
   const reduced = useMotionPreference();
@@ -64,22 +72,37 @@ export function Dock({
           </button>
         );
       })}
-      {(clock || onAmbient || trailing) && <span className="sep" />}
+      {(clock || onAmbient || onAwake || trailing) && <span className="sep" />}
       {clock && (
         <button
           type="button"
           className="clock tnum"
-          aria-label={`${clock}. Hold to open settings`}
+          aria-label={`${date ? `${date}, ` : ''}${clock}. Hold to open settings`}
           onPointerDown={startHold}
           onPointerUp={endHold}
           onPointerLeave={endHold}
           onPointerCancel={endHold}
           onContextMenu={(e) => e.preventDefault()}
         >
+          {date && <span className="date">{date}</span>}
           {clock}
         </button>
       )}
       {trailing}
+      {onAwake && (
+        <button
+          type="button"
+          className={`moon awake${awake?.held ? ' on' : ''}`}
+          aria-label={awake?.held ? `Staying on ${awake.label}. Change` : 'Keep the screen on'}
+          aria-pressed={!!awake?.held}
+          onClick={onAwake}
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z" />
+            <path d="M12 14v7" />
+          </svg>
+        </button>
+      )}
       {onAmbient && (
         <button className="moon" aria-label="Ambient mode" onClick={onAmbient}>
           <svg viewBox="0 0 24 24">

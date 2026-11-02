@@ -70,6 +70,7 @@ export function routeFixtures(now = new Date()): {
         schedule: s.schedule,
         appearance: s.appearance,
         layout: s.layout,
+        homeLayout: s.homeLayout,
         screens: s.screens,
         defaultScreen: s.defaultScreen,
         integrations: s.integrations,

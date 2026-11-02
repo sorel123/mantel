@@ -34,6 +34,11 @@ const ATTRS = [
   'brightness',
   'supported_color_modes',
   'color_mode',
+  'rgb_color',
+  'hs_color',
+  'color_temp_kelvin',
+  'min_color_temp_kelvin',
+  'max_color_temp_kelvin',
   'current_temperature',
   'temperature',
   'target_temp_low',
@@ -52,7 +57,14 @@ const ATTRS = [
 /** Services the display may call, per HA domain, with the data keys each accepts. */
 const SERVICES: Record<string, Record<string, string[]>> = {
   light: {
-    turn_on: ['brightness', 'brightness_pct', 'transition', 'color_temp_kelvin', 'rgb_color'],
+    turn_on: [
+      'brightness',
+      'brightness_pct',
+      'transition',
+      'color_temp_kelvin',
+      'rgb_color',
+      'hs_color',
+    ],
     turn_off: ['transition'],
     toggle: [],
   },

@@ -13,6 +13,16 @@ import {
 } from '../types.js';
 import { artworkSvg, cameraSvg } from './cameras.js';
 
+/** HA's hs (hue 0-360, saturation 0-100) to rgb, for the mock's colour lights. */
+function hsToRgb(h: number, s: number): [number, number, number] {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    const v = 1 - (s / 100) * Math.max(0, Math.min(k, 4 - k, 1));
+    return Math.round(v * 255);
+  };
+  return [f(5), f(3), f(1)];
+}
+
 /** The mockup's scene presets: [on, brightness %] for each light, in fixture order. */
 const scenePresets: Record<string, Record<string, [boolean, number]>> = {
   'scene.morning': {
@@ -176,6 +186,32 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
           brightness:
             raw ?? (pct !== undefined ? Math.round(pct * 2.55) : (e.attrs.brightness ?? 255)),
         };
+        // Colour lights: hs or rgb picks a colour, a kelvin picks a white (as HA reports them).
+        if (Array.isArray(data.hs_color)) {
+          const [h, sat] = data.hs_color as [number, number];
+          e.attrs = {
+            ...e.attrs,
+            color_mode: 'hs',
+            hs_color: [h, sat],
+            rgb_color: hsToRgb(h, sat),
+            color_temp_kelvin: null,
+          };
+        } else if (Array.isArray(data.rgb_color)) {
+          e.attrs = {
+            ...e.attrs,
+            color_mode: 'hs',
+            rgb_color: data.rgb_color,
+            color_temp_kelvin: null,
+          };
+        } else if (typeof data.color_temp_kelvin === 'number') {
+          e.attrs = {
+            ...e.attrs,
+            color_mode: 'color_temp',
+            color_temp_kelvin: data.color_temp_kelvin,
+            rgb_color: null,
+            hs_color: null,
+          };
+        }
         return;
       }
       case 'light.turn_off':

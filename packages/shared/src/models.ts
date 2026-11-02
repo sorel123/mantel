@@ -379,6 +379,11 @@ export type MonthPreset = z.infer<typeof MonthPreset>;
 /** `fit`: letterbox the panel. `fill`: stretch the grid to the viewport. `scale`: fixed factor. */
 export const Fit = z.enum(['fit', 'fill', 'scale']);
 export type Fit = z.infer<typeof Fit>;
+
+/** What the dock clock shows beside the time. */
+export const DockDate = z.enum(['off', 'day', 'date']);
+export type DockDate = z.infer<typeof DockDate>;
+
 /** Rows under today's agenda on the Agenda and Photo layouts, top to bottom. */
 export const TodayRow = z.enum(['tonight', 'week', 'countdowns', 'list', 'photo']);
 export type TodayRow = z.infer<typeof TodayRow>;
@@ -446,8 +451,35 @@ export const Layout = z.object({
   fit: Fit.default('fit'),
   /** Used when `fit` is `scale`: 0.9 to 1.3. */
   scale: z.number().min(0.5).max(2).default(1),
+  /** The day (`Sun 2`) or the date (`Sun, Nov 2`) beside the dock clock. */
+  dockDate: DockDate.default('off'),
 });
 export type Layout = z.infer<typeof Layout>;
+
+/**
+ * How the Home screen arranges its cards. Keys: `climate`, `room:<area id>`, `cameras` (all
+ * cameras in one card), `camera:<entity id>` (one camera, also its place inside the cameras card),
+ * `media`. Cards Home Assistant adds later take their default place next to their neighbours.
+ */
+export const HomeCardPlace = z.object({
+  key: z.string().min(1).max(160),
+  /** In the narrow column on the right instead of the main grid. */
+  side: z.boolean().default(false),
+  hidden: z.boolean().default(false),
+  /** Two columns wide in the main grid. */
+  wide: z.boolean().default(false),
+});
+export type HomeCardPlace = z.infer<typeof HomeCardPlace>;
+
+/** `feature`: one big camera and small ones under it; `grid`: equal tiles; `cards`: a card per camera. */
+export const CameraStyle = z.enum(['feature', 'grid', 'cards']);
+export type CameraStyle = z.infer<typeof CameraStyle>;
+
+export const HomeLayout = z.object({
+  cards: z.array(HomeCardPlace).max(200).default([]),
+  cameraStyle: CameraStyle.default('feature'),
+});
+export type HomeLayout = z.infer<typeof HomeLayout>;
 
 /** A screen in the dock: on or off, renamed, reordered. Ids match the display's screen registry (`today`, `month`, `lists`, `home`...). */
 export const ScreenConfig = z.object({
@@ -513,7 +545,10 @@ export const Settings = z.object({
     savedToday: [],
     fit: 'fit',
     scale: 1,
+    dockDate: 'off',
   }),
+  /** The Home screen's card order, places and camera style, set from Arrange on the wall. */
+  homeLayout: HomeLayout.default({ cards: [], cameraStyle: 'feature' }),
   screens: z.array(ScreenConfig).default(() => structuredClone(DEFAULT_SCREENS)),
   /** The screen shown after a wake and after the display reloads. */
   defaultScreen: Id.default('today'),

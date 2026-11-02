@@ -232,6 +232,21 @@
 .dock .moon:active {
   background: var(--surface-2);
 }
+.dock .clock {
+  white-space: nowrap;
+}
+.dock .clock .date {
+  margin-right: 8px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.dock .awake.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.dock .awake.on svg {
+  fill: currentColor;
+}
 
 /* ---------- status pill (mock, offline) ---------- */
 .status {
@@ -361,4 +376,25 @@
     fill var(--slow) var(--ease),
     stroke var(--slow) var(--ease),
     box-shadow var(--slow) var(--ease) !important;
+}
+
+/* ---------- keep the screen on ---------- */
+.awake-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.awake-sheet p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.awake-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.awake-choices .btn:last-child {
+  grid-column: 1 / -1;
 }

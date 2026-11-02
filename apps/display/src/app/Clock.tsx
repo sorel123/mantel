@@ -50,3 +50,14 @@ export const formatTime = (d: Date, { minutes = true } = {}) => {
 /** `Friday, October 31` */
 export const formatLongDate = (d: Date) =>
   `${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+
+/** The dock's date beside the clock: `Sun 2` (`day`), `Sun, Nov 2` (`date`) or nothing. */
+export function formatDockDate(
+  d: Date,
+  style: 'off' | 'day' | 'date' | undefined,
+): string | undefined {
+  if (!style || style === 'off') return undefined;
+  const day = DAY_NAMES[d.getDay()]!.slice(0, 3);
+  if (style === 'day') return `${day} ${d.getDate()}`;
+  return `${day}, ${MONTH_NAMES[d.getMonth()]!.slice(0, 3)} ${d.getDate()}`;
+}
