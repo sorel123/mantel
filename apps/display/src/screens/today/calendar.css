@@ -508,3 +508,7 @@
 .cal .qa-delete.block {
   width: 100%;
 }
+/* The form scrolls as a whole; nothing in it squashes to fit. */
+.cal .qa > * {
+  flex-shrink: 0;
+}
