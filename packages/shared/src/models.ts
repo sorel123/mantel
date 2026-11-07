@@ -10,6 +10,7 @@
  */
 import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
+import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
 import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
@@ -413,6 +414,8 @@ export const BuiltInCardKind = z.enum([
   'list',
   'countdowns',
   'tonight',
+  /** v3 M: the week's dinners from the meal planner. */
+  'meals-week',
 ]);
 export type BuiltInCardKind = z.infer<typeof BuiltInCardKind>;
 /** A card a plugin contributes (`contributes.todayCard`), named after the plugin: `plugin:trash`. */
@@ -569,6 +572,8 @@ export const Settings = z.object({
   defaultScreen: Id.default('today'),
   weather: WeatherSettings.default({ savedPlaces: [], personality: 'friendly', newsJokes: false }),
   integrations: IntegrationToggles.default({}),
+  /** v3 M: the meal planner's slots, calendar mirror and grocery list. */
+  meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
   /** v3 (workstream R): celebrations on the chore chart. */
   chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
 });

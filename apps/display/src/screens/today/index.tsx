@@ -15,6 +15,7 @@ import { PluginCard } from '../../features/plugins';
 import { WeatherCard, useWeather } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
+import { MealsWeekCard } from '../meals';
 import { useDaySheet } from '../month/DaySheet';
 import { WeekStrip } from '../month/WeekStrip';
 import '../month/month.css';
@@ -227,6 +228,12 @@ export function TodayScreen() {
             <div className="card cc-pad">
               <TonightSlot today={today} />
             </div>
+          );
+        case 'meals-week':
+          return (
+            <Guard name="meals-week">
+              <MealsWeekCard />
+            </Guard>
           );
         default:
           // A card a plugin contributes (`plugin:<id>`), drawn from the blocks it serves.

@@ -49,6 +49,7 @@ const START_SIZE: Record<BuiltInCardKind, [number, number]> = {
   list: [3, 3],
   countdowns: [4, 1],
   tonight: [4, 1],
+  'meals-week': [4, 4],
 };
 
 const startSize = (k: TodayCardKind): readonly [number, number] => {

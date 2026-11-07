@@ -260,6 +260,7 @@ const SECTIONS: Array<[string, string]> = [
   ['quips', 'Weather quips'],
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
+  ['meals', 'Meals'],
   ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
   ['schedule', 'Screen schedule'],
@@ -758,6 +759,66 @@ test('fill and scale reach the edges of the viewport', async ({ page }) => {
     expect(Math.abs(box.width - 1000), q).toBeLessThanOrEqual(2);
   }
 
+  expect(problems).toEqual([]);
+});
+
+test('the meal planner plans a dinner from a favourite and sends its ingredients to the grocery list', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/?mode=daylight');
+
+  // Tonight on Today opens the planner on this week.
+  await page.getByRole('button', { name: 'Open the meal planner' }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'Meal planner' });
+  await expect(sheet.getByLabel('Meal plan')).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Monday dinner: Tacos' })).toBeVisible();
+
+  // Sunday dinner comes from the Meals calendar; plan a favourite over it.
+  await sheet.getByRole('button', { name: /^(Plan )?Sunday dinner/ }).click();
+  await expect(sheet.getByRole('heading', { name: 'Sunday dinner' })).toBeVisible();
+  // (The other viewport's run planned it already: Change opens the picker again.)
+  const change = sheet.getByRole('button', { name: 'Change' });
+  if (await change.isVisible()) await change.click();
+  await sheet.getByRole('button', { name: 'Plan Sheet-pan chicken' }).click();
+  await expect(page.getByText('Sheet-pan chicken for Sunday dinner')).toBeVisible();
+  const planned = sheet.getByRole('button', { name: 'Sunday dinner: Sheet-pan chicken' });
+  await expect(planned).toBeVisible();
+
+  // Its ingredients go to the grocery list (a second project run finds them already there).
+  await planned.click();
+  await sheet.getByRole('button', { name: /^Add ingredients to Grocery/ }).click();
+  await expect(
+    page.getByText(/^Added \d+ items? to Grocery|^Everything is already on Grocery/),
+  ).toBeVisible();
+  const lists = await (await request.get('/api/lists')).json();
+  const grocery = lists.lists.find((l: { name: string }) => l.name === 'Grocery');
+  expect(grocery.items.map((i: { text: string }) => i.text)).toEqual(
+    expect.arrayContaining(['Potatoes', 'Carrots', 'Lemon']),
+  );
+
+  // The favourites manager opens from the week.
+  await sheet.getByRole('button', { name: 'Back to the week' }).click();
+  await sheet.getByRole('button', { name: 'Favourites' }).click();
+  await expect(sheet.getByRole('button', { name: 'Edit Tacos' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+
+  // The meals-week card on a custom Today layout lists the dinners and opens the planner too.
+  await page.goto(
+    '/?mode=daylight&today=custom&cards=date:0.0.4.2,meals-week:0.2.4.6,agenda:4.0.8.8',
+  );
+  const card = page.getByRole('button', { name: /Dinners this week/ });
+  await expect(card.getByText('Sheet-pan chicken')).toBeVisible();
+  await card.click();
+  await expect(page.getByRole('dialog', { name: 'Meal planner' })).toBeVisible();
+
+  // Settings › Meals: slots, grocery list and the calendar mirror.
+  await page.goto('/settings#meals');
+  await expect(page.getByRole('switch', { name: 'Meal planner' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Meal slots' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Grocery list' })).toBeVisible();
   expect(problems).toEqual([]);
 });
 

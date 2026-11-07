@@ -1,0 +1,373 @@
+/* The meal planner (v3 M). Colours, radii and durations come from tokens only. */
+
+/* The planner needs the width of the panel for seven columns: widen the sheet that holds it. */
+.sheet.wide:has(> .meal-planner) {
+  width: min(1100px, 100%);
+}
+.meal-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  flex: 1;
+}
+.meal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.meal-body::-webkit-scrollbar {
+  display: none;
+}
+/* in a slot or the favourites list, the body scrolls instead of squeezing the parts */
+.meal-slot > *,
+.meal-picker > * {
+  flex-shrink: 0;
+}
+.meal-planner .grow {
+  flex: 1;
+}
+.meal-msg {
+  margin: auto;
+  max-width: 520px;
+}
+.meal-skeleton {
+  flex: 1;
+  border-radius: var(--radius-card);
+}
+.meal-hint {
+  color: var(--ink-2);
+  text-align: center;
+  margin: 0;
+}
+
+/* toolbar */
+.meal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.meal-toolbar .seg .btn.icon {
+  width: 44px;
+  min-width: 44px;
+}
+
+/* week grid: a label column, then seven days */
+.meal-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+}
+.meal-row {
+  display: grid;
+  grid-template-columns: 92px repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+}
+.meal-grid.single .meal-row {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.meal-day {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-radius: var(--radius-pill);
+}
+.meal-day b {
+  font: 500 22px/1 var(--display);
+}
+.meal-day.today {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.meal-day.today .eyebrow {
+  color: inherit;
+}
+.meal-slot-name {
+  align-self: center;
+}
+.meal-cell {
+  min-height: var(--tap);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--ink);
+  padding: 10px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  overflow: hidden;
+  transition: transform var(--fast) var(--ease);
+}
+.meal-cell:active {
+  transform: scale(0.97);
+}
+.meal-cell.mantel {
+  background: var(--accent-soft);
+}
+.meal-cell.today {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.meal-cell.empty {
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px dashed var(--line);
+  color: var(--ink-3);
+}
+.meal-title {
+  font: 500 calc(18px * var(--text-scale)) / 1.15 var(--display);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+.meal-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+.meal-meta svg,
+.meal-add svg,
+.meal-search svg,
+.meals-week-head svg,
+.meal-current .chip svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.meal-add svg {
+  width: 26px;
+  height: 26px;
+}
+.meal-buy {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--warn);
+}
+.meal-from {
+  display: inline-flex;
+}
+
+/* one slot, the favourites list and the editors */
+.meal-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  flex: 1;
+}
+.meal-subhead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.meal-subhead .h2 {
+  margin: 0;
+}
+.meal-subhead .grow,
+.meal-actions .grow {
+  flex: 1;
+}
+.meal-current {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.meal-current-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.meal-current-head .h3 {
+  font-size: calc(24px * var(--text-scale));
+}
+.meal-ingredients {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.meal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.meal-count {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-ink);
+  color: var(--accent);
+  display: inline-grid;
+  place-items: center;
+  font-size: 14px;
+}
+.meal-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+.meal-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.meal-search svg {
+  position: absolute;
+  left: 18px;
+  color: var(--ink-3);
+}
+.meal-search .input {
+  width: 100%;
+  padding-left: 48px;
+}
+.meal-tags,
+.meal-recent {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meal-favs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  align-content: start;
+  flex: none;
+}
+.meal-fav {
+  min-height: var(--tap);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+.meal-fav b {
+  font: 500 calc(19px * var(--text-scale)) / 1.15 var(--display);
+}
+.meal-fav .muted {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meal-type {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.meal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.meal-textarea {
+  height: auto;
+  min-height: 96px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.35;
+}
+.meal-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Today: tap targets around the meal pieces */
+.meal-open {
+  display: block;
+  width: 100%;
+  text-align: inherit;
+  color: inherit;
+  border-radius: var(--radius-md);
+  transition: transform var(--fast) var(--ease);
+}
+.meal-open:active {
+  transform: scale(0.985);
+}
+
+/* the meals-week card */
+.meals-week {
+  height: 100%;
+  width: 100%;
+  padding: var(--card-pad);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  color: inherit;
+  overflow: hidden;
+}
+.meals-week-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warn);
+}
+.meals-week-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+}
+.meals-week-list li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+}
+.meals-week-list li .meal-title {
+  -webkit-line-clamp: 1;
+  font-size: calc(19px * var(--text-scale));
+}
+.meals-week-list li.past {
+  opacity: 0.5;
+}
+.meals-week-list li.today .eyebrow,
+.meals-week-list li.today .meal-title {
+  color: var(--accent);
+}
+.meals-week-list .meal-title.none {
+  color: var(--ink-3);
+}

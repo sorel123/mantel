@@ -25,6 +25,7 @@ import {
   ChoresSection,
   HomeSetupSection,
   LayoutSection,
+  MealsSection,
   Mount,
 } from './Optional';
 import { ScreensSection } from './Screens';
@@ -70,6 +71,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     group: 'Household',
     items: [
       { id: 'lists', label: 'Lists and chores' },
+      { id: 'meals', label: 'Meals' },
       { id: 'chores', label: 'Chores and rewards' },
       { id: 'places', label: 'Leave-by places' },
       { id: 'schedule', label: 'Screen schedule' },
@@ -268,7 +270,7 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips']}
+        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals']}
       />
     ),
     homeassistant: () => (
@@ -349,6 +351,13 @@ export function SettingsPage() {
       />
     ),
     lists: () => <ListsSection people={draft.people} />,
+    meals: () => (
+      <Mount
+        Component={MealsSection}
+        props={{ draft, set, calendars: load.calendars }}
+        fallback={null}
+      />
+    ),
     chores: () => <Mount Component={ChoresSection} props={{ draft, set }} fallback={null} />,
     places: () => (
       <Destinations

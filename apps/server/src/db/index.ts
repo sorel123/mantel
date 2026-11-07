@@ -74,6 +74,26 @@ const migrations = [
     data TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  // v3 M: the meal planner
+  `CREATE TABLE IF NOT EXISTS meal_favourites (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    slot TEXT NOT NULL,
+    ingredients TEXT NOT NULL,
+    tags TEXT NOT NULL,
+    last_used TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS planned_meals (
+    date TEXT NOT NULL,
+    slot TEXT NOT NULL,
+    title TEXT NOT NULL,
+    favourite_id TEXT,
+    ingredients TEXT,
+    event_id TEXT,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (date, slot)
+  )`,
   // v3 (workstream R): star bank, rewards, routines
   `CREATE TABLE IF NOT EXISTS star_ledger (
     id TEXT PRIMARY KEY,

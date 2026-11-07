@@ -71,6 +71,7 @@ import {
   Location,
 } from './models.js';
 import { Appearance } from './skins.js';
+import { mealRoutes } from './meals.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import {
   HomeConfig,
@@ -1023,6 +1024,8 @@ export const routes = {
     response: GeocodeResponse,
     auth: true,
   }),
+  /* ---- v3 M: the meal planner (meals.ts) ---- */
+  ...mealRoutes,
 } as const;
 
 export type Routes = typeof routes;

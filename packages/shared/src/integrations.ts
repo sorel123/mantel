@@ -32,6 +32,7 @@ export const IntegrationId = z.enum([
   'pollen',
   'weather',
   'quips',
+  'meals',
   'trash',
   'timers',
 ]);
