@@ -1,0 +1,100 @@
+/* Settings › Chores and rewards (v3 workstream R). */
+.ch-icon {
+  position: relative;
+  display: inline-flex;
+}
+.ch-icon-btn {
+  width: var(--tap);
+  padding: 0;
+  justify-content: center;
+}
+.ch-icon-btn .cicon {
+  width: 26px;
+  height: 26px;
+}
+.ch-icon-grid {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 420px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+}
+.ch-icon-grid button {
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+}
+.ch-icon-grid button[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ch-icon-grid .cicon {
+  width: 28px;
+  height: 28px;
+}
+.ch-routine,
+.ch-reward {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.ch-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ch-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+.ch-cost {
+  max-width: 120px;
+}
+.ch-balances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ch-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.ch-balance i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--chip);
+}
+.ch-ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ch-ledger li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}

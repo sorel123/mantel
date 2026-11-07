@@ -1,12 +1,18 @@
-import type { List } from '@mantel/shared';
+import type { List, Person } from '@mantel/shared';
 import { Reorder, useDragControls } from 'framer-motion';
-import { useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
+import { useOverlay } from '../../app/overlay';
 import { useBootstrap } from '../../lib/bootstrap';
+import { Avatar } from './Avatar';
+import { CelebrationLayer, useCelebrate } from './celebrate';
 import { ChoreChart, Star } from './ChoreChart';
-import { useChores, useLists } from './data';
+import { useChores, useLists, useRoutines, useStars, type ChoreChart as Chart } from './data';
 import { ListCard } from './ListCard';
+import { RewardsDrawer } from './RewardsDrawer';
+import { RoutineCard } from './RoutineCard';
 import './lists.css';
+import './rewards.css';
 
 export { GroceryPeek } from './GroceryPeek';
 
@@ -20,8 +26,13 @@ export function ListsScreen() {
   // The order as dragged so far; saved when the finger lifts.
   const order = useRef<string[] | null>(null);
   const { chart, tap } = useChores();
+  const stars = useStars();
   const showChores = boot.flags.chores;
-  const stars = chart?.stars.reduce((n, s) => n + s.stars, 0) ?? 0;
+  const color = useCallback(
+    (id: string) => boot.people.find((p) => p.id === id)?.color,
+    [boot.people],
+  );
+  const weekStars = chart?.stars.reduce((n, s) => n + s.stars, 0) ?? 0;
 
   return (
     <div className="lists-screen">
@@ -35,7 +46,7 @@ export function ListsScreen() {
             {chart && (
               <span className="tstars tnum">
                 <Star />
-                {stars}
+                {weekStars}
               </span>
             )}
           </button>
@@ -85,7 +96,14 @@ export function ListsScreen() {
           <div className="lstate">{error ? `Lists unavailable: ${error}` : 'Loading lists'}</div>
         )
       ) : chart ? (
-        <ChoreChart chart={chart} people={boot.people} onTap={(c) => void tap(c)} />
+        <CelebrationLayer settings={stars.celebrations} color={color}>
+          <ChoresView
+            chart={chart}
+            people={boot.people}
+            balances={stars.balances ?? []}
+            onTap={(c) => void tap(c)}
+          />
+        </CelebrationLayer>
       ) : (
         <div className="lstate">Loading chores</div>
       )}
@@ -141,5 +159,106 @@ function DraggableList({
     >
       {children(handle)}
     </Reorder.Item>
+  );
+}
+
+type ChoresMode = 'now' | 'week';
+
+/**
+ * The Chore chart tab: the routine for now (a big checklist) or the week's chart, and each
+ * person's banked stars, which open the Rewards drawer.
+ */
+function ChoresView({
+  chart,
+  people,
+  balances,
+  onTap,
+}: {
+  chart: Chart;
+  people: Person[];
+  balances: NonNullable<ReturnType<typeof useStars>['balances']>;
+  onTap: Parameters<typeof ChoreChart>[0]['onTap'];
+}) {
+  const overlay = useOverlay();
+  const celebrate = useCelebrate();
+  const { routines } = useRoutines();
+  const hasRoutines = chart.chores.some((c) => c.cadence === 'daily' && c.timeOfDay !== 'any');
+  const [picked, setMode] = useState<ChoresMode | null>(null);
+  const mode: ChoresMode = picked ?? (hasRoutines ? 'now' : 'week');
+  const kids = people.filter(
+    (p) =>
+      chart.chores.some((c) => c.personId === p.id) ||
+      (balances.find((b) => b.personId === p.id)?.stars ?? 0) !== 0,
+  );
+
+  const openRewards = (personId?: string) =>
+    overlay.openSheet(
+      (close) => (
+        <RewardsDrawer
+          people={kids}
+          initialPersonId={personId}
+          celebrate={celebrate}
+          close={close}
+        />
+      ),
+      { label: 'Rewards', wide: true },
+    );
+
+  return (
+    <div className="chores-view">
+      {kids.length > 0 && (
+        <div className="cbar">
+          <div className="seg cmode" role="group" aria-label="Show">
+            <button
+              type="button"
+              className="btn"
+              aria-pressed={mode === 'now'}
+              onClick={() => setMode('now')}
+            >
+              Routine now
+            </button>
+            <button
+              type="button"
+              className="btn"
+              aria-pressed={mode === 'week'}
+              onClick={() => setMode('week')}
+            >
+              This week
+            </button>
+          </div>
+          <div className="cbank" role="group" aria-label="Banked stars">
+            {kids.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="cbank-chip"
+                style={{ '--pc': p.color } as CSSProperties}
+                aria-label={`${p.name}: ${balances.find((b) => b.personId === p.id)?.stars ?? 0} stars banked. Rewards`}
+                onClick={() => openRewards(p.id)}
+              >
+                <Avatar person={p} />
+                <Star />
+                <b className="tnum">{balances.find((b) => b.personId === p.id)?.stars ?? 0}</b>
+              </button>
+            ))}
+            <button type="button" className="btn cbank-open" onClick={() => openRewards()}>
+              Rewards
+            </button>
+          </div>
+        </div>
+      )}
+      {mode === 'now' && kids.length > 0 ? (
+        <RoutineCard chores={chart.chores} people={kids} routines={routines} onTap={onTap} />
+      ) : (
+        <ChoreChart
+          chart={chart}
+          people={people}
+          onTap={onTap}
+          routines={routines}
+          balances={balances}
+          onRewards={openRewards}
+        />
+      )}
+    </div>
   );
 }

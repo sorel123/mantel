@@ -163,6 +163,20 @@ export interface ListsProvider {
   choreUndo(choreId: string): Promise<ResponseOf<'choreUndo'>>;
   createChore(req: BodyOf<'choreCreate'>): Promise<ResponseOf<'choreCreate'>>;
   deleteChore(choreId: string): Promise<ResponseOf<'choreDelete'>>;
+  // v3 workstream R: routines, the star bank and rewards. PINs are checked in the routes.
+  updateChore(choreId: string, req: BodyOf<'choreUpdate'>): Promise<ResponseOf<'choreUpdate'>>;
+  starsBalance(): Promise<ResponseOf<'starsBalance'>>;
+  starsLedger(personId?: string, limit?: number): Promise<ResponseOf<'starsLedger'>>;
+  starsAdjust(req: Omit<BodyOf<'starsAdjust'>, 'pin'>): Promise<ResponseOf<'starsAdjust'>>;
+  rewards(): Promise<ResponseOf<'rewards'>>;
+  createReward(req: BodyOf<'rewardCreate'>): Promise<ResponseOf<'rewardCreate'>>;
+  patchReward(id: string, req: BodyOf<'rewardPatch'>): Promise<ResponseOf<'rewardPatch'>>;
+  deleteReward(id: string): Promise<ResponseOf<'rewardDelete'>>;
+  redeemReward(id: string, personId: string): Promise<ResponseOf<'rewardRedeem'>>;
+  routines(): Promise<ResponseOf<'routines'>>;
+  createRoutine(req: BodyOf<'routineCreate'>): Promise<ResponseOf<'routineCreate'>>;
+  patchRoutine(id: string, req: BodyOf<'routinePatch'>): Promise<ResponseOf<'routinePatch'>>;
+  deleteRoutine(id: string): Promise<ResponseOf<'routineDelete'>>;
 }
 
 export interface Providers {

@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence } from './models.js';
 import { WeatherAlertPayload, WeatherSnapshotExtended } from './weather-extended.js';
+import { RewardsRedeemed } from './rewards.js';
 
 const event = <T extends string, P extends z.ZodType>(type: T, payload: P) =>
   z.object({ type: z.literal(type), payload });
@@ -54,6 +55,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   MediaStateEvent,
   ListChanged,
   ChoresChanged,
+  RewardsRedeemed,
   WeatherUpdated,
   WeatherAlertEvent,
   DisplayReload,
