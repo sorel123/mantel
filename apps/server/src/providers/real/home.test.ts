@@ -374,6 +374,60 @@ describe('Home Assistant provider against a fake HA', () => {
     ).rejects.toThrow();
   });
 
+  it('relays a WebRTC offer, answer and candidates for allowed cameras', async () => {
+    const res = await home.webrtcOffer('camera.front_door', 'v=0\r\ns=offer\r\n');
+    expect(ha.webrtcOffers.at(-1)).toMatchObject({
+      entity_id: 'camera.front_door',
+      offer: 'v=0\r\ns=offer\r\n',
+    });
+    expect(res.answer).toContain('fake-answer');
+    expect(res.candidates).toEqual([
+      {
+        candidate: 'candidate:1 1 udp 1 10.0.0.2 5000 typ host',
+        sdpMid: null,
+        sdpMLineIndex: 0,
+      },
+    ]);
+    await home.webrtcCandidate('camera.front_door', res.session, {
+      candidate: 'candidate:2 1 udp 2 10.0.0.9 6000 typ host',
+      sdpMid: '0',
+      sdpMLineIndex: 0,
+    });
+    expect(ha.webrtcCandidates.at(-1)).toMatchObject({
+      session_id: 'ha-session-1',
+      candidate: { candidate: 'candidate:2 1 udp 2 10.0.0.9 6000 typ host', sdpMid: '0' },
+    });
+    expect(await home.webrtcCandidates('camera.front_door', res.session)).toEqual({
+      candidates: [],
+      closed: false,
+    });
+    await home.webrtcClose('camera.front_door', res.session);
+    await until(() => ha.unsubscribed.length > 0);
+    expect((await home.webrtcCandidates('camera.front_door', res.session)).closed).toBe(true);
+    await expect(home.webrtcOffer('camera.not_allowed', 'v=0')).rejects.toMatchObject({
+      code: 'not_found',
+    });
+  });
+
+  it('keeps one live session at a time', async () => {
+    const first = await home.webrtcOffer('camera.front_door', 'v=0');
+    const second = await home.webrtcOffer('camera.front_door', 'v=0');
+    expect(second.session).not.toBe(first.session);
+    expect((await home.webrtcCandidates('camera.front_door', first.session)).closed).toBe(true);
+    expect((await home.webrtcCandidates('camera.front_door', second.session)).closed).toBe(false);
+    await until(() => ha.unsubscribed.length === 1);
+    await home.webrtcClose('camera.front_door', second.session);
+  });
+
+  it('answers an upstream error when Home Assistant cannot do WebRTC', async () => {
+    ha.webrtc = 'unsupported';
+    await expect(home.webrtcOffer('camera.front_door', 'v=0')).rejects.toMatchObject({
+      code: 'upstream_error',
+    });
+    ha.webrtc = 'error';
+    await expect(home.webrtcOffer('camera.front_door', 'v=0')).rejects.toThrow(/Ring said no/);
+  });
+
   it('announces on the configured Echo devices', async () => {
     await home.announce({ message: 'Dinner is ready' });
     expect(ha.calls.at(-1)).toEqual({

@@ -10,14 +10,7 @@ import {
   sensorValue,
   toPct,
 } from './format';
-import {
-  DIM_DEBOUNCE_MS,
-  LONG_PRESS_MS,
-  classify,
-  dragPct,
-  dragStart,
-  type Gesture,
-} from './dim';
+import { DIM_DEBOUNCE_MS, LONG_PRESS_MS, classify, dragPct, dragStart, type Gesture } from './dim';
 import { Icon } from './icons';
 import type { CallFn } from './useHome';
 

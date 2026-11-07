@@ -365,6 +365,21 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     'cameraStream',
     image('camera', (id, signal) => providers.home.cameraStream(id, signal), 'no-store'),
   );
+  // Live video over WebRTC: the server relays offer, answer and candidates to Home Assistant.
+  handle('cameraWebrtcOffer', async ({ params, body }) =>
+    providers.home.webrtcOffer(params.id ?? '', body.offer),
+  );
+  handle('cameraWebrtcCandidate', async ({ params, body }) => {
+    await providers.home.webrtcCandidate(params.id ?? '', params.session ?? '', body.candidate);
+    return { ok: true as const };
+  });
+  handle('cameraWebrtcCandidates', async ({ params }) =>
+    providers.home.webrtcCandidates(params.id ?? '', params.session ?? ''),
+  );
+  handle('cameraWebrtcClose', async ({ params }) => {
+    await providers.home.webrtcClose(params.id ?? '', params.session ?? '');
+    return { ok: true as const };
+  });
   handle(
     'mediaArtwork',
     image('artwork', (id) => providers.home.mediaArtwork(id), 'private, max-age=300'),

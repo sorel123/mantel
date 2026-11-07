@@ -18,6 +18,7 @@ import { HttpError, notImplemented } from '../../errors.js';
 import { log } from '../../log.js';
 import type { HomeBytes, HomeProvider, HomeSetup, ProviderContext } from '../types.js';
 import { HaClient, HaError, type HaRegistry, type HaState } from './home-client.js';
+import { WebRtcSessions } from './home-webrtc.js';
 import {
   DOMAIN_KIND,
   homeConfigToYaml,
@@ -465,13 +466,20 @@ export function realHome(
   return {
     setup,
     ...(client ? { client } : {}),
-    stop: () => client?.stop(),
+    stop: () => {
+      inner?.webrtcStop();
+      client?.stop();
+    },
     // `async` so a refusal is a rejected promise, never a throw into the caller.
     state: async () => live().state(),
     call: async (req) => live().call(req),
     announce: async (req) => live().announce(req),
     cameraSnapshot: async (id) => live().cameraSnapshot(id),
     cameraStream: async (id, signal) => live().cameraStream(id, signal),
+    webrtcOffer: async (id, offer) => live().webrtcOffer(id, offer),
+    webrtcCandidate: async (id, s, c) => live().webrtcCandidate(id, s, c),
+    webrtcCandidates: async (id, s) => live().webrtcCandidates(id, s),
+    webrtcClose: async (id, s) => live().webrtcClose(id, s),
     media: async () => live().media(),
     mediaCall: async (req) => live().mediaCall(req),
     mediaArtwork: async (id) => live().mediaArtwork(id),
@@ -489,7 +497,10 @@ export async function waitFor(check: () => boolean, ms: number): Promise<boolean
 }
 
 /** The provider minus its setup side: what a connected client serves. */
-export type HomeLive = Omit<HomeProvider, 'setup'>;
+export type HomeLive = Omit<HomeProvider, 'setup'> & {
+  /** Ends any live WebRTC session (the provider is being replaced). */
+  webrtcStop: () => void;
+};
 
 /** Everything but the wiring, so tests can hand in a client pointed at a fake HA. */
 export function createHomeProvider(
@@ -501,6 +512,7 @@ export function createHomeProvider(
   let view: HomeView | null = null;
   let viewFor: HomeConfig | null = null;
   const lastRing = new Map<string, number>();
+  const webrtc = new WebRtcSessions(client, { maxSeconds: streamMaxSeconds });
 
   const getView = () => {
     const cfg = config();
@@ -688,6 +700,24 @@ export function createHomeProvider(
         body: res.body as ReadableStream<Uint8Array>,
       };
     },
+
+    async webrtcOffer(id, offer) {
+      if (!cameraAllowed(id)) throw new HttpError('not_found', `camera ${id} not found`);
+      ensureReady();
+      return webrtc.offer(id, offer);
+    },
+    async webrtcCandidate(id, session, candidate) {
+      if (!cameraAllowed(id)) throw new HttpError('not_found', `camera ${id} not found`);
+      await webrtc.candidate(id, session, candidate);
+    },
+    async webrtcCandidates(id, session) {
+      if (!cameraAllowed(id)) throw new HttpError('not_found', `camera ${id} not found`);
+      return webrtc.poll(id, session);
+    },
+    async webrtcClose(id, session) {
+      webrtc.close(id, session);
+    },
+    webrtcStop: () => webrtc.closeAll(),
 
     async media() {
       ensureReady();
