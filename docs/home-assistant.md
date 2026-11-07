@@ -2,16 +2,16 @@
 
 Mantel talks to Home Assistant (HA) only. Every device reaches the wall through an HA integration, and the display sees only the rooms and devices you tick on the Settings page (nothing from HA shows until you do).
 
-| On the wall                   | HA integration                                | Notes                                                                                         |
-| ----------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Hue bulbs                     | Philips Hue (built in)                        | Press the bridge button when HA asks.                                                         |
-| Caséta dimmers                | Lutron Caséta (built in)                      | Press the Smart Bridge button when HA asks.                                                   |
-| Meross plugs                  | Meross LAN (HACS)                             | Show up as `switch.*`.                                                                        |
-| ecobee thermostats            | ecobee (built in)                             | One card with a tab per thermostat; heat, cool and auto (a low–high range).                   |
-| Ring cameras and doorbell     | Ring (built in)                               | Snapshot tiles; tap for live; a doorbell press pops the live view over every screen for 30 s. |
-| Apple TV now playing          | Apple TV (built in)                           | Found automatically; artwork is proxied through the Mantel server.                            |
-| Presence                      | `person.*` (HA companion app on each phone)   | Wakes the screen when someone gets home, sleeps it when everyone is out.                      |
-| Alexa announcements, optional | Alexa Media Player (HACS) + the settings flag | Speaks a preset or typed message on chosen Echos.                                             |
+| On the wall                   | HA integration                                | Notes                                                                                             |
+| ----------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Hue bulbs                     | Philips Hue (built in)                        | Press the bridge button when HA asks.                                                             |
+| Caséta dimmers                | Lutron Caséta (built in)                      | Press the Smart Bridge button when HA asks.                                                       |
+| Meross plugs                  | Meross LAN (HACS)                             | Show up as `switch.*`.                                                                            |
+| ecobee thermostats            | ecobee (built in)                             | One card with a tab per thermostat; heat, cool and auto (a low–high range).                       |
+| Ring cameras and doorbell     | Ring (built in)                               | Snapshot tiles; tap for live video (WebRTC); a doorbell press pops it over every screen for 30 s. |
+| Apple TV now playing          | Apple TV (built in)                           | Found automatically; artwork is proxied through the Mantel server.                                |
+| Presence                      | `person.*` (HA companion app on each phone)   | Wakes the screen when someone gets home, sleeps it when everyone is out.                          |
+| Alexa announcements, optional | Alexa Media Player (HACS) + the settings flag | Speaks a preset or typed message on chosen Echos.                                                 |
 
 ## Set up
 
@@ -39,23 +39,29 @@ The same setup can be a `home.yaml` (`config/home.example.yaml` shows the shape)
 - The allow-list lives in SQLite (`kv` key `home.config`, the same shape as `home.yaml`); `GET/PUT /api/home/config`, `POST /api/home/config/import-yaml` and `GET /api/home/config/export-yaml` edit it. `GET /api/home/discover` lists HA's areas and entities for the picker. `GET/PUT /api/home/connection` and `POST /api/home/connection/test` manage the address, token and on/off switch; a PUT reconnects at once. They are a convenience over the plugin registry: the address is the `homeassistant` integration's `url`, the token its `token` secret (AES-256-GCM in the `secrets` table), so `PUT /api/integrations/homeassistant` does the same job and the integrations card shows the same state. The switch itself is `settings.integrations.homeassistant.enabled`, so `PUT /api/settings` can flip it too. While it is off, `/api/home/*` answers `503 disabled` and the bootstrap's `settings.integrations.homeassistant.enabled: false` hides the Home screen and the doorbell layer.
 - `GET /api/home/state` and `POST /api/home/call` only touch allow-listed entities. Calls are limited per domain (`light.turn_on` with brightness, `lock.unlock`, `climate.set_temperature`...), unknown data keys are refused, and `read_only: true` entities are view-only.
 - State changes go to the display as `home.state`, presence as `home.presence`, Apple TV as `media.state`, and a doorbell press as `home.doorbell` (at most one every 15 s, and only while the "Doorbell pop-over" flag is on).
+- **Live video (WebRTC).** Home Assistant 2024.11 and later negotiates live video over its WebSocket API (`camera/webrtc/offer`), either natively (Ring) or through its built-in go2rtc (RTSP cameras). The display makes a WebRTC offer and hands it to the server (`POST /api/home/cameras/:id/webrtc`); the server runs the HA subscription and relays the answer and ICE candidates both ways (`.../webrtc/:session/candidate`, `.../webrtc/:session/candidates`, `DELETE .../webrtc/:session`), so the tablet still never talks to HA. Only the video itself flows straight between the tablet and HA (or go2rtc) on your network. One live session at a time across all displays (a new one ends the old), and each ends after `HA_STREAM_MAX_SECONDS`. Sound starts muted; **Sound on** in the live view turns it on. If no picture arrives within three seconds (older HA, a camera without WebRTC, a blocked network path), the view falls back to the MJPEG stream below, then to stills every two seconds.
 - Camera images and Apple TV artwork are proxied by the server (`/api/home/cameras/:id/snapshot`, `/stream`, `/api/media/:id/artwork`), so the tablet never needs HA's address or token. Live streams stop when the display closes them and after `HA_STREAM_MAX_SECONDS` at most.
 
 ## Limits worth knowing
 
-- **Ring live view.** HA exposes Ring live video over WebRTC, which an `<img>` cannot play, so through HA's MJPEG proxy a Ring camera most likely shows snapshots refreshing every few seconds rather than full-motion video (untested against a real Ring yet). Cameras with an RTSP or MJPEG source show real motion. Full-motion Ring video on the wall means adding WebRTC to the pop-over through HA's built-in go2rtc, a contained follow-up.
+- **Ring live view** needs Home Assistant 2024.11 or later for WebRTC; on older versions it falls back to HA's MJPEG proxy, which for Ring shows snapshots refreshing every few seconds. WebRTC has not been tested against a real Ring yet; if the live view says Live but stays a still, check that the tablet can reach Home Assistant's address on UDP (WebRTC media does not go through the Mantel server).
 - **Ring snapshots** in HA refresh on motion and dings, so a tile can be a few minutes old when nothing is happening.
 - **Unlock and garage open** always ask for confirmation on the wall. Tick **Read-only** on a device to keep it view-only.
 
 ## Mock mode
 
-`MOCK=1 pnpm dev` serves the same screen from fixtures: four rooms, three thermostats, Meross-style plugs, the front-door lock with confirm, three cameras with generated stills and an animated live view, and a Bluey episode on the living-room Apple TV. The Settings section works too: discovery comes from a fixture "Home Assistant" with the same areas plus a few unassigned things, and saving the picker changes the mock Home screen. Ring the doorbell with:
+`MOCK=1 pnpm dev` serves the same screen from fixtures: four rooms, three thermostats, Meross-style plugs, the front-door lock with confirm, three cameras with generated stills and an animated live view (mock HA answers the WebRTC offer with a description no browser can use, so the live view always shows the fallback path), and a Bluey episode on the living-room Apple TV. The Settings section works too: discovery comes from a fixture "Home Assistant" with the same areas plus a few unassigned things, and saving the picker changes the mock Home screen. Ring the doorbell with:
 
 ```sh
 curl -X POST localhost:8787/api/dev/doorbell
 ```
 
 Turn on announcements in mock mode by setting `flags.alexaAnnouncements` with `PUT /api/settings`.
+
+## On the wall
+
+- **Lights and plugs** are one tile each. Tap toggles; drag sideways across a dimmable light to set its brightness (the fill follows your finger; the call goes out 150 ms after you stop); press and hold a colour or white-tunable light for its colour sheet. A keyboard or screen reader gets a brightness slider and a colour button for each light.
+- **Arrange** (top right of Home): drag any card to move it, including into the side column; small arrows stay for keyboards. Same saved layout as before (`settings.homeLayout`).
 
 ## Known gaps
 
