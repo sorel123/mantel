@@ -15,6 +15,8 @@ import {
   cameraKey,
   isCamera,
   moveCard,
+  moveTo,
+  moveToSide,
   patchCard,
   resolveCards,
   roomKey,
@@ -30,6 +32,7 @@ import { Icon, sceneIcon } from './icons';
 import { LightColorSheet } from './LightColor';
 import { NowPlayingCard } from './NowPlaying';
 import { RoomCard, type ConfirmRequest } from './Rooms';
+import { useCardDrag } from './useCardDrag';
 import { useHome, type HomeData } from './useHome';
 
 /**
@@ -363,6 +366,23 @@ function Body({
   const edit = (next: HomeCardPlace[], cameraStyle = style) =>
     setDraft(toLayout(next, cameraStyle));
 
+  // Drag a card by any part that is not a button; arrows stay for keyboards and switches.
+  const order = cards.map((c) => `${c.key}:${c.side ? 1 : 0}`).join(',');
+  const { dragging, bind } = useCardDrag(
+    arranging,
+    {
+      onOver: (key, target) => {
+        const next = moveTo(cards, key, target);
+        if (next !== cards) edit(next);
+      },
+      onColumn: (key, toSide) => {
+        const next = moveToSide(cards, key, toSide);
+        if (next !== cards) edit(next);
+      },
+    },
+    order,
+  );
+
   const save = async () => {
     if (!draft) return;
     setSaving(true);
@@ -449,12 +469,18 @@ function Body({
     return (
       <div
         key={c.key}
-        className={`hm-slot${c.wide && !c.side ? ' wide' : ''}${arranging ? ' arranging' : ''}`}
+        className={`hm-slot${c.wide && !c.side ? ' wide' : ''}${arranging ? ' arranging' : ''}${dragging === c.key ? ' dragging' : ''}`}
         data-card={c.key}
+        {...bind(c.key)}
       >
-        {arranging && <div className="hm-slot-inert">{body}</div>}
-        {!arranging && body}
-        {tools(c)}
+        {arranging ? (
+          <div className="hm-lift">
+            <div className="hm-slot-inert">{body}</div>
+            {tools(c)}
+          </div>
+        ) : (
+          body
+        )}
       </div>
     );
   };
@@ -462,8 +488,8 @@ function Body({
   const hidden = cards.filter(
     (c) => c.hidden && byKey.has(c.key) && (c.key !== CAMERAS || style !== 'cards'),
   );
-  const rail =
-    side.some((c) => c.key !== CAMERAS || hasGroupCams) || (arranging && side.length > 0);
+  // While arranging the side column is always there, so a card can be dragged into it.
+  const rail = side.some((c) => c.key !== CAMERAS || hasGroupCams) || arranging;
 
   return (
     <>
@@ -472,7 +498,7 @@ function Body({
           <div className="hm-arrange-text">
             <b>Arrange Home</b>
             <span>
-              Move cards with the arrows, send them to the side, make them wide or hide them.
+              Drag a card to move it, into the side column too. Make cards wide or hide them.
             </span>
           </div>
           {byKey.has(CAMERAS) && (
@@ -511,7 +537,7 @@ function Body({
           </div>
         </div>
       )}
-      <div className={`hm-main${rail ? '' : ' no-rail'}`}>
+      <div className={`hm-main${rail ? '' : ' no-rail'}${dragging ? ' dragging' : ''}`}>
         <div className="hm-rooms">
           {main.map(renderCard)}
           {empty && !main.length && (
@@ -534,7 +560,14 @@ function Body({
             </div>
           )}
         </div>
-        {rail && <aside className="hm-rail">{side.map(renderCard)}</aside>}
+        {rail && (
+          <aside className="hm-rail">
+            {side.map(renderCard)}
+            {arranging && side.length === 0 && (
+              <div className="hm-drop">Drag a card here for the side column</div>
+            )}
+          </aside>
+        )}
       </div>
     </>
   );
@@ -561,10 +594,20 @@ function CardTools({
 }) {
   return (
     <div className="hm-tools" role="group" aria-label={`Arrange ${label}`}>
-      <button type="button" aria-label={`Move ${label} earlier`} onClick={() => onMove(-1)}>
+      <button
+        type="button"
+        className="arrow"
+        aria-label={`Move ${label} earlier`}
+        onClick={() => onMove(-1)}
+      >
         {vertical ? '↑' : '←'}
       </button>
-      <button type="button" aria-label={`Move ${label} later`} onClick={() => onMove(1)}>
+      <button
+        type="button"
+        className="arrow"
+        aria-label={`Move ${label} later`}
+        onClick={() => onMove(1)}
+      >
         {vertical ? '↓' : '→'}
       </button>
       <button
