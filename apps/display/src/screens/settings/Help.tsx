@@ -14,7 +14,7 @@ export function HelpSection({ publicUrl }: { publicUrl?: string }) {
     () => setOrigin(publicUrl ? `${publicUrl.replace(/\/$/, '')}/` : KIOSK_URL()),
     [publicUrl],
   );
-  const addUrl = `${origin}add`;
+  const appUrl = `${origin}app`;
   return (
     <Section
       id="help"
@@ -28,10 +28,11 @@ export function HelpSection({ publicUrl }: { publicUrl?: string }) {
         </div>
         <div className="grow">
           <CopyRow label="Open this address on the tablet or a phone" value={origin} />
-          <CopyRow label="The phone page for lists and chores" value={addUrl} />
+          <CopyRow label="The phone app: lists, calendar, meals, chores, notes" value={appUrl} />
           <p className="set-hint">
             A tablet pairs with the admin PIN (or a one-time code from Displays). Phones use the
-            same PIN on the /add page.
+            same PIN in the app; the <a href="#companion">Phone app</a> section has the install
+            steps and notifications.
           </p>
         </div>
       </div>

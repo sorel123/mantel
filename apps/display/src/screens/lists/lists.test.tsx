@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BootstrapProvider, useBootstrapState } from '../../lib/bootstrap';
-import { AddPage } from './add/AddPage';
+import { CompanionApp } from '../companion/App';
 import { groceryList } from './GroceryPeek';
 import { GroceryPeek, ListsScreen } from './index';
 
@@ -152,7 +152,7 @@ describe('Lists screen', () => {
   });
 });
 
-describe('/add page', () => {
+describe('companion app (/app, /add)', () => {
   beforeEach(() => {
     vi.stubGlobal('WebSocket', FakeSocket);
   });
@@ -161,7 +161,7 @@ describe('/add page', () => {
     const { calls } = fakeServer();
     render(
       <BootstrapProvider>
-        <AddPage />
+        <CompanionApp />
       </BootstrapProvider>,
     );
     fireEvent.click(await screen.findByRole('tab', { name: /To-do/ }));
@@ -183,7 +183,7 @@ describe('/add page', () => {
     );
     render(
       <BootstrapProvider>
-        <AddPage />
+        <CompanionApp />
       </BootstrapProvider>,
     );
     expect(await screen.findByLabelText('PIN or pairing code')).toBeTruthy();

@@ -44,6 +44,7 @@ const START_SIZE: Record<TodayCardKind, [number, number]> = {
   list: [3, 3],
   countdowns: [4, 1],
   tonight: [4, 1],
+  notes: [3, 3],
 };
 
 const nameOf = (k: TodayCardKind) => TODAY_CARDS.find((c) => c.id === k)?.name ?? k;

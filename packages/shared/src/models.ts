@@ -404,6 +404,8 @@ export const TodayCardKind = z.enum([
   'list',
   'countdowns',
   'tonight',
+  /** v3 C: wall notes from the phone and the wall. */
+  'notes',
 ]);
 export type TodayCardKind = z.infer<typeof TodayCardKind>;
 /** Cards move and resize in half cells. */

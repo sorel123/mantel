@@ -999,3 +999,28 @@ code {
   font-style: italic;
   color: var(--ink-2);
 }
+
+/* Phone app section */
+.set-sec h3.h3 {
+  font-size: 18px;
+  margin: 18px 0 6px;
+}
+.set-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 15px;
+}
+.set-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.set-list .set-row b {
+  display: block;
+}

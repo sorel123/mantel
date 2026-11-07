@@ -74,6 +74,30 @@ const migrations = [
     data TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  // v3 (workstream C): wall notes and Web Push subscriptions
+  `CREATE TABLE IF NOT EXISTS notes (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    text TEXT NOT NULL,
+    color TEXT NOT NULL,
+    person_id TEXT,
+    from_name TEXT,
+    image BLOB,
+    created_at TEXT NOT NULL,
+    expires_at TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id TEXT PRIMARY KEY,
+    device_id TEXT NOT NULL,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    events TEXT NOT NULL,
+    person_id TEXT,
+    created_at TEXT NOT NULL,
+    last_sent_at TEXT,
+    last_error TEXT
+  )`,
 ];
 
 /** Columns added after a table shipped. `ALTER TABLE` has no IF NOT EXISTS, so each is tried once. */

@@ -11,6 +11,7 @@ import { api } from '../../lib/api';
 import { useThemeMode } from '../../lib/theme';
 import { BackupSection } from './Backup';
 import { CalendarsSection } from './Calendars';
+import { CompanionSection } from './companion';
 import { errorText } from './client';
 import type { SectionId } from './contract';
 import { Displays } from './Displays';
@@ -64,6 +65,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     group: 'Household',
     items: [
       { id: 'lists', label: 'Lists and chores' },
+      { id: 'companion', label: 'Phone app' },
       { id: 'places', label: 'Leave-by places' },
       { id: 'schedule', label: 'Screen schedule' },
       { id: 'features', label: 'Features' },
@@ -342,6 +344,7 @@ export function SettingsPage() {
       />
     ),
     lists: () => <ListsSection people={draft.people} />,
+    companion: () => <CompanionSection />,
     places: () => (
       <Destinations
         value={draft.destinations}

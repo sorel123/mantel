@@ -28,6 +28,7 @@ import {
   TestResult,
 } from './integrations.js';
 import { PluginsResponse } from './plugins.js';
+import { companionRoutes } from './companion.js';
 import {
   Calendar,
   CalendarEvent,
@@ -917,6 +918,8 @@ export const routes = {
     response: GeocodeResponse,
     auth: true,
   }),
+  /* v3 C: wall notes, Web Push, Magic Import (companion.ts) */
+  ...companionRoutes,
 } as const;
 
 export type Routes = typeof routes;

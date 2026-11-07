@@ -40,7 +40,7 @@ Each workstream changes only its own folders, plus additions to `packages/shared
 | 2 Calendars                | `src/screens/today/`, `src/screens/month/`                                                              | `providers/real/calendar*`, `providers/mock/calendar.ts`, calendar block in `routes/` |
 | 3 Home Assistant           | `src/screens/home/`, `src/features/doorbell/`                                                           | `providers/real/home*`, `providers/mock/home.ts`, home and media block in `routes/`   |
 | 4 Weather, commute, photos | `src/features/weather/`, `src/features/photos/`                                                         | `providers/real/{weather,commute,photos}*`, `providers/mock/{weather,photos}.ts`      |
-| 5 Lists & chores           | `src/screens/lists/`, `/add` page                                                                       | `providers/real/lists*`, `providers/mock/lists.ts`, lists block in `routes/`          |
+| 5 Lists & chores           | `src/screens/lists/`, companion `/app`                                                                  | `providers/real/lists*`, `providers/mock/lists.ts`, lists block in `routes/`          |
 | 6 Deployment & kiosk       | `src/screens/settings/` (the `/settings` page)                                                          | `Dockerfile`, `docker-compose.yml`, `deploy/`, `auth.ts`, `settings.ts`               |
 | E Skins & appearance       | `src/styles/skins/`, `lib/theme.ts`, `app/SkinDecor.tsx`, `screens/settings/appearance/`, `/demo/skins` | `appearance` on `Settings` (`packages/shared/src/skins.ts`)                           |
 
@@ -149,7 +149,7 @@ Apple Reminders is not synced yet. iCloud stopped serving Reminders over CalDAV 
 
 The chore chart counts completions per day. Each tap earns the chore's stars, a chore stops counting at its daily or weekly target, and tapping a finished chore takes the last tap back. Star tallies cover the current week, so they start again every Monday with no job to run.
 
-**Phones:** open `http://<server>:8787/add` on a phone, pair it once with the code from the server log, and add it to the home screen. It adds to any list (with who it's for), ticks or removes items, creates lists, and sets up chores for the kids.
+**Phones:** open `http://<server>:8787/app` on a phone (the old `/add` still works), pair it once with the admin PIN, and add it to the home screen. The companion app has tabs for Lists, Calendar, Meals, Chores and a Note for the wall, can take notifications (doorbell, chores, leave-by, rewards; needs https or the installer's localhost on iOS), and reads a photo of a flyer or a list with Magic Import, which needs the Claude key from Weather quips. [`docs/companion.md`](docs/companion.md) has the details.
 
 The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`; tapping it opens the Lists screen.
 

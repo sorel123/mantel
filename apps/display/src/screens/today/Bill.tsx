@@ -28,7 +28,7 @@ export function Bill({
     <section className="bill" aria-label="Today's bill">
       <div className="brule">
         <span>Today's bill</span>
-        <button className="add" aria-label="Add an event today" onClick={onAdd}>
+        <button className="add" aria-label="Add an event, a note or a photo" onClick={onAdd}>
           <Svg>{Icon.plus}</Svg>
         </button>
       </div>
