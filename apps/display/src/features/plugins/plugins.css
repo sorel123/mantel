@@ -1,0 +1,348 @@
+/* Plugin contributions (v3 X): cards, sheets, Ambient lines, dock chips and banners from plugin blocks. */
+
+/* ---------- blocks ---------- */
+.pb {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  height: 100%;
+}
+.pi {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pb-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+.pb-head b {
+  font: 500 calc(22px * var(--text-scale)) / 1.15 var(--display);
+}
+.pb-head .pi {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+}
+.pb[data-tone='warn'] .pb-head .pi {
+  color: var(--warn);
+}
+.pb-progress {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.pb-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--std) var(--ease);
+}
+.pb-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  min-height: 0;
+}
+.pb-lines li {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.pb-lines li[data-tone='warn'] {
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+.pb-lines li[data-tone='warn'] > .pi {
+  color: var(--warn);
+}
+.pb-lines li[data-tone='good'] > .pi {
+  color: var(--good);
+}
+.pb-lines li > .pi {
+  color: var(--ink-2);
+}
+.pb-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.pb-text b {
+  font-size: calc(17px * var(--text-scale));
+  font-weight: 650;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pb-text span {
+  font-size: calc(14px * var(--text-scale));
+  color: var(--ink-2);
+}
+.pb-text .pb-count,
+.pb-text .pb-count span {
+  font: 400 calc(26px * var(--text-scale)) / 1 var(--display);
+  color: var(--ink);
+}
+.pb-acts,
+.pb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pb-acts {
+  flex: none;
+  margin-left: auto;
+}
+/* Narrow cards put a row's buttons under its text rather than squeezing the text. */
+.pb-lines li {
+  flex-wrap: wrap;
+}
+.pb-text {
+  min-width: 6em;
+}
+.pb-empty,
+.pb-foot {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: calc(15px * var(--text-scale));
+}
+
+/* Row buttons and presets stay compact so text keeps its room; still a full touch target tall. */
+.pb-acts .btn,
+.pb-actions .btn {
+  min-width: var(--tap);
+  padding: 0 18px;
+}
+
+/* ---------- the Today card ---------- */
+/* Presets in one row that scrolls sideways, so the rows above keep the height. */
+.plugin-card .pb-actions {
+  flex: none;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.plugin-card .pb-actions .btn {
+  flex: none;
+}
+.card.plugin-card {
+  padding: var(--card-pad);
+  overflow: hidden;
+}
+.region[data-h='1'] .plugin-card .pb-lines li,
+.region[data-h='1.5'] .plugin-card .pb-lines li {
+  min-height: 0;
+  padding: 2px 8px;
+  background: none;
+}
+
+/* ---------- in a sheet ---------- */
+.sheet .pb {
+  height: auto;
+  gap: 16px;
+}
+.sheet .pb > * {
+  flex: none;
+}
+.sheet .pb-lines {
+  overflow: visible;
+}
+.sheet .pb-lines li {
+  padding: 10px 14px;
+}
+.sheet .pb-actions .btn {
+  min-width: 96px;
+  padding: 0 22px;
+}
+.pb-dial {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.pb-dial-label {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pb-dial-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pb-dial-row output {
+  font: 300 calc(56px * var(--text-scale)) / 1 var(--display);
+  text-align: center;
+  color: var(--ink);
+}
+.pb-dial-row output small {
+  font: 500 calc(16px * var(--text-scale)) / 1 var(--body);
+  margin-left: 6px;
+  color: var(--ink-2);
+}
+.pb-dial-row output {
+  flex: 1;
+}
+.pb-dial input[type='range'] {
+  width: 100%;
+  height: var(--tap);
+  accent-color: var(--accent);
+}
+
+/* ---------- on Ambient ---------- */
+.ambient .a-side .plugin-ambient .pb {
+  height: auto;
+  gap: 6px;
+  align-items: flex-end;
+}
+.ambient .a-side .plugin-ambient .pb-head {
+  color: inherit;
+  flex-direction: row-reverse;
+}
+.ambient .a-side .plugin-ambient .pb-head b {
+  font: 600 19px/1.2 var(--body);
+}
+.ambient .a-side .plugin-ambient .pb-head .pi {
+  color: inherit;
+}
+.ambient .a-side .plugin-ambient .pb-lines li {
+  background: none;
+  padding: 0;
+  min-height: 0;
+  justify-content: flex-end;
+}
+.ambient .a-side .plugin-ambient .pb-text {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+}
+.ambient .a-side .plugin-ambient .pb-text {
+  min-width: 0;
+}
+.ambient .a-side .plugin-ambient .pb-text b,
+.ambient .a-side .plugin-ambient .pb-text span {
+  color: inherit;
+  font-size: 16px;
+}
+.ambient .a-side .plugin-ambient .pb-text .pb-count,
+.ambient .a-side .plugin-ambient .pb-text .pb-count span {
+  font: 400 22px/1 var(--display);
+}
+
+/* ---------- dock chips ---------- */
+.dock .pchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 600 15px/1 var(--body);
+  white-space: nowrap;
+  transition:
+    background var(--std) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.dock .pchip:active {
+  transform: scale(0.95);
+}
+.dock .pchip b {
+  font: 500 18px/1 var(--body);
+  font-variant-numeric: tabular-nums;
+}
+.dock .pchip span {
+  color: var(--ink-2);
+}
+.dock .pchip[data-tone='warn'] {
+  background: var(--warn);
+  color: var(--accent-ink);
+  animation: pchip-pulse var(--slow) var(--ease) infinite alternate;
+}
+.dock .pchip[data-tone='warn'] span {
+  color: inherit;
+}
+.dock .pchip[data-tone='good'] {
+  background: color-mix(in srgb, var(--good) 18%, transparent);
+}
+@keyframes pchip-pulse {
+  to {
+    transform: scale(1.05);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock .pchip[data-tone='warn'] {
+    animation: none;
+  }
+}
+
+/* ---------- banners ---------- */
+.plugin-alerts {
+  position: absolute;
+  top: 20px;
+  inset-inline: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.plugin-banner {
+  pointer-events: auto;
+  width: min(680px, calc(100% - 48px));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 14px 18px;
+  border-radius: var(--radius-lg);
+  border-left: 5px solid var(--warn);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+.plugin-banner > .pi {
+  width: 30px;
+  height: 30px;
+  color: var(--warn);
+}
+.plugin-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.plugin-banner-text b {
+  font: 500 calc(24px * var(--text-scale)) / 1.15 var(--display);
+}
+.plugin-banner-text span {
+  color: var(--ink-2);
+}
+.plugin-banner-acts {
+  display: flex;
+  gap: 8px;
+}

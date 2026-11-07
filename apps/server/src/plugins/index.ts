@@ -13,6 +13,8 @@ import { photosPlugin } from './photos/index.js';
 import { pollenPlugin } from './pollen/index.js';
 import { quipsPlugin } from './quips/index.js';
 import { routesPlugin } from './routes/index.js';
+import { timersPlugin } from './timers/index.js';
+import { mockTrashConfig, trashPlugin } from './trash/index.js';
 import type { Plugin } from './types.js';
 import { WeatherService } from './weather-service.js';
 import { weatherPlugin } from './weather/index.js';
@@ -43,6 +45,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
     pollenPlugin(weather, opts.fetch),
     weatherPlugin(weather, opts.fetch),
     quipsPlugin(opts.fetch),
+    ...localPlugins(),
   ];
   return {
     plugins,
@@ -57,6 +60,14 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
   };
 }
 
+/**
+ * Plugins that need no outside service (trash day, kitchen timers). They run for real in mock
+ * mode too; mock mode gives trash a sample schedule until one is saved.
+ */
+export function localPlugins(opts: { mock?: boolean } = {}): Plugin[] {
+  return [trashPlugin(opts.mock ? { fallback: mockTrashConfig } : {}), timersPlugin()];
+}
+
 /** Every built-in manifest, for the mock registry and for tests. */
 export { manifest as googleManifest } from './google/manifest.js';
 export { manifest as icloudManifest } from './icloud/manifest.js';
@@ -67,3 +78,5 @@ export { manifest as routesManifest } from './routes/manifest.js';
 export { manifest as pollenManifest } from './pollen/manifest.js';
 export { manifest as weatherManifest } from './weather/manifest.js';
 export { manifest as quipsManifest } from './quips/manifest.js';
+export { manifest as trashManifest } from './trash/manifest.js';
+export { manifest as timersManifest } from './timers/manifest.js';

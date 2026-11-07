@@ -32,6 +32,8 @@ export const IntegrationId = z.enum([
   'pollen',
   'weather',
   'quips',
+  'trash',
+  'timers',
 ]);
 export type IntegrationId = z.infer<typeof IntegrationId>;
 

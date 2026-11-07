@@ -39,7 +39,7 @@ export const manifest: PluginManifest = {
       getItHere: { label: 'Apple ID, app-specific passwords', url: 'https://appleid.apple.com/account/manage' }, ... },
     { key: 'caldavUrl', label: 'CalDAV server', type: 'url', default: 'https://caldav.icloud.com/', advanced: true, ... },
   ],
-  contributes: { events: ['calendar.changed'] }, // screen?, todayCard?, ambientSlot?, dockChip?, events
+  contributes: { events: ['calendar.changed'] }, // screen?, todayCard?, ambientSlot?, dockChip?, events (see below)
 };
 ```
 
@@ -87,7 +87,7 @@ When several plugins share one provider (Google and iCloud share the calendar pr
 2. Create `apps/server/src/plugins/<id>/manifest.ts` and `index.ts` as above. Put the provider logic wherever it belongs (`providers/real/...`), with a `stop()` if it holds timers or sockets.
 3. Register it in `apps/server/src/plugins/index.ts` (`createPlugins`) and hand its live provider to `providers` if routes call it.
 4. Add the manifest to `builtInManifests` in `plugins/mock.ts` and the same manifest plus a believable status to `packages/shared/src/fixtures/integrations.ts`, so mock mode shows it.
-5. If it contributes to the display (a screen, a Today card, an Ambient slot), register that under the name in `contributes` and read `settings.integrations[id].enabled` to hide it when off.
+5. If it puts something on the display (a Today card, an Ambient line, a dock chip), describe it under `contributes` and answer `blocks`, `chip` and `action` (see "Putting something on the wall" below). The display hides it when the plugin is off.
 6. Write the guide under `docs/` and name it in `manifest.docs`. Add the env variables to `.env.example` as optional fallbacks.
 7. Tests: the manifest test picks it up by itself; add a test for `test()` and `apply()` with a fake upstream (see `plugins/homeassistant/homeassistant.test.ts`).
 
@@ -151,6 +151,151 @@ export const manifest: PluginManifest = {
 
 The runtime implements the calendar `Source` interface from `providers/real/calendar/types.ts` with `ready()` true when the URL is set, `calendars()` returning one calendar named from `config.name`, `events()` fetching the link and running it through `expandIcs` from `calendar/ics.ts` (already used for iCloud), and `create()` throwing read-only. The calendar service gets a `setIcs(values)` that adds the source to the `RealCalendar` it builds. `test()` fetches the link once and answers "Found 42 events, next: Spirit day on Friday." That is the whole job: no Settings or wizard code changes.
 
+## Putting something on the wall: cards, Ambient lines, dock chips
+
+A plugin can draw on the display without any screen code. Its manifest lists what it adds under
+`contributes`, and the server plugin answers with **blocks**: a small JSON shape the display
+draws with one component, the same way for every plugin. Trash day (`plugins/trash/`) and the
+kitchen timers (`plugins/timers/`) are built this way.
+
+| `contributes`                                           | Where it shows                                                                                                   | What the display fetches                                  |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `todayCard: { name, description, min, comfort?, data }` | A card for the custom Today layout, kind `plugin:<id>`. Settings, Layout, Your own lists it under "From plugins" | `GET /api/plugins/:id/blocks/<data>`                      |
+| `ambientSlot: { id, order, data }`                      | A line on Ambient beside the clock (weather is order 0, the next event 1). Null hides it                         | `GET /api/plugins/:id/blocks/<data>`                      |
+| `dockChip: { id, data, sheet?, idle? }`                 | A chip in the dock right of the clock. With `sheet`, tapping it opens a sheet drawn from those blocks            | `GET /api/plugins/:id/chip/<data>` (and `blocks/<sheet>`) |
+
+A plain string in those fields (`todayCard: 'weather'`) still names a built-in card the display
+draws itself, as the older plugins do.
+
+**Blocks** (`PluginBlocks` in `packages/shared/src/plugins.ts`):
+
+```ts
+{
+  title: 'Trash and recycling tonight',
+  icon: 'trash',                       // from the display's set: trash recycle leaf timer bell check alert calendar star info clock box
+  lines: [
+    { icon: 'trash', text: 'Trash', sub: 'Put it out tonight', tone: 'warn' },   // tone: normal | warn | good
+    { text: 'Pasta', countdownTo: '2026-11-07T18:05:00-08:00',                   // the display counts down by itself
+      actions: [{ name: 'stop', label: 'Cancel', args: { id: 't1' } }] },        // buttons post to the plugin
+  ],
+  empty: 'Shown when there are no lines',
+  footer: 'A small line at the bottom',
+  progress: 0.4,                       // a bar under the title
+  actions: [{ name: 'start', label: '5 min', args: { minutes: 5 } }],            // buttons under the lines
+  dial: { action: 'start', label: 'Or set your own', unit: 'min', min: 1, max: 180, step: 1, value: 15 },
+}
+```
+
+A **chip** is `{ text, icon?, tone?, countdownTo?, label? }`. **Buttons** post
+`POST /api/plugins/:id/actions/<name> { args }` and get back `{ ok, message? }`; the message
+shows as a toast. Two WebSocket events go to every display: `plugin.changed { id, cleared? }`
+makes it refetch that plugin's blocks and chips (they also refresh every two minutes, for cards
+that change with the clock), and `plugin.alert { id, key, title, text?, icon?, chime, actions }`
+shows a banner over every screen and Ambient, with a chime when asked, until a button is
+pressed here or a later `plugin.changed` lists the key in `cleared`. Send `display.wake` with an
+alert so a sleeping screen lights up. A plugin that is turned off in Settings shows nothing.
+
+On the server a plugin answers three optional methods (`apps/server/src/plugins/types.ts`):
+`blocks(name)`, `chip(name)` and `action(name, args)`. Returning `null` shows nothing; returning
+`undefined` (a name it does not know) answers 404.
+
+### Worked example: a moon phase card
+
+A card that says tonight's moon, and a line on Ambient on full-moon nights. No account, no key.
+
+1. Add `'moon'` to `IntegrationId` in `packages/shared/src/integrations.ts`.
+2. The manifest, `apps/server/src/plugins/moon/manifest.ts`:
+
+```ts
+export const manifest: PluginManifest = {
+  id: 'moon',
+  name: 'Moon phase',
+  description: "Tonight's moon on Today, and a note on Ambient when it is full.",
+  category: 'info',
+  step: null,
+  connect: 'none',
+  optional: true,
+  fields: [],
+  directions: ['Add the Moon card in Settings, Layout, Your own.'],
+  contributes: {
+    todayCard: {
+      name: 'Moon',
+      description: "Tonight's phase and the next full moon.",
+      min: [2, 1.5], // smallest readable size in cells (the grid is 12 by 8)
+      comfort: [3, 2], // drawn for this size; smaller cards shrink their content a little
+      data: 'card',
+    },
+    ambientSlot: { id: 'moon', order: 4, data: 'ambient' },
+    events: ['plugin.changed'],
+  },
+};
+```
+
+3. The runtime, `apps/server/src/plugins/moon/index.ts`:
+
+```ts
+const SYNODIC = 29.530588853;
+const NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
+const age = (d: Date) => ((((d.getTime() - NEW_MOON) / 86_400_000) % SYNODIC) + SYNODIC) % SYNODIC;
+const NAMES = [
+  'New moon',
+  'Waxing crescent',
+  'First quarter',
+  'Waxing gibbous',
+  'Full moon',
+  'Waning gibbous',
+  'Last quarter',
+  'Waning crescent',
+];
+const phase = (d: Date) => NAMES[Math.round((age(d) / SYNODIC) * 8) % 8]!;
+
+export function moonPlugin(): Plugin {
+  let ctx: ProviderContext | null = null;
+  const now = () => ctx?.now() ?? new Date();
+  return {
+    manifest,
+    start(c) {
+      ctx = c;
+    },
+    stop() {},
+    apply() {},
+    async test() {
+      return { ok: true, message: `Tonight: ${phase(now())}.` };
+    },
+    status() {
+      return { state: 'connected', summary: phase(now()), lastOkAt: null, lastError: null };
+    },
+    blocks(name) {
+      const days = Math.round((SYNODIC / 2 - age(now()) + SYNODIC) % SYNODIC);
+      if (name === 'card')
+        return {
+          title: phase(now()),
+          icon: 'star',
+          lines: [{ text: 'Next full moon', sub: days ? `in ${days} days` : 'tonight' }],
+          progress: age(now()) / SYNODIC,
+        };
+      if (name === 'ambient')
+        return phase(now()) === 'Full moon'
+          ? { title: 'Full moon tonight', icon: 'star', lines: [] }
+          : null;
+      return undefined; // not a name this plugin serves: 404
+    },
+  };
+}
+```
+
+4. Register it: add `moonPlugin()` to `localPlugins()` in `plugins/index.ts` (plugins there run
+   for real in mock mode too), and its manifest to `builtInManifests` in `plugins/mock.ts` and
+   to `pluginManifests` in `packages/shared/src/fixtures/` (the manifest test checks they match).
+5. That is all. The card appears under "From plugins" in Settings, Layout, Your own; the wall
+   draws it, refetches it on `plugin.changed { id: 'moon' }` and every two minutes, and Ambient
+   shows the line on full-moon nights. Turning the plugin off in Settings hides both.
+
+For buttons, implement `action(name, args)` and put `actions` on lines or blocks; for something
+that needs attention now, `ctx.emit({ type: 'plugin.alert', payload: { ... } })` (see
+`plugins/timers/index.ts`). To test, call `blocks()` and `action()` on the plugin with a hand-made
+context (see `plugins/timers/timers.test.ts`), or the routes on a `MOCK=1` app.
+
 ## Candidates
 
-Section 9 of the plan lists the next ones: Microsoft 365 calendar (OAuth, like Google), ICS links, tasks (Google Tasks, Microsoft To Do, Todoist), local-folder and Immich photos, Sonos and Spotify now playing, trash day, Mealie, sports scores, RSS, package tracking, birthdays, Life360 presence, stocks, school lunch menus, EV charge, air-quality sensors.
+Section 9 of the plan lists the next ones: Microsoft 365 calendar (OAuth, like Google), ICS links, tasks (Google Tasks, Microsoft To Do, Todoist), local-folder and Immich photos, Sonos and Spotify now playing, Mealie, sports scores, RSS, package tracking, birthdays, Life360 presence, stocks, school lunch menus, EV charge, air-quality sensors.

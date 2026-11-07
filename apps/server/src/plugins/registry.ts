@@ -4,16 +4,24 @@
  * and `/api/integrations` routes, and keeps a status per integration for Health.
  */
 import type {
+  ConfigValue,
   IntegrationConfig,
   IntegrationId,
   IntegrationPatch,
   IntegrationStatus,
+  PluginActionResponse,
+  PluginBlocks,
+  PluginChip,
   PluginManifest,
   SetupField,
   TestResult,
   ValueSource,
 } from '@mantel/shared';
-import { IntegrationId as IntegrationIdSchema } from '@mantel/shared';
+import {
+  IntegrationId as IntegrationIdSchema,
+  PluginBlocks as PluginBlocksSchema,
+  PluginChip as PluginChipSchema,
+} from '@mantel/shared';
 import { kvGet, kvSet, type Db } from '../db/index.js';
 import { HttpError, notFound } from '../errors.js';
 import { log } from '../log.js';
@@ -342,6 +350,45 @@ export class PluginRegistry {
     } catch (err) {
       return { ok: false, message: humanError(err) };
     }
+  }
+
+  /* ---- what plugins show on the display (v3 X) ---- */
+
+  /** A plugin that is on and contributes; null while it is turned off. */
+  private shown(idRaw: string): Plugin | null {
+    const plugin = this.get(idRaw);
+    return this.enabled(plugin.manifest.id) ? plugin : null;
+  }
+
+  /** A card's, Ambient line's or sheet's blocks, validated; null when there is nothing to show. */
+  async blocks(idRaw: string, name: string): Promise<PluginBlocks | null> {
+    const plugin = this.shown(idRaw);
+    if (!plugin) return null;
+    if (!plugin.blocks) throw notFound(`${plugin.manifest.name} blocks "${name}"`);
+    const out = await plugin.blocks(name);
+    if (out === undefined) throw notFound(`${plugin.manifest.name} blocks "${name}"`);
+    return out === null ? null : PluginBlocksSchema.parse(out);
+  }
+
+  async chip(idRaw: string, name: string): Promise<PluginChip | null> {
+    const plugin = this.shown(idRaw);
+    if (!plugin) return null;
+    if (!plugin.chip) throw notFound(`${plugin.manifest.name} chip "${name}"`);
+    const out = await plugin.chip(name);
+    if (out === undefined) throw notFound(`${plugin.manifest.name} chip "${name}"`);
+    return out === null ? null : PluginChipSchema.parse(out);
+  }
+
+  async action(
+    idRaw: string,
+    name: string,
+    args: Record<string, ConfigValue>,
+  ): Promise<PluginActionResponse> {
+    const plugin = this.get(idRaw);
+    if (!this.enabled(plugin.manifest.id))
+      throw new HttpError('disabled', `${plugin.manifest.name} is turned off in Settings.`);
+    if (!plugin.action) throw notFound(`${plugin.manifest.name} action "${name}"`);
+    return plugin.action(name, args);
   }
 
   /** Non-secret config of every plugin, for export. */

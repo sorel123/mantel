@@ -11,6 +11,7 @@ import type {
   SetupState,
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
+import { timersManifest, trashManifest } from './plugin-cards.js';
 import { settings } from './settings.js';
 
 const field = (
@@ -400,6 +401,8 @@ export const pluginManifests: PluginManifest[] = [
     ],
     contributes: { ambientSlot: 'quip', events: [] },
   },
+  trashManifest,
+  timersManifest,
 ];
 
 export function integrationStatuses(now = new Date()): IntegrationStatus[] {
@@ -465,6 +468,12 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       lastOkAt: ok,
     },
     { ...base('quips'), enabled: false, state: 'disabled', summary: 'Turned off' },
+    {
+      ...base('trash'),
+      state: 'connected',
+      summary: 'Trash Thursday, recycling every other Thursday',
+    },
+    { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
   ];
 }
 

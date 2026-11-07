@@ -3,7 +3,7 @@
  * agenda, grocery, photo, people columns and the poster's bill as the chosen preset says. Every
  * preset shares the data hooks; `?today=<preset>` on the display's address pins one.
  */
-import { addDays, cardZoom, startOfDay, type TodayCard } from '@mantel/shared';
+import { addDays, cardZoom, isPluginCard, startOfDay, type TodayCard } from '@mantel/shared';
 import { Component, useState, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
@@ -11,6 +11,7 @@ import { CardGrid, Slots, todayLayouts, todayWeekLayouts, useLayout } from '../.
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useNav } from '../../app/nav';
 import { PhotoSlideshow } from '../../features/photos';
+import { PluginCard } from '../../features/plugins';
 import { WeatherCard, useWeather } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
@@ -223,6 +224,13 @@ export function TodayScreen() {
               <TonightSlot today={today} />
             </div>
           );
+        default:
+          // A card a plugin contributes (`plugin:<id>`), drawn from the blocks it serves.
+          return isPluginCard(c.kind) ? (
+            <Guard name={c.kind}>
+              <PluginCard kind={c.kind} />
+            </Guard>
+          ) : null;
       }
     };
     return (
