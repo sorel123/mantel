@@ -43,7 +43,7 @@ export function ListsSection({ people }: { people: Person[] }) {
     <Section
       id="lists"
       title="Lists and chores"
-      hint="Lists live on the server; phones add to them at /add. Chores earn stars that reset every Monday."
+      hint="Lists live on the server; phones add to them at /add. Routines, icons, rewards and stars are under Chores and rewards."
     >
       {error && <p className="set-err">{error}</p>}
       <div className="set-sub wide">

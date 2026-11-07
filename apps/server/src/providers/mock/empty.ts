@@ -35,6 +35,10 @@ export function emptyProviders(base: Providers): Providers {
       ...base.lists,
       lists: async () => ({ lists: [] }),
       chores: async () => ({ ...(await base.lists.chores()), chores: [], stars: [] }),
+      starsBalance: async () => ({ ...(await base.lists.starsBalance()), balances: [] }),
+      starsLedger: async () => ({ entries: [] }),
+      rewards: async () => ({ rewards: [] }),
+      routines: async () => ({ routines: [] }),
     },
   };
 }

@@ -16,6 +16,7 @@ import type { AppDeps } from '../app.js';
 import type { HomeBytes } from '../providers/types.js';
 import { dateInZone } from '../providers/real/weather-time.js';
 import { VERSION } from '../version.js';
+import { registerRewardRoutes } from './rewards.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
 export function registerRoutes(handle: Handle, deps: AppDeps) {
@@ -428,6 +429,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('choreUndo', async ({ params }) => providers.lists.choreUndo(params.id!));
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
+  registerRewardRoutes(handle, deps);
 }
 
 /** The wizard step a plugin belongs to, for marking progress from the server side. */

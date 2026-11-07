@@ -67,5 +67,6 @@ export function settings(): Settings {
     defaultScreen: 'today',
     weather: { savedPlaces: [], personality: 'friendly', newsJokes: false },
     integrations: { quips: { enabled: false } },
+    chores: { celebrationsOff: [], chime: false },
   };
 }
