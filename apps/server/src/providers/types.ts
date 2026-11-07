@@ -131,6 +131,18 @@ export interface HomeProvider {
   cameraSnapshot(entityId: string): Promise<HomeBytes | null>;
   /** Live view; `signal` aborts when the display closes it. null when not allowed. */
   cameraStream(entityId: string, signal: AbortSignal): Promise<HomeBytes | null>;
+  /** Live video over WebRTC through the server (v3 H). Refuses cameras not on the allow-list. */
+  webrtcOffer(entityId: string, offer: string): Promise<ResponseOf<'cameraWebrtcOffer'>>;
+  webrtcCandidate(
+    entityId: string,
+    session: string,
+    candidate: BodyOf<'cameraWebrtcCandidate'>['candidate'],
+  ): Promise<void>;
+  webrtcCandidates(
+    entityId: string,
+    session: string,
+  ): Promise<ResponseOf<'cameraWebrtcCandidates'>>;
+  webrtcClose(entityId: string, session: string): Promise<void>;
   media(): Promise<ResponseOf<'media'>>;
   mediaCall(req: BodyOf<'mediaCall'>): Promise<ResponseOf<'mediaCall'>>;
   /** null when the player has no artwork right now. */

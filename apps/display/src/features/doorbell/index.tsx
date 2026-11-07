@@ -4,6 +4,7 @@ import { useServerEvent } from '../../lib/events';
 import './doorbell.css';
 import { closeLive, extendLive, openLive, useLiveView, type LiveView } from './store';
 import { cameraUrl } from './urls';
+import { WEBRTC_DEADLINE_MS, playWebRtc, webRtcAvailable } from './webrtc';
 
 export { openLive, closeLive, rememberCameraNames } from './store';
 export { cameraUrl, withDeviceKey } from './urls';
@@ -69,11 +70,19 @@ export function DoorbellLayer() {
   return <LivePopover view={shown} leaving={leaving} />;
 }
 
+/**
+ * How the picture arrives: WebRTC first (full motion, through the server), the MJPEG stream if
+ * that fails within three seconds, and refreshing stills if the stream fails too.
+ */
+type Mode = 'connecting' | 'video' | 'mjpeg' | 'still';
+
 function LivePopover({ view, leaving }: { view: LiveView; leaving: boolean }) {
   const [now, setNow] = useState(() => Date.now());
-  const [fallback, setFallback] = useState(false);
+  const [mode, setMode] = useState<Mode>(() => (webRtcAvailable() ? 'connecting' : 'mjpeg'));
+  const [muted, setMuted] = useState(true);
   const [tick, setTick] = useState(0);
   const total = useRef(view.until - Date.now());
+  const video = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     total.current = Math.max(1000, view.until - Date.now());
@@ -81,21 +90,53 @@ function LivePopover({ view, leaving }: { view: LiveView; leaving: boolean }) {
     return () => clearInterval(t);
   }, [view.until]);
 
+  // WebRTC for this camera; one session, ended when the view closes or changes camera.
+  useEffect(() => {
+    const el = video.current;
+    if (!el || !webRtcAvailable() || leaving) return;
+    setMode('connecting');
+    setMuted(true);
+    const ctl = new AbortController();
+    let stop: (() => void) | null = null;
+    const fallback = () => !ctl.signal.aborted && setMode((m) => (m === 'still' ? m : 'mjpeg'));
+    const deadline = setTimeout(() => {
+      ctl.abort();
+      setMode((m) => (m === 'connecting' ? 'mjpeg' : m));
+    }, WEBRTC_DEADLINE_MS);
+    playWebRtc(view.cameraId, el, ctl.signal, fallback)
+      .then((s) => {
+        clearTimeout(deadline);
+        if (ctl.signal.aborted) return s();
+        stop = s;
+        setMode('video');
+      })
+      .catch(() => {
+        clearTimeout(deadline);
+        fallback();
+      });
+    return () => {
+      clearTimeout(deadline);
+      ctl.abort();
+      stop?.();
+    };
+  }, [view.cameraId, view.seq, leaving]);
+
   // Some cameras have no MJPEG stream; refresh stills instead.
   useEffect(() => {
-    if (!fallback) return;
+    if (mode !== 'still' && mode !== 'connecting') return;
     const t = setInterval(() => setTick((n) => n + 1), 2000);
     return () => clearInterval(t);
-  }, [fallback]);
+  }, [mode]);
 
   const left = Math.max(0, Math.ceil((view.until - now) / 1000));
   const frac = Math.max(0, Math.min(1, (view.until - now) / total.current));
   // Dropping `src` while leaving ends the MJPEG request; browsers can keep it open otherwise.
-  const src = leaving
-    ? undefined
-    : fallback
-      ? cameraUrl(view.cameraId, 'snapshot', tick)
-      : cameraUrl(view.cameraId, 'stream', view.seq);
+  const src =
+    leaving || mode === 'video'
+      ? undefined
+      : mode === 'mjpeg'
+        ? cameraUrl(view.cameraId, 'stream', view.seq)
+        : cameraUrl(view.cameraId, 'snapshot', tick);
   const doorbell = view.reason === 'doorbell';
 
   return (
@@ -118,16 +159,28 @@ function LivePopover({ view, leaving }: { view: LiveView; leaving: boolean }) {
             {left}s
           </span>
         </div>
-        <div className="doorbell-video">
-          <img
-            key={`${view.cameraId}-${fallback ? 'still' : 'live'}`}
-            src={src}
-            alt={`${view.name} camera`}
-            onError={(ev) => ev.currentTarget.getAttribute('src') && setFallback(true)}
+        <div className={`doorbell-video ${mode}`}>
+          {mode !== 'video' && (
+            <img
+              key={`${view.cameraId}-${mode === 'mjpeg' ? 'live' : 'still'}`}
+              src={src}
+              alt={`${view.name} camera`}
+              onError={(ev) =>
+                mode === 'mjpeg' && ev.currentTarget.getAttribute('src') && setMode('still')
+              }
+            />
+          )}
+          <video
+            ref={video}
+            autoPlay
+            playsInline
+            muted={muted}
+            aria-label={mode === 'video' ? `${view.name} camera` : undefined}
+            aria-hidden={mode === 'video' ? undefined : true}
           />
           <span className="doorbell-live">
             <i />
-            Live
+            {mode === 'connecting' ? 'Connecting' : 'Live'}
           </span>
         </div>
         <div className="doorbell-bar" aria-hidden="true">
@@ -135,6 +188,22 @@ function LivePopover({ view, leaving }: { view: LiveView; leaving: boolean }) {
         </div>
         <div className="doorbell-btns">
           <button onClick={closeLive}>Dismiss</button>
+          {mode === 'video' && (
+            <button
+              className="sound"
+              aria-pressed={!muted}
+              onClick={() => {
+                const v = video.current;
+                setMuted((m) => !m);
+                if (v) {
+                  v.muted = !muted;
+                  void v.play().catch(() => undefined);
+                }
+              }}
+            >
+              {muted ? 'Sound on' : 'Mute'}
+            </button>
+          )}
           <button className="go" onClick={() => extendLive(30)}>
             Keep watching
           </button>

@@ -25,6 +25,11 @@ export class FakeHa {
   /** Make the next calls fail with this message. */
   failCalls: string | null = null;
   answerPings = true;
+  /** How `camera/webrtc/offer` behaves: answer, send an error event, refuse, or stay silent. */
+  webrtc: 'answer' | 'error' | 'unsupported' | 'silent' = 'answer';
+  readonly webrtcOffers: { entity_id: string; offer: string }[] = [];
+  readonly webrtcCandidates: unknown[] = [];
+  readonly unsubscribed: number[] = [];
   connections = 0;
   url = '';
   private server: Server;
@@ -133,6 +138,40 @@ export class FakeHa {
         case 'ping':
           if (this.answerPings) ws.send(JSON.stringify({ id: msg.id, type: 'pong' }));
           return;
+        case 'camera/webrtc/offer': {
+          if (this.webrtc === 'unsupported')
+            return ws.send(
+              JSON.stringify({
+                id: msg.id,
+                type: 'result',
+                success: false,
+                error: { code: 'unknown_command', message: 'Unknown command.' },
+              }),
+            );
+          this.webrtcOffers.push(msg as unknown as { entity_id: string; offer: string });
+          ok();
+          const event = (e: Record<string, unknown>) =>
+            ws.send(JSON.stringify({ id: msg.id, type: 'event', event: e }));
+          if (this.webrtc === 'silent') return;
+          event({ type: 'session', session_id: 'ha-session-1' });
+          if (this.webrtc === 'error')
+            return event({ type: 'error', code: 'webrtc_offer_failed', message: 'Ring said no' });
+          event({ type: 'answer', answer: 'v=0\r\ns=fake-answer\r\n' });
+          event({
+            type: 'candidate',
+            candidate: {
+              candidate: 'candidate:1 1 udp 1 10.0.0.2 5000 typ host',
+              sdpMLineIndex: 0,
+            },
+          });
+          return;
+        }
+        case 'camera/webrtc/candidate':
+          this.webrtcCandidates.push(msg);
+          return ok();
+        case 'unsubscribe_events':
+          this.unsubscribed.push(Number(msg.subscription));
+          return ok();
         case 'subscribe_events':
           this.subs.set(ws, msg.id);
           return ok();

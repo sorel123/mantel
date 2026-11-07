@@ -5,6 +5,7 @@
  */
 import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
+import { MOCK_WEBRTC_ANSWER } from '../home-webrtc.js';
 import { eventsInRange, countdowns, meals } from './calendar.js';
 import { homeConfig, homeConnection, homeDiscovery, homeState, mediaPlayers } from './home.js';
 import {
@@ -99,6 +100,15 @@ export function routeFixtures(now = new Date()): {
     homeState: home,
     homeCall: { ok: true, entity: home.entities[0]! },
     homeAnnounce: { ok: true, targets: home.announceTargets.map((t) => t.id) },
+    cameraWebrtcOffer: {
+      session: 'webrtc-mock',
+      answer: MOCK_WEBRTC_ANSWER,
+      candidates: [],
+      expiresAt: new Date(now.getTime() + 120_000).toISOString(),
+    },
+    cameraWebrtcCandidate: { ok: true },
+    cameraWebrtcCandidates: { candidates: [], closed: false },
+    cameraWebrtcClose: { ok: true },
     media: { players },
     mediaCall: { ok: true, player: players[0]! },
     homeConnection: homeConnection(now),
