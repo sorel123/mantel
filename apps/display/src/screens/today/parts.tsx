@@ -3,6 +3,7 @@ import type { CalendarEvent, Person } from '@mantel/shared';
 import type { CSSProperties, ReactNode } from 'react';
 import { useBootstrap } from '../../lib/bootstrap';
 import { formatTime, spanLabel } from './calendar';
+import { dimClass, useDimmed } from './personFilter';
 import './calendar.css';
 
 export const pc = (color: string) => ({ '--pc': color }) as CSSProperties;
@@ -45,8 +46,13 @@ export function EventRow({
   const start = new Date(event.start);
   const end = new Date(event.end);
   const span = spanLabel(event, day);
+  const dim = useDimmed()(event.personIds);
   return (
-    <div className={`ev${state ? ` ${state}` : ''}`} style={pc(event.color)} data-testid="event">
+    <div
+      className={`ev${state ? ` ${state}` : ''}${dimClass(dim)}`}
+      style={pc(event.color)}
+      data-testid="event"
+    >
       <div className="t tnum">
         {event.allDay ? (
           <b>All day</b>
@@ -76,6 +82,12 @@ export const Icon = {
   next: <path d="M9 6l6 6-6 6" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
   star: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
+  month: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="3" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
   meal: <path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v6M7 7h4M17 3c-1.7 1-3 3.2-3 6v4h3v8" />,
 };
 

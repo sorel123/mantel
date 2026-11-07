@@ -11,6 +11,7 @@ import { useNow } from '../../app/Clock';
 import { useLayout } from '../../app/layout';
 import { formatTime, monthNames, useEvents } from '../today/calendar';
 import { Icon, Svg, pc } from '../today/parts';
+import { dimClass, useDimmed } from '../today/personFilter';
 import { fillDay, layoutWeeks, weeksIn, type Bar, type WeekLayout } from './bars';
 import { useDaySheet } from './DaySheet';
 
@@ -166,6 +167,7 @@ function DayCell({
     .filter(Boolean)
     .join(' ');
   const { slots, more } = fillDay(week, col, fit);
+  const dimmed = useDimmed();
   const total =
     week.bars.filter((b) => b.from <= col && b.to >= col).length + week.singles[col]!.length;
   return (
@@ -179,7 +181,7 @@ function DayCell({
       <span className="n tnum">{day.getDate()}</span>
       {slots.map((e, i) =>
         e ? (
-          <span key={e.id} className="pill" style={pc(e.color)}>
+          <span key={e.id} className={`pill${dimClass(dimmed(e.personIds))}`} style={pc(e.color)}>
             {!e.allDay && new Date(e.start) >= day && (
               <span className="tnum">{formatTime(new Date(e.start), true)} </span>
             )}
@@ -197,7 +199,8 @@ function DayCell({
 /** One week's piece of an event that covers several days, drawn over the day cells. */
 function WeekBar({ bar, row, start }: { bar: Bar; row: number; start: Date }) {
   const e = bar.event;
-  const cls = ['pill', 'bar', bar.before && 'before', bar.after && 'after']
+  const dim = useDimmed()(e.personIds);
+  const cls = ['pill', 'bar', bar.before && 'before', bar.after && 'after', dim && 'pf-dim']
     .filter(Boolean)
     .join(' ');
   const timed = !e.allDay && !bar.before && new Date(e.start) >= addDays(start, bar.from);
