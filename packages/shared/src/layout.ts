@@ -200,6 +200,7 @@ export const TODAY_CARDS: ReadonlyArray<PresetInfo<TodayCardKind>> = [
   { id: 'list', name: 'List', description: 'The list pinned to Today.' },
   { id: 'countdowns', name: 'Countdowns', description: 'Days until starred events.' },
   { id: 'tonight', name: 'Tonight', description: "Tonight's dinner from the meal plan." },
+  { id: 'meals-week', name: 'Meals this week', description: "The week's dinners; tap to plan." },
 ];
 
 /** Whether two cards share a cell. */
@@ -262,6 +263,7 @@ export const CARD_MIN: Readonly<Record<TodayCardKind, readonly [number, number]>
   list: [2, 1.5],
   countdowns: [2.5, 1],
   tonight: [2.5, 1],
+  'meals-week': [3, 2],
 };
 
 /**
@@ -279,6 +281,7 @@ const CARD_COMFORT: Readonly<Record<TodayCardKind, readonly [number, number] | n
   list: [3, 2.5],
   countdowns: [4, 1],
   tonight: [4, 1],
+  'meals-week': [4, 3.5],
 };
 export const CARD_ZOOM_MIN = 0.75;
 

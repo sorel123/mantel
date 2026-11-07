@@ -11,6 +11,7 @@ import {
   homeAssistantManifest,
   icalManifest,
   icloudManifest,
+  mealsManifest,
   photosManifest,
   pollenManifest,
   quipsManifest,
@@ -28,6 +29,7 @@ export const builtInManifests: PluginManifest[] = [
   pollenManifest,
   weatherManifest,
   quipsManifest,
+  mealsManifest,
 ];
 
 export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {

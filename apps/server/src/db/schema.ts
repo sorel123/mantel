@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /** Paired displays. Only the SHA-256 of each key is stored. */
 export const devices = sqliteTable('devices', {
@@ -79,3 +79,34 @@ export const choreCompletions = sqliteTable('chore_completions', {
   at: text('at').notNull(),
   stars: integer('stars').notNull(),
 });
+
+/* ---- v3 M: the meal planner ---- */
+
+/** Favourite meals. Ingredients and tags are JSON arrays of strings. */
+export const mealFavourites = sqliteTable('meal_favourites', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  slot: text('slot', { enum: ['breakfast', 'lunch', 'dinner', 'any'] }).notNull(),
+  ingredients: text('ingredients').notNull(),
+  tags: text('tags').notNull(),
+  lastUsed: text('last_used'),
+  createdAt: text('created_at').notNull(),
+});
+
+/**
+ * One planned meal per date and slot. `ingredients` (JSON) is set when typed with the meal;
+ * null means "the favourite's". `eventId` is the mirror on the Meals calendar, when one is written.
+ */
+export const plannedMeals = sqliteTable(
+  'planned_meals',
+  {
+    date: text('date').notNull(),
+    slot: text('slot', { enum: ['breakfast', 'lunch', 'dinner'] }).notNull(),
+    title: text('title').notNull(),
+    favouriteId: text('favourite_id'),
+    ingredients: text('ingredients'),
+    eventId: text('event_id'),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.date, t.slot] })],
+);

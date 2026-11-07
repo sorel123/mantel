@@ -11,6 +11,7 @@ import { PhotoSlideshow } from '../../features/photos';
 import { GroceryPeek } from '../lists/GroceryPeek';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { LeaveByChip, matchLeaveBy, useCommute } from '../../features/weather';
+import { PlannerTap } from '../meals';
 import { useBootstrap } from '../../lib/bootstrap';
 import {
   countdownLabel,
@@ -70,19 +71,22 @@ export const mainMeal = (ms: Meal[] | undefined) =>
 export function Tonight({ meals }: { meals: Meal[] | undefined }) {
   const main = mainMeal(meals);
   const others = (meals ?? []).filter((m) => m !== main);
+  // v3 M: a tap opens the meal planner (when it is on).
   return (
-    <div className="tonight" aria-label="Tonight's meal">
-      <Svg>{Icon.meal}</Svg>
-      <span className="eyebrow">
-        {!main || main.slot === 'dinner' ? 'Tonight' : slotWord[main.slot]}
-      </span>
-      <b className={main ? '' : 'none'}>{main?.title ?? 'Nothing planned'}</b>
-      {others.length > 0 && (
-        <span className="also">
-          {others.map((m) => `${slotWord[m.slot]}: ${m.title}`).join(' · ')}
+    <PlannerTap>
+      <div className="tonight" aria-label="Tonight's meal">
+        <Svg>{Icon.meal}</Svg>
+        <span className="eyebrow">
+          {!main || main.slot === 'dinner' ? 'Tonight' : slotWord[main.slot]}
         </span>
-      )}
-    </div>
+        <b className={main ? '' : 'none'}>{main?.title ?? 'Nothing planned'}</b>
+        {others.length > 0 && (
+          <span className="also">
+            {others.map((m) => `${slotWord[m.slot]}: ${m.title}`).join(' · ')}
+          </span>
+        )}
+      </div>
+    </PlannerTap>
   );
 }
 

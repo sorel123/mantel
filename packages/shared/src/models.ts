@@ -10,6 +10,7 @@
  */
 import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
+import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -404,6 +405,8 @@ export const TodayCardKind = z.enum([
   'list',
   'countdowns',
   'tonight',
+  /** v3 M: the week's dinners from the meal planner. */
+  'meals-week',
 ]);
 export type TodayCardKind = z.infer<typeof TodayCardKind>;
 /** Cards move and resize in half cells. */
@@ -554,6 +557,8 @@ export const Settings = z.object({
   defaultScreen: Id.default('today'),
   weather: WeatherSettings.default({ savedPlaces: [], personality: 'friendly', newsJokes: false }),
   integrations: IntegrationToggles.default({}),
+  /** v3 M: the meal planner's slots, calendar mirror and grocery list. */
+  meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
 });
 export type Settings = z.infer<typeof Settings>;
 
