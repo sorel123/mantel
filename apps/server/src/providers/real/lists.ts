@@ -1,7 +1,9 @@
 import type { Db } from '../../db/index.js';
 import { HttpError } from '../../errors.js';
 import type { ListsProvider, ProviderContext } from '../types.js';
+import { DEFAULT_CHORE_SETTINGS } from '@mantel/shared';
 import { ChoreStore } from './lists-chores.js';
+import { RewardStore } from './lists-rewards.js';
 import { ListStore } from './lists-store.js';
 
 /**
@@ -13,9 +15,10 @@ import { ListStore } from './lists-store.js';
 export function storeLists(
   ctx: ProviderContext,
   db: Db = ctx.db,
-): ListsProvider & { store: ListStore; choreStore: ChoreStore } {
+): ListsProvider & { store: ListStore; choreStore: ChoreStore; rewardStore: RewardStore } {
   const store = new ListStore(db, ctx.now);
   const choreStore = new ChoreStore(db, ctx.now);
+  const rewardStore = new RewardStore(db, ctx.now);
   store.onChange((listId) => ctx.emit({ type: 'list.changed', payload: { listId } }));
   const choresChanged = <T>(result: T): T => {
     ctx.emit({ type: 'chores.changed', payload: {} });
@@ -25,10 +28,14 @@ export function storeLists(
     if (personId && !ctx.settings().people.some((p) => p.id === personId))
       throw new HttpError('bad_request', `unknown person ${personId}`);
   };
+  const checkPeople = (ids: string[] | undefined) => ids?.forEach(checkPerson);
+  const nameOf = (personId: string) =>
+    ctx.settings().people.find((p) => p.id === personId)?.name || personId;
 
   return {
     store,
     choreStore,
+    rewardStore,
     async lists() {
       return { lists: store.all() };
     },
@@ -74,6 +81,70 @@ export function storeLists(
     },
     async deleteChore(choreId) {
       choreStore.archive(choreId);
+      return choresChanged({ ok: true as const });
+    },
+    async updateChore(choreId, req) {
+      checkPerson(req.personId);
+      return choresChanged({ chore: choreStore.update(choreId, req) });
+    },
+    async starsBalance() {
+      const s = ctx.settings();
+      return {
+        balances: rewardStore.balances(s.people.map((p) => p.id)),
+        celebrations: s.chores ?? DEFAULT_CHORE_SETTINGS,
+      };
+    },
+    async starsLedger(personId, limit) {
+      return { entries: rewardStore.ledger(personId, limit) };
+    },
+    async starsAdjust(req) {
+      checkPerson(req.personId);
+      return choresChanged(rewardStore.adjust(req));
+    },
+    async rewards() {
+      return { rewards: rewardStore.rewards() };
+    },
+    async createReward(req) {
+      checkPeople(req.personIds);
+      return choresChanged({ reward: rewardStore.createReward(req) });
+    },
+    async patchReward(id, req) {
+      checkPeople(req.personIds);
+      return choresChanged({ reward: rewardStore.patchReward(id, req) });
+    },
+    async deleteReward(id) {
+      rewardStore.deleteReward(id);
+      return choresChanged({ ok: true as const });
+    },
+    async redeemReward(id, personId) {
+      checkPerson(personId);
+      const { reward, entry, balance } = rewardStore.redeem(id, personId, nameOf(personId));
+      ctx.emit({
+        type: 'rewards.redeemed',
+        payload: {
+          personId,
+          rewardId: reward.id,
+          title: reward.title,
+          cost: reward.cost,
+          at: entry.at,
+        },
+      });
+      return choresChanged({ entry, balance });
+    },
+    async routines() {
+      return { routines: rewardStore.routines() };
+    },
+    async createRoutine(req) {
+      checkPeople(req.personIds);
+      return choresChanged({ routine: rewardStore.createRoutine(req) });
+    },
+    async patchRoutine(id, req) {
+      checkPeople(req.personIds);
+      return choresChanged({ routine: rewardStore.patchRoutine(id, req) });
+    },
+    async deleteRoutine(id) {
+      rewardStore.deleteRoutine(id);
+      choreStore.leaveRoutine(id);
       return choresChanged({ ok: true as const });
     },
   };

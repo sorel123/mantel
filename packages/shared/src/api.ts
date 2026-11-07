@@ -71,6 +71,7 @@ import {
   Location,
 } from './models.js';
 import { Appearance } from './skins.js';
+import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import {
   HomeConfig,
   HomeConnectionPatch,
@@ -297,6 +298,9 @@ export const CreateChoreRequest = z.object({
   stars: z.number().int().min(1).max(5).default(1),
   /** Completions needed per period. */
   target: z.number().int().min(1).max(7).default(1),
+  timeOfDay: ChoreTimeOfDay.optional(),
+  icon: ChoreIcon.optional(),
+  routineId: Id.optional(),
 });
 export const ChoreResponse = z.object({ chore: Chore });
 
@@ -782,6 +786,17 @@ export const routes = {
     response: Ok,
     auth: true,
   }),
+  /** Change a chore in place (v3 workstream R). */
+  choreUpdate: route({
+    method: 'PATCH',
+    path: '/chores/:id',
+    query: NoQuery,
+    body: ChorePatchRequest,
+    response: ChoreResponse,
+    auth: true,
+  }),
+  /* v3 workstream R: stars, rewards and routines (rewards.ts). */
+  ...rewardRoutes,
   settings: route({
     method: 'GET',
     path: '/settings',

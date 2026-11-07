@@ -2,6 +2,7 @@ import { routeFixtures } from '@mantel/shared/fixtures';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { OverlayProvider } from '../../app/overlay';
 import { BootstrapProvider, useBootstrapState } from '../../lib/bootstrap';
 import { AddPage } from './add/AddPage';
 import { groceryList } from './GroceryPeek';
@@ -24,6 +25,11 @@ function fakeServer() {
     if (path === '/bootstrap') return respond(fx.bootstrap);
     if (path === '/lists') return respond(fx.lists);
     if (path === '/chores') return respond(fx.chores);
+    if (path === '/stars/balance') return respond(fx.starsBalance);
+    if (path.startsWith('/stars/ledger')) return respond(fx.starsLedger);
+    if (path === '/rewards') return respond(fx.rewards);
+    if (path === '/routines') return respond(fx.routines);
+    if (path.endsWith('/redeem')) return respond(fx.rewardRedeem);
     if (method === 'PATCH' && path.startsWith('/lists/')) {
       const list = fx.lists.lists.find((l) => path.endsWith(l.id))!;
       return respond({ list: { ...list, ...body } });
@@ -49,7 +55,9 @@ function Ready({ children }: { children: ReactNode }) {
 const renderReady = (ui: ReactNode) =>
   render(
     <BootstrapProvider>
-      <Ready>{ui}</Ready>
+      <OverlayProvider>
+        <Ready>{ui}</Ready>
+      </OverlayProvider>
     </BootstrapProvider>,
   );
 
@@ -115,9 +123,13 @@ describe('Lists screen', () => {
     const { calls } = fakeServer();
     renderReady(<ListsScreen />);
     fireEvent.click(await screen.findByRole('tab', { name: /Chore chart/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'This week' }));
     const ava = await screen.findByRole('region', { name: "Ava's chores" });
     const avaStars = fx.chores.stars.find((s) => s.personId === 'ava')!.stars;
-    expect(within(ava).getByLabelText(`${avaStars} stars this week`)).toBeTruthy();
+    const banked = fx.starsBalance.balances.find((b) => b.personId === 'ava')!.stars;
+    expect(
+      await within(ava).findByLabelText(`${avaStars} stars this week, ${banked} banked. Rewards`),
+    ).toBeTruthy();
 
     const bed = within(ava).getByRole('checkbox', { name: /Make bed, not done today/ });
     fireEvent.click(bed);
@@ -127,6 +139,47 @@ describe('Lists screen', () => {
       path: '/chores/chore-bed-ava/done',
       body: undefined,
     });
+  });
+
+  it('ticks a step of the routine for a part of the day', async () => {
+    const { calls } = fakeServer();
+    renderReady(<ListsScreen />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Chore chart/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Morning/ }));
+    const routine = await screen.findByRole('region', { name: 'Morning routine' });
+    const teeth = within(routine).getAllByRole('checkbox', { name: 'Brush teeth' })[0]!;
+    fireEvent.click(teeth);
+    await waitFor(() => expect(teeth.getAttribute('aria-checked')).toBe('true'));
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/chores/chore-teeth-am-ava/done',
+      body: undefined,
+    });
+  });
+
+  it('redeems a reward with the admin PIN from the Rewards drawer', async () => {
+    const { calls } = fakeServer();
+    renderReady(<ListsScreen />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Chore chart/ }));
+    const banked = fx.starsBalance.balances.find((b) => b.personId === 'ava')!.stars;
+    fireEvent.click(
+      await screen.findByRole('button', { name: `Ava: ${banked} stars banked. Rewards` }),
+    );
+    const drawer = await screen.findByRole('dialog', { name: 'Rewards' });
+    fireEvent.click(
+      await within(drawer).findByRole('button', { name: /^Pick the movie, 10 stars$/ }),
+    );
+    const pin = await screen.findByLabelText('Admin PIN');
+    fireEvent.change(pin, { target: { value: '1234' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Redeem' }));
+    await waitFor(() =>
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: '/rewards/reward-movie/redeem',
+        body: { personId: 'ava', pin: '1234' },
+      }),
+    );
+    expect(await screen.findByText('Ava got Pick the movie!')).toBeTruthy();
   });
 
   it('peeks at the open grocery items', async () => {

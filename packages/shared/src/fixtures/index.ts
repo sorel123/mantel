@@ -16,7 +16,7 @@ import {
   settingsBundle,
   setupState,
 } from './integrations.js';
-import { chores, lists } from './lists.js';
+import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
 import { calendars, people } from './people.js';
@@ -202,6 +202,7 @@ export function routeFixtures(now = new Date()): {
     settingsExport: settingsBundle(now),
     settingsImport: { ok: true, secretsRestored: ['google', 'homeassistant'] },
     geocode: { candidates: geocodeCandidates },
+    ...rewardRouteFixtures(now),
   };
 }
 
@@ -226,6 +227,16 @@ export function wsFixtures(now = new Date()) {
     { type: 'media.state', payload: { player: { ...mediaPlayers(now)[0]!, state: 'paused' } } },
     { type: 'list.changed', payload: { listId: 'list-grocery' } },
     { type: 'chores.changed', payload: {} },
+    {
+      type: 'rewards.redeemed',
+      payload: {
+        personId: 'ava',
+        rewardId: 'reward-movie',
+        title: 'Pick the movie',
+        cost: 10,
+        at: toLocalIso(now),
+      },
+    },
     { type: 'weather.updated', payload: { weather: weather(now) } },
     {
       type: 'weather.alert',

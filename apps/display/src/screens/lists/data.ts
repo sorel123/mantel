@@ -1,4 +1,15 @@
-import type { BodyOf, Chore, List, ListItem, ResponseOf, StarTally } from '@mantel/shared';
+import {
+  DEFAULT_CHORE_SETTINGS,
+  type BodyOf,
+  type Chore,
+  type DayPart,
+  type List,
+  type ListItem,
+  type ResponseOf,
+  type Reward,
+  type StarBalance,
+  type StarTally,
+} from '@mantel/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import { useServerEvent } from '../../lib/events';
@@ -201,3 +212,54 @@ export function useChores() {
 
 /** Monday-first index of today, matching `Chore.week`. */
 export const todayIndex = (now = new Date()) => (now.getDay() + 6) % 7;
+
+/* ---- v3 workstream R: star bank, rewards, routines ---- */
+
+const loadStars = () => api.call('starsBalance');
+const loadRewards = () => api.call('rewards').then((r) => r.rewards);
+const loadRoutines = () => api.call('routines').then((r) => r.routines);
+
+/** Banked stars per person and the household's celebration settings. */
+export function useStars() {
+  const { data, error, refetch, setData } = useSynced(loadStars);
+  useServerEvent('chores.changed', refetch);
+  /** Show a balance at once (after a redemption), before the push refetches it. */
+  const put = (b: StarBalance) =>
+    setData((d) =>
+      d
+        ? {
+            ...d,
+            balances: d.balances.some((x) => x.personId === b.personId)
+              ? d.balances.map((x) => (x.personId === b.personId ? b : x))
+              : [...d.balances, b],
+          }
+        : d,
+    );
+  return {
+    balances: data?.balances ?? null,
+    celebrations: data?.celebrations ?? DEFAULT_CHORE_SETTINGS,
+    error,
+    refetch,
+    put,
+  };
+}
+
+export function useRewards() {
+  const { data, error, refetch } = useSynced(loadRewards);
+  useServerEvent('chores.changed', refetch);
+  return { rewards: data, error, refetch };
+}
+
+export function useRoutines() {
+  const { data, refetch } = useSynced(loadRoutines);
+  useServerEvent('chores.changed', refetch);
+  return { routines: data ?? [], refetch };
+}
+
+/** Rewards a person may pick: active, and theirs or everyone's. */
+export const rewardsFor = (rewards: Reward[], personId: string) =>
+  rewards.filter((r) => r.active && (r.personIds.length === 0 || r.personIds.includes(personId)));
+
+/** Daily chores of one person in one part of the day, the routine card's rows. */
+export const choresAt = (chores: Chore[], personId: string, part: DayPart) =>
+  chores.filter((c) => c.personId === personId && c.timeOfDay === part && c.cadence === 'daily');
