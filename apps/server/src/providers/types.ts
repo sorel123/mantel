@@ -9,6 +9,7 @@
 import type {
   BodyOf,
   CalendarEvent,
+  EditScope,
   HomeConfig,
   HomeConnectionStatus,
   HomeDiscovery,
@@ -67,7 +68,7 @@ export interface CalendarProvider {
     id: string,
     req: BodyOf<'calendarEventPatch'>,
   ): Promise<ResponseOf<'calendarEventPatch'>>;
-  deleteEvent(id: string): Promise<ResponseOf<'calendarEventDelete'>>;
+  deleteEvent(id: string, scope?: EditScope): Promise<ResponseOf<'calendarEventDelete'>>;
   countdowns(): Promise<ResponseOf<'countdowns'>>;
   meals(week?: Date): Promise<ResponseOf<'meals'>>;
   calendars(): Promise<ResponseOf<'bootstrap'>['calendars']>;

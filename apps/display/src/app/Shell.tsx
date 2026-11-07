@@ -341,6 +341,7 @@ function DisplayInner() {
         onAmbient={() => setMode('ambient')}
         awake={{ held: awake.held, label: awakeLabel(awake.until, now) }}
         onAwake={openAwake}
+        people={boot.people}
         trailing={<PluginChips />}
       />
       <div className="status">

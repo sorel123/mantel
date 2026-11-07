@@ -18,6 +18,7 @@ import {
   useEvents,
 } from '../today/calendar';
 import { Avatars, Icon, Svg, pc } from '../today/parts';
+import { dimClass, useDimmed } from '../today/personFilter';
 import { useDaySheet } from './DaySheet';
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
@@ -160,6 +161,7 @@ function DayColumn({
   onAdd: () => void;
 }) {
   const t = now.getTime();
+  const dimmed = useDimmed();
   return (
     <section
       className={`card day ${state}`}
@@ -181,7 +183,7 @@ function DayColumn({
           return (
             <button
               key={e.id}
-              className={`wev${when ? ` ${when}` : ''}${e.allDay ? ' allday' : ''}`}
+              className={`wev${when ? ` ${when}` : ''}${e.allDay ? ' allday' : ''}${dimClass(dimmed(e.personIds))}`}
               style={pc(e.color)}
               onClick={onOpen}
               data-testid="event"

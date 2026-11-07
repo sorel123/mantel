@@ -7,6 +7,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { addDays, fromIsoDate, toLocalIso } from '@mantel/shared';
 import { HttpError } from '../../../errors.js';
 import { log } from '../../../log.js';
+import { rrule, shiftSeries, wallClock } from './repeat.js';
 import type { CalendarStore } from './store.js';
 import type { EditEvent, NewEvent, RawEvent, Source, SourceCalendar } from './types.js';
 
@@ -213,6 +214,9 @@ export interface GEvent {
   end?: GTime;
   attendees?: Array<{ self?: boolean; responseStatus?: string }>;
   extendedProperties?: { private?: Record<string, string> };
+  /** Set on each occurrence of a repeating event (with `singleEvents=true`). */
+  recurringEventId?: string;
+  recurrence?: string[];
 }
 
 export interface PushChannel {
@@ -252,6 +256,8 @@ export function fromGoogle(calendarId: string, e: GEvent): RawEvent | null {
     ...(e.location ? { location: e.location } : {}),
     ...(e.description ? { description: e.description } : {}),
     ...(people ? { personIds: people.split(',').filter(Boolean) } : {}),
+    ...(e.recurringEventId ? { recurring: true, seriesId: e.recurringEventId } : {}),
+    ...(e.recurrence?.length ? { recurring: true, seriesId: e.id } : {}),
   };
 }
 
@@ -337,12 +343,20 @@ export class GoogleSource implements Source {
   }
 
   async create(cal: SourceCalendar, ev: NewEvent): Promise<RawEvent> {
+    // Google needs a zone on a repeating timed event; it keeps the wall-clock time across DST.
+    const zone = ev.repeat && !ev.allDay ? ev.timeZone : undefined;
     const time = (d: Date): GTime =>
-      ev.allDay ? { date: dateOnly(d) } : { dateTime: d.toISOString() };
+      ev.allDay
+        ? { date: dateOnly(d) }
+        : zone
+          ? { dateTime: wallClock(d, zone), timeZone: zone }
+          : { dateTime: d.toISOString() };
     const body = {
       summary: ev.title,
       start: time(ev.start),
       end: time(ev.end),
+      ...(ev.location?.trim() ? { location: ev.location.trim() } : {}),
+      ...(ev.repeat ? { recurrence: [`RRULE:${rrule(ev.repeat)}`] } : {}),
       ...(ev.personIds.length
         ? { extendedProperties: { private: { [PEOPLE_PROP]: ev.personIds.join(',') } } }
         : {}),
@@ -388,6 +402,40 @@ export class GoogleSource implements Source {
       // Already gone upstream: that is what was asked for.
       if (!(err instanceof HttpError && / (404|410):/.test(err.message))) throw err;
     }
+  }
+
+  /** Every occurrence: move the series by the days this one moved, at its new time and length. */
+  async updateSeries(cal: SourceCalendar, uid: string, occ: RawEvent, ev: EditEvent) {
+    const id = occ.seriesId ?? uid;
+    const path = `/calendars/${encodeURIComponent(cal.ref)}/events/${encodeURIComponent(id)}`;
+    const master = await this.call<GEvent>(path);
+    const allDay = ev.allDay;
+    const first = master.start?.date
+      ? fromIsoDate(master.start.date)
+      : new Date(master.start?.dateTime ?? occ.start);
+    const start = shiftSeries(first, new Date(occ.start), ev.start, allDay);
+    const end = new Date(start.getTime() + (ev.end.getTime() - ev.start.getTime()));
+    const zone = master.start?.timeZone;
+    const time = (d: Date) =>
+      allDay
+        ? { date: dateOnly(d), dateTime: null }
+        : zone
+          ? { dateTime: wallClock(d, zone), timeZone: zone, date: null }
+          : { dateTime: d.toISOString(), date: null };
+    const body = {
+      summary: ev.title,
+      start: time(start),
+      end: time(allDay && end <= start ? addDays(start, 1) : end),
+      ...(ev.location !== undefined ? { location: ev.location.trim() } : {}),
+      ...(ev.personIds !== undefined
+        ? { extendedProperties: { private: { [PEOPLE_PROP]: ev.personIds.join(',') } } }
+        : {}),
+    };
+    await this.call<GEvent>(path, { method: 'PATCH', body: JSON.stringify(body) });
+  }
+
+  async removeSeries(cal: SourceCalendar, uid: string, occ: RawEvent) {
+    await this.remove(cal, occ.seriesId ?? uid);
   }
 
   /** Ask Google to POST to `address` when the calendar changes. */
