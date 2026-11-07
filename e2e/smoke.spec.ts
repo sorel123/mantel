@@ -112,11 +112,59 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await confirm.getByRole('button', { name: 'Keep locked' }).click();
   await expect(confirm).toBeHidden();
 
-  // A doorbell press pops the live view over the screen.
+  // A light is one tile: tap toggles it, a sideways drag dims it.
+  const ceiling = page.getByRole('switch', { name: 'Ceiling' });
+  const wasOn = await ceiling.getAttribute('aria-checked');
+  await ceiling.click();
+  await expect(ceiling).not.toHaveAttribute('aria-checked', wasOn ?? 'true');
+  await ceiling.click();
+  await expect(ceiling).toHaveAttribute('aria-checked', wasOn ?? 'true');
+  const tile = (await ceiling.boundingBox())!;
+  const dimmed = page.waitForRequest(
+    (r) => r.url().endsWith('/api/home/call') && /brightness_pct/.test(r.postData() ?? ''),
+  );
+  const y = tile.y + tile.height / 2;
+  await page.mouse.move(tile.x + tile.width * 0.8, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(tile.x + tile.width * (0.8 - i * 0.05), y);
+  await page.mouse.up();
+  await dimmed;
+  await expect(ceiling).toHaveAttribute('aria-checked', 'true');
+
+  // Arrange: drag a room card onto the next one, and the order changes; Cancel keeps the old.
+  await page.getByRole('button', { name: 'Arrange the Home screen' }).click();
+  const order = () =>
+    page.locator('.hm-rooms > .hm-slot').evaluateAll((els) => els.map((e) => e.dataset.card));
+  const before = await order();
+  const first = (await page.locator(`.hm-slot[data-card="${before[0]}"]`).boundingBox())!;
+  const second = (await page.locator(`.hm-slot[data-card="${before[1]}"]`).boundingBox())!;
+  await page.mouse.move(first.x + first.width / 2, first.y + 20);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++)
+    await page.mouse.move(
+      first.x + first.width / 2 + ((second.x - first.x) * i) / 10,
+      first.y + 20 + ((second.y - first.y + second.height / 2) * i) / 10,
+    );
+  await expect.poll(order).not.toEqual(before);
+  await page.mouse.up();
+  expect((await order()).slice(0, 2)).toEqual([before[1], before[0]]);
+  await page
+    .getByRole('region', { name: 'Arrange Home' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+  await expect.poll(order).toEqual(before);
+
+  // A doorbell press pops the live view over the screen. Mock HA offers a WebRTC path that
+  // cannot connect, so the view falls back to the MJPEG stream.
+  const offered = page.waitForRequest(
+    (r) =>
+      r.method() === 'POST' && /\/api\/home\/cameras\/camera\.front_door\/webrtc$/.test(r.url()),
+  );
   const ring = await request.post('/api/dev/doorbell');
   expect(ring.ok()).toBe(true);
   const live = page.getByRole('dialog', { name: "Someone's at the front door" });
   await expect(live).toBeVisible();
+  await offered;
   await expect(live.getByRole('img')).toHaveAttribute(
     'src',
     /^\/api\/home\/cameras\/camera\.front_door\/stream/,

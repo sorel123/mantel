@@ -10,3 +10,4 @@ export * from './home-setup.js';
 export * from './layout.js';
 export * from './skins.js';
 export * from './weather-extended.js';
+export * from './home-webrtc.js';

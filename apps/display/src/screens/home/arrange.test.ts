@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { moveCard, patchCard, resolveCards, standsAlone, switchSide } from './arrange';
+import {
+  moveCard,
+  moveTo,
+  moveToSide,
+  patchCard,
+  resolveCards,
+  standsAlone,
+  switchSide,
+} from './arrange';
 
 const defaults = ['climate', 'room:a', 'room:b', 'cameras', 'camera:x', 'camera:y', 'media'];
 const keys = (cards: { key: string }[]) => cards.map((c) => c.key);
@@ -63,5 +71,46 @@ describe('Home arrangement', () => {
     expect(standsAlone('cameras', 'cards')).toBe(false);
     expect(standsAlone('camera:x', 'cards')).toBe(true);
     expect(standsAlone('camera:x', 'feature')).toBe(false);
+  });
+
+  it('drags a card onto another: it takes that place, forwards or backwards', () => {
+    const cards = resolveCards(defaults, []);
+    // Forward in the same column lands after the target.
+    expect(keys(moveTo(cards, 'climate', 'room:b')).slice(0, 3)).toEqual([
+      'room:a',
+      'room:b',
+      'climate',
+    ]);
+    // Backward lands before it.
+    expect(keys(moveTo(cards, 'room:b', 'climate')).slice(0, 3)).toEqual([
+      'room:b',
+      'climate',
+      'room:a',
+    ]);
+    // Dropping on itself or on a card that is gone changes nothing.
+    expect(moveTo(cards, 'room:a', 'room:a')).toBe(cards);
+    expect(moveTo(cards, 'room:a', 'room:gone')).toBe(cards);
+  });
+
+  it('drags a card into the other column, where it is never wide', () => {
+    const cards = patchCard(resolveCards(defaults, []), 'room:a', { wide: true });
+    const next = moveTo(cards, 'room:a', 'media');
+    const a = next.find((c) => c.key === 'room:a')!;
+    expect(a).toMatchObject({ side: true, wide: false });
+    expect(keys(next).indexOf('room:a')).toBe(keys(next).indexOf('media') - 1);
+    // And back again keeps its new narrow size.
+    const back = moveTo(next, 'room:a', 'climate');
+    expect(back[0]).toMatchObject({ key: 'room:a', side: false, wide: false });
+  });
+
+  it('drops a card on the empty part of a column: the end of that column', () => {
+    const cards = resolveCards(defaults, []);
+    const side = moveToSide(cards, 'climate', true);
+    expect(side.at(-1)).toMatchObject({ key: 'climate', side: true });
+    const main = moveToSide(cards, 'media', false);
+    expect(keys(main).indexOf('media')).toBe(keys(main).indexOf('room:b') + 1);
+    expect(main.find((c) => c.key === 'media')!.side).toBe(false);
+    // Already last in that column: nothing to do.
+    expect(moveToSide(cards, 'media', true)).toBe(cards);
   });
 });

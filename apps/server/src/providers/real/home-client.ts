@@ -106,6 +106,8 @@ export class HaClient {
     down: new Set(),
   };
   private stateSub: number | null = null;
+  /** Other subscriptions (WebRTC sessions), by the id of the command that made them. */
+  private subscriptions = new Map<number, (event: unknown) => void>();
   private retry = 0;
   private retryTimer: NodeJS.Timeout | undefined;
   private pingTimer: NodeJS.Timeout | undefined;
@@ -150,6 +152,7 @@ export class HaClient {
     this.ws = null;
     this._connected = false;
     this.failPending(new HaError('not_connected', 'Home Assistant client stopped'));
+    this.endSubscriptions();
   }
 
   /** Call a service on one entity. Rejects with the HA error message on failure. */
@@ -166,6 +169,36 @@ export class HaClient {
       service_data: data,
       ...(entityId ? { target: { entity_id: entityId } } : {}),
     });
+  }
+
+  /** Send any WebSocket command and resolve with its result. */
+  request<T = unknown>(payload: Record<string, unknown>): Promise<T> {
+    return this.command<T>(payload);
+  }
+
+  /**
+   * Run a subscription command (`camera/webrtc/offer`): `onEvent` gets each event's payload
+   * until `close()`, which unsubscribes in Home Assistant, or until the connection drops,
+   * which calls `onEvent(null)` once.
+   */
+  async subscribe(
+    payload: Record<string, unknown>,
+    onEvent: (event: unknown) => void,
+  ): Promise<{ close: () => void }> {
+    const id = this.nextId;
+    this.subscriptions.set(id, onEvent);
+    try {
+      await this.command(payload);
+    } catch (err) {
+      this.subscriptions.delete(id);
+      throw err;
+    }
+    return {
+      close: () => {
+        if (!this.subscriptions.delete(id)) return;
+        this.command({ type: 'unsubscribe_events', subscription: id }).catch(() => {});
+      },
+    };
   }
 
   /** Resolve with the entity's next state, or its current one after `ms`. */
@@ -241,6 +274,7 @@ export class HaClient {
       const was = this._connected;
       this._connected = false;
       this.stateSub = null;
+      this.endSubscriptions();
       clearInterval(this.pingTimer);
       this.failPending(new HaError('not_connected', 'Home Assistant connection closed'));
       if (was) {
@@ -306,6 +340,14 @@ export class HaClient {
       this.emit('state', data.entity_id, next, prev);
       return;
     }
+    if (msg.type === 'event' && this.subscriptions.has(id)) {
+      try {
+        this.subscriptions.get(id)!(msg.event);
+      } catch (err) {
+        log.error('home: subscription listener failed', { err: String(err) });
+      }
+      return;
+    }
     const p = this.pending.get(id);
     if (!p) return;
     if (msg.type === 'pong' || (msg.type === 'result' && msg.success)) {
@@ -343,6 +385,18 @@ export class HaClient {
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject, timer });
       ws.send(JSON.stringify({ id, ...payload }));
     });
+  }
+
+  private endSubscriptions() {
+    const subs = [...this.subscriptions.values()];
+    this.subscriptions.clear();
+    for (const fn of subs) {
+      try {
+        fn(null);
+      } catch {
+        /* the session is gone either way */
+      }
+    }
   }
 
   private settle(id: number) {

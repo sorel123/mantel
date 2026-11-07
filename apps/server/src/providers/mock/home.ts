@@ -1,4 +1,4 @@
-import type { HomeEntity, MediaPlayer } from '@mantel/shared';
+import { MOCK_WEBRTC_ANSWER, type HomeEntity, type MediaPlayer } from '@mantel/shared';
 import { homeConfig, homeDiscovery, homeState, mediaPlayers } from '@mantel/shared/fixtures';
 import { HttpError, notFound } from '../../errors.js';
 import { homeConfigToYaml } from '../real/home-config.js';
@@ -113,6 +113,8 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
   const store = new HomeConfigStore(ctx.db, { fallback: homeConfig(ctx.now()) }, () =>
     ctx.emit({ type: 'display.reload', payload: {} }),
   );
+  let webrtcSession: string | null = null;
+  let webrtcSeq = 0;
   const guard = () => {
     if (!connection().enabled) throw disabledError();
   };
@@ -335,6 +337,31 @@ export function mockHome(ctx: ProviderContext): HomeProvider {
       const cam = state.entities.find((e) => e.id === entityId && e.kind === 'camera');
       if (!cam) return null;
       return { contentType: 'image/svg+xml', body: cameraSvg(cam.id, cam.name, ctx.now(), true) };
+    },
+    // A fake WebRTC path: the offer is taken and answered with a description no browser can
+    // use, so the display falls back to the animated stream above, as with an older HA.
+    async webrtcOffer(entityId) {
+      guard();
+      const cam = state.entities.find((e) => e.id === entityId && e.kind === 'camera');
+      if (!cam) throw notFound(`camera ${entityId}`);
+      webrtcSession = `mock-${++webrtcSeq}`;
+      return {
+        session: webrtcSession,
+        answer: MOCK_WEBRTC_ANSWER,
+        candidates: [],
+        expiresAt: new Date(ctx.now().getTime() + 120_000).toISOString(),
+      };
+    },
+    async webrtcCandidate(_entityId, session) {
+      guard();
+      if (session !== webrtcSession) throw notFound('live view');
+    },
+    async webrtcCandidates(_entityId, session) {
+      guard();
+      return { candidates: [], closed: session !== webrtcSession };
+    },
+    async webrtcClose(_entityId, session) {
+      if (session === webrtcSession) webrtcSession = null;
     },
     async media() {
       guard();

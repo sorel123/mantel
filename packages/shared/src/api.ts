@@ -75,6 +75,13 @@ import {
   HomeYaml,
 } from './home-setup.js';
 import {
+  WebRtcCandidateRequest,
+  WebRtcCandidatesResponse,
+  WebRtcOfferRequest,
+  WebRtcOfferResponse,
+  WebRtcOk,
+} from './home-webrtc.js';
+import {
   WeatherPlaceQuery,
   WeatherQuipResponse,
   WeatherSearchQuery,
@@ -535,6 +542,39 @@ export const routes = {
     body: NoBody,
     response: null,
     auth: false,
+  }),
+  /** Live video: hand Home Assistant a WebRTC offer through the server (one session at a time). */
+  cameraWebrtcOffer: route({
+    method: 'POST',
+    path: '/home/cameras/:id/webrtc',
+    query: NoQuery,
+    body: WebRtcOfferRequest,
+    response: WebRtcOfferResponse,
+    auth: true,
+  }),
+  cameraWebrtcCandidate: route({
+    method: 'POST',
+    path: '/home/cameras/:id/webrtc/:session/candidate',
+    query: NoQuery,
+    body: WebRtcCandidateRequest,
+    response: WebRtcOk,
+    auth: true,
+  }),
+  cameraWebrtcCandidates: route({
+    method: 'GET',
+    path: '/home/cameras/:id/webrtc/:session/candidates',
+    query: NoQuery,
+    body: NoBody,
+    response: WebRtcCandidatesResponse,
+    auth: true,
+  }),
+  cameraWebrtcClose: route({
+    method: 'DELETE',
+    path: '/home/cameras/:id/webrtc/:session',
+    query: NoQuery,
+    body: NoBody,
+    response: WebRtcOk,
+    auth: true,
   }),
   media: route({
     method: 'GET',
