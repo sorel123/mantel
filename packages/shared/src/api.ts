@@ -177,6 +177,13 @@ export const BootstrapResponse = z.object({
 export const CalendarQuery = z.object({ from: IsoDateTime, to: IsoDateTime });
 export const CalendarResponse = z.object({ events: z.array(CalendarEvent) });
 
+/** How a new event repeats. Weekly repeats on the start's weekday; weekdays is Monday to Friday. */
+export const Repeat = z.enum(['daily', 'weekly', 'monthly', 'weekdays']);
+export type Repeat = z.infer<typeof Repeat>;
+/** Editing or deleting one occurrence of a repeating event, or the whole series. */
+export const EditScope = z.enum(['one', 'all']);
+export type EditScope = z.infer<typeof EditScope>;
+
 export const QuickEventRequest = z.object({
   title: z.string().min(1),
   start: IsoDateTime,
@@ -186,6 +193,12 @@ export const QuickEventRequest = z.object({
   /** Defaults to the family calendar configured on the server. */
   calendarId: Id.optional(),
   personIds: z.array(Id).optional(),
+  /** Where: an address gets a leave-by chip on the day. */
+  location: z.string().max(300).optional(),
+  /** Repeats forever on this pattern; absent is a one-off. */
+  repeat: Repeat.optional(),
+  /** Count down to it on Today (the server tags it `#countdown`). */
+  countdown: z.boolean().optional(),
 });
 export const QuickEventResponse = z.object({ event: CalendarEvent });
 
@@ -198,7 +211,13 @@ export const EventPatchRequest = z.object({
   /** Empty string clears it. */
   location: z.string().max(300).optional(),
   personIds: z.array(Id).optional(),
+  /** Turn the countdown tag on or off; absent leaves it. */
+  countdown: z.boolean().optional(),
+  /** For a repeating event: this occurrence (default) or every one. */
+  scope: EditScope.optional(),
 });
+/** `?scope=all` deletes every occurrence of a repeating event. */
+export const EventDeleteQuery = z.object({ scope: EditScope.optional() });
 
 export const CountdownsResponse = z.object({ countdowns: z.array(Countdown) });
 
@@ -421,7 +440,7 @@ export const routes = {
   calendarEventDelete: route({
     method: 'DELETE',
     path: '/calendar/events/:id',
-    query: NoQuery,
+    query: EventDeleteQuery,
     body: NoBody,
     response: Ok,
     auth: true,

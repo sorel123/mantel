@@ -11,3 +11,4 @@ export * from './layout.js';
 export * from './skins.js';
 export * from './weather-extended.js';
 export * from './home-webrtc.js';
+export * from './people-filter.js';

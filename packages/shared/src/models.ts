@@ -62,6 +62,8 @@ export const CalendarEvent = z.object({
   color: Color,
   /** True when tagged with a star or `#countdown`. */
   countdown: z.boolean().default(false),
+  /** One occurrence of a repeating event: editing asks "this one or all". */
+  recurring: z.boolean().optional(),
 });
 export type CalendarEvent = z.infer<typeof CalendarEvent>;
 

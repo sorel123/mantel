@@ -1,4 +1,4 @@
-import type { CalendarSource } from '@mantel/shared';
+import type { CalendarSource, Repeat } from '@mantel/shared';
 
 /** A calendar as a source reports it, before household preferences apply. */
 export interface SourceCalendar {
@@ -32,6 +32,10 @@ export interface RawEvent {
   description?: string;
   /** People set explicitly (quick add stores them on the event). */
   personIds?: string[];
+  /** One occurrence of a repeating series. */
+  recurring?: boolean;
+  /** Google: the series' event id (`recurringEventId`), for "change all". */
+  seriesId?: string;
 }
 
 export interface NewEvent {
@@ -40,6 +44,10 @@ export interface NewEvent {
   end: Date;
   allDay: boolean;
   personIds: string[];
+  location?: string;
+  repeat?: Repeat;
+  /** The household's IANA zone: a repeating timed event keeps its wall-clock time in it. */
+  timeZone?: string;
 }
 
 /** An edited event: the whole event as it should be. `personIds` and `location` undefined leave them. */
@@ -63,6 +71,13 @@ export interface Source {
   /** Change one event (`uid` as `events` reported it). Absent: the source can't edit. */
   update?(cal: SourceCalendar, uid: string, event: EditEvent): Promise<RawEvent>;
   remove?(cal: SourceCalendar, uid: string): Promise<void>;
+  /**
+   * Change every occurrence of the series `uid` belongs to: `event` is that occurrence as it
+   * should be; the series moves by the same days and takes the new time and length.
+   */
+  updateSeries?(cal: SourceCalendar, uid: string, occ: RawEvent, event: EditEvent): Promise<void>;
+  /** Delete every occurrence of the series `uid` belongs to. */
+  removeSeries?(cal: SourceCalendar, uid: string, occ: RawEvent): Promise<void>;
 }
 
 /** Household choices per calendar, edited on the setup page. */
