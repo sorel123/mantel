@@ -9,6 +9,7 @@ import { googlePlugin } from './google/index.js';
 import { homeAssistantPlugin } from './homeassistant/index.js';
 import { icalPlugin } from './ical/index.js';
 import { icloudPlugin } from './icloud/index.js';
+import { mealsPlugin } from './meals/index.js';
 import { photosPlugin } from './photos/index.js';
 import { pollenPlugin } from './pollen/index.js';
 import { quipsPlugin } from './quips/index.js';
@@ -43,6 +44,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
     pollenPlugin(weather, opts.fetch),
     weatherPlugin(weather, opts.fetch),
     quipsPlugin(opts.fetch),
+    mealsPlugin(),
   ];
   return {
     plugins,
@@ -67,3 +69,4 @@ export { manifest as routesManifest } from './routes/manifest.js';
 export { manifest as pollenManifest } from './pollen/manifest.js';
 export { manifest as weatherManifest } from './weather/manifest.js';
 export { manifest as quipsManifest } from './quips/manifest.js';
+export { manifest as mealsManifest } from './meals/manifest.js';

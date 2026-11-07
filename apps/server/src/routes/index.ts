@@ -16,6 +16,7 @@ import type { AppDeps } from '../app.js';
 import type { HomeBytes } from '../providers/types.js';
 import { dateInZone } from '../providers/real/weather-time.js';
 import { VERSION } from '../version.js';
+import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
@@ -284,9 +285,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     providers.calendar.deleteEvent(params.id!, query.scope),
   );
   handle('countdowns', async () => providers.calendar.countdowns());
-  handle('meals', async ({ query }) =>
-    providers.calendar.meals(query.week ? fromIsoDate(query.week) : undefined),
-  );
+  // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
+  registerMealRoutes(handle, createMealsService(deps));
 
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());

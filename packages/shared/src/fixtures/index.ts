@@ -16,6 +16,7 @@ import {
   settingsBundle,
   setupState,
 } from './integrations.js';
+import { mealFavourites, mealsWeek } from './meals.js';
 import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { calendars, people } from './people.js';
 import { photos } from './photos.js';
@@ -26,6 +27,7 @@ export * from './calendar.js';
 export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
+export * from './meals.js';
 export * from './people.js';
 export * from './photos.js';
 export * from './settings.js';
@@ -197,6 +199,39 @@ export function routeFixtures(now = new Date()): {
     settingsImport: { ok: true, secretsRestored: ['google', 'homeassistant'] },
     geocode: { candidates: geocodeCandidates },
     ...rewardRouteFixtures(now),
+    ...mealFixtures(now),
+  };
+}
+
+/** v3 M: the meal planner's routes. */
+function mealFixtures(now: Date) {
+  const week = mealsWeek(now);
+  const favourites = mealFavourites(now);
+  const toGrocery = {
+    listId: 'list-grocery',
+    listName: 'Grocery',
+    added: ['Tortillas', 'Ground beef', 'Salsa'],
+    skipped: ['Cheddar'],
+  };
+  return {
+    mealsWeek: week,
+    mealsPlan: { meal: week.meals[0]! },
+    mealFavourites: { favourites },
+    mealFavouriteCreate: { favourite: favourites[0]! },
+    mealFavouritePatch: { favourite: favourites[0]! },
+    mealFavouriteDelete: { ok: true as const },
+    mealsWeekToGrocery: toGrocery,
+    mealToGrocery: toGrocery,
+    mealsUnbought: {
+      weekStart: week.weekStart,
+      items: [
+        {
+          ingredient: 'Tortillas',
+          onList: false,
+          meals: [{ date: week.days[0]!, slot: 'dinner' as const, title: 'Tacos' }],
+        },
+      ],
+    },
   };
 }
 
