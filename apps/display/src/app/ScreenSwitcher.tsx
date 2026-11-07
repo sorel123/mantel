@@ -30,9 +30,12 @@ const GAP = 32;
 /** Past this share of the width, or flicked faster than this (px/s), the swipe moves on. */
 const DISTANCE = 0.22;
 const VELOCITY = 450;
-/** Where a swipe can't start: controls, and areas with their own sideways drag (Month's grid). */
+/**
+ * Where a swipe can't start: controls, and areas with their own sideways drag (Month's grid, a
+ * dimmable light on Home, Home cards while arranging).
+ */
 const NO_SWIPE =
-  'input, textarea, select, [data-no-swipe], .scroll-x, .range, [role="slider"], .mgrid .gridwrap, .wstrip .weekwrap';
+  'input, textarea, select, [data-no-swipe], .scroll-x, .range, [role="slider"], .mgrid .gridwrap, .wstrip .weekwrap, .hm-tile.dim, .hm-slot.arranging';
 
 /**
  * How far the current swipe has gone: 0 at rest, toward 1 dragging to the next screen, toward
