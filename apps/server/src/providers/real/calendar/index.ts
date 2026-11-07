@@ -4,7 +4,7 @@
  * wall never waits on an upstream service. Google pushes changes when the server has a public
  * https address; otherwise, and for iCloud, the server polls.
  */
-import type { CalendarEvent, CalendarSource } from '@mantel/shared';
+import type { CalendarEvent, CalendarSource, EditScope } from '@mantel/shared';
 import { addDays, startOfDay, startOfWeek, toIsoDate, toLocalIso } from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { DeviceAuth } from '../../../auth.js';
@@ -15,7 +15,16 @@ import { CalDavSource } from './caldav.js';
 import { FeedSource, feedUrls } from './feed.js';
 import { loadCalendarEnv, type CalendarEnv } from './env.js';
 import { GoogleAuth, GoogleSource, type PushChannel } from './google.js';
-import { countdownsFrom, isEnabled, isMeals, mealsFrom, toCalendar, toEvent } from './normalize.js';
+import {
+  countdownsFrom,
+  isCountdown,
+  isEnabled,
+  isMeals,
+  mealsFrom,
+  titleWithCountdown,
+  toCalendar,
+  toEvent,
+} from './normalize.js';
 import { mountCalendarSetup } from './setup.js';
 import { googleRedirect, pushAddress } from './urls.js';
 import { CalendarStore } from './store.js';
@@ -392,17 +401,41 @@ export class RealCalendar implements CalendarProvider {
     if (end <= start) throw new HttpError('bad_request', 'end must be after start');
 
     const raw = await source.create(cal, {
-      title: req.title.trim(),
+      title: req.countdown ? titleWithCountdown(req.title, true) : req.title.trim(),
       start,
       end,
       allDay,
       personIds: req.personIds ?? [],
+      ...(req.location?.trim() ? { location: req.location.trim() } : {}),
+      ...(req.repeat ? { repeat: req.repeat, timeZone: this.ctx.settings().timezone } : {}),
     });
-    this.store.put(raw);
-    this.ctx.emit({ type: 'calendar.changed', payload: { from: raw.start, to: raw.end } });
+    if (req.repeat) await this.refresh(cal);
+    else {
+      this.store.put(raw);
+      this.ctx.emit({ type: 'calendar.changed', payload: { from: raw.start, to: raw.end } });
+    }
     const [event] = this.toEvents([raw], prefs);
     if (!event) throw new HttpError('internal', 'new event has no calendar');
     return { event };
+  }
+
+  /** Fetch one calendar's whole window again (after a change to a repeating series). */
+  private async refresh(cal: SourceCalendar) {
+    const source = this.sources.find((s) => s.kind === cal.source);
+    if (!source?.ready()) return;
+    const { from, to } = this.window();
+    try {
+      const change = this.store.replaceWindow(cal.id, from, to, await source.events(cal, from, to));
+      if (change)
+        this.ctx.emit({
+          type: 'calendar.changed',
+          payload: { from: toLocalIso(new Date(change.from)), to: toLocalIso(new Date(change.to)) },
+        });
+    } catch (err) {
+      // The change is upstream; the next sync brings it in.
+      log.warn('calendar refresh failed', { calendar: cal.name, err: errText(err) });
+      this.syncSoon();
+    }
   }
 
   /** The calendar, its source and the cached occurrence behind a display event id. */
@@ -418,7 +451,12 @@ export class RealCalendar implements CalendarProvider {
     if (!source?.update || !source.remove)
       throw new HttpError('forbidden', `${cal.name} can't be changed from Mantel`);
     if (!source.ready()) throw new HttpError('upstream_error', `${cal.source} is not connected`);
-    return { cal, raw, uid, source: source as Required<typeof source> };
+    return {
+      cal,
+      raw,
+      uid,
+      source: source as Source & Required<Pick<Source, 'update' | 'remove'>>,
+    };
   }
 
   async updateEvent(id: string, req: Parameters<CalendarProvider['updateEvent']>[1]) {
@@ -437,14 +475,31 @@ export class RealCalendar implements CalendarProvider {
     }
     if (end <= start) throw new HttpError('bad_request', 'end must be after start');
 
-    const next = await source.update(cal, uid, {
-      title: req.title?.trim() || raw.title,
+    const edit = {
+      title: titleWithCountdown(
+        req.title?.trim() || raw.title,
+        req.countdown ?? isCountdown(raw),
+        raw.description,
+      ),
       start,
       end,
       allDay,
       ...(req.location !== undefined ? { location: req.location } : {}),
       ...(req.personIds !== undefined ? { personIds: req.personIds } : {}),
-    });
+    };
+    if (req.scope === 'all' && raw.recurring) {
+      if (!source.updateSeries)
+        throw new HttpError('forbidden', `${cal.name} can't change a whole series from Mantel`);
+      await source.updateSeries(cal, uid, raw, edit);
+      await this.refresh(cal);
+      const [event] = this.toEvents(
+        [{ ...raw, ...edit, start: toLocalIso(start), end: toLocalIso(end) }],
+        prefs,
+      );
+      if (!event) throw new HttpError('internal', 'edited event has no calendar');
+      return { event };
+    }
+    const next = await source.update(cal, uid, edit);
     this.store.removeEvent(cal.id, uid);
     this.store.put(next);
     const from = raw.start < next.start ? raw.start : next.start;
@@ -455,8 +510,15 @@ export class RealCalendar implements CalendarProvider {
     return { event };
   }
 
-  async deleteEvent(id: string) {
+  async deleteEvent(id: string, scope?: EditScope) {
     const { cal, raw, uid, source } = this.editable(id);
+    if (scope === 'all' && raw.recurring) {
+      if (!source.removeSeries)
+        throw new HttpError('forbidden', `${cal.name} can't delete a whole series from Mantel`);
+      await source.removeSeries(cal, uid, raw);
+      await this.refresh(cal);
+      return { ok: true as const };
+    }
     await source.remove(cal, uid);
     this.store.removeEvent(cal.id, uid);
     this.ctx.emit({ type: 'calendar.changed', payload: { from: raw.start, to: raw.end } });

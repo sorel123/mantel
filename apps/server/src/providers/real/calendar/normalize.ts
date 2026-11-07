@@ -104,7 +104,22 @@ export function toEvent(raw: RawEvent, calendar: Calendar, people: Person[]): Ca
     personIds,
     color: first?.color ?? calendar.color,
     countdown: isCountdown(raw),
+    ...(raw.recurring ? { recurring: true } : {}),
   };
+}
+
+/**
+ * The title to write upstream: the countdown tag added or kept when wanted (the wall shows
+ * titles without it, so an edit would otherwise drop it), and taken out when not.
+ */
+export function titleWithCountdown(
+  title: string,
+  countdown: boolean,
+  description?: string,
+): string {
+  const base = cleanTitle(title);
+  if (!countdown) return base;
+  return isCountdown({ title: '', description: description ?? '' }) ? base : `${base} #countdown`;
 }
 
 /** Upcoming tagged events, soonest first. Events already under way are left out. */

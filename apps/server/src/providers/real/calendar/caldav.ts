@@ -5,7 +5,17 @@
 import { randomUUID } from 'node:crypto';
 import { XMLParser } from 'fast-xml-parser';
 import { HttpError } from '../../../errors.js';
-import { buildIcs, editIcs, expandIcs, icsUid, isRecurringIcs } from './ics.js';
+import { startOfDay, toLocalIso } from '@mantel/shared';
+import {
+  buildIcs,
+  editIcs,
+  editIcsOccurrence,
+  editIcsSeries,
+  excludeIcsOccurrence,
+  expandIcs,
+  icsUid,
+  isRecurringIcs,
+} from './ics.js';
 import type { EditEvent, NewEvent, RawEvent, Source, SourceCalendar } from './types.js';
 
 export interface CalDavOptions {
@@ -272,30 +282,63 @@ export class CalDavSource implements Source {
       throw new HttpError('upstream_error', `iCloud ${method} ${res.status}`);
   }
 
+  /**
+   * Change one event. For an occurrence of a repeating series this adds an exception for that
+   * day only; the rest of the series stays as it was.
+   */
   async update(cal: SourceCalendar, key: string, ev: EditEvent): Promise<RawEvent> {
     const r = await this.resource(cal, key);
-    if (isRecurringIcs(r.ics)) throw repeating();
-    const ics = editIcs(r.ics, ev);
+    const ics = isRecurringIcs(r.ics)
+      ? series(() => editIcsOccurrence(r.ics, key, ev))
+      : editIcs(r.ics, ev);
     await this.write('PUT', r.url, r.etag, ics);
-    const [raw] = expandIcs(
+    const raw = expandIcs(
       ics,
       cal.id,
       new Date(ev.start.getTime() - 1),
       new Date(ev.end.getTime() + 864e5),
-    );
+    ).find((x) => x.start === toLocalIso(ev.allDay ? startOfDay(ev.start) : ev.start));
     if (!raw) throw new HttpError('internal', 'could not read back the event');
     return raw;
   }
 
+  /** Delete one event; for an occurrence of a series, only that day (an EXDATE). */
   async remove(cal: SourceCalendar, key: string): Promise<void> {
     const r = await this.resource(cal, key);
-    if (isRecurringIcs(r.ics)) throw repeating();
+    if (isRecurringIcs(r.ics))
+      await this.write(
+        'PUT',
+        r.url,
+        r.etag,
+        series(() => excludeIcsOccurrence(r.ics, key)),
+      );
+    else await this.write('DELETE', r.url, r.etag);
+  }
+
+  async updateSeries(cal: SourceCalendar, key: string, _occ: RawEvent, ev: EditEvent) {
+    const r = await this.resource(cal, key);
+    await this.write(
+      'PUT',
+      r.url,
+      r.etag,
+      series(() => editIcsSeries(r.ics, key, ev)),
+    );
+  }
+
+  async removeSeries(cal: SourceCalendar, key: string): Promise<void> {
+    const r = await this.resource(cal, key);
     await this.write('DELETE', r.url, r.etag);
   }
 }
 
-const repeating = () =>
-  new HttpError(
-    'bad_request',
-    'This is a repeating iCloud event. Change it in the Calendar app on a phone or Mac.',
-  );
+/** Run a series edit, turning "no such occurrence" into a message for the wall. */
+function series(edit: () => string): string {
+  try {
+    return edit();
+  } catch (err) {
+    throw new HttpError(
+      'bad_request',
+      `Couldn't change that repeating event (${err instanceof Error ? err.message : String(err)}). Change it in the Calendar app on a phone or Mac.`,
+    );
+  }
+}

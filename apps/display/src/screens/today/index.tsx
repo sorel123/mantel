@@ -25,6 +25,7 @@ import { DateBox, DateLine, Masthead } from './DateParts';
 import { FamilyBoard } from './FamilyBoard';
 import { Icon, Svg } from './parts';
 import { PhotoPanel } from './PhotoPanel';
+import { usePersonFilter } from './personFilter';
 import { WeatherLine, WeekAhead } from './WeatherBits';
 import './today.css';
 import './presets.css';
@@ -62,6 +63,7 @@ export function TodayScreen() {
   const nav = useNav();
   const boot = useBootstrap();
   const layout = useLayout();
+  const { guest } = usePersonFilter();
   const preset = layout.todayPreset;
   const [view, setViewState] = useState<View>(chosenView);
   const setView = (v: View) => {
@@ -137,6 +139,8 @@ export function TodayScreen() {
           />
         );
       case 'grocery':
+        // Guests see the calendar, weather and photos only.
+        if (guest) return null;
         return (
           <Guard name="grocery">
             <GroceryPeek onOpen={() => nav.go('lists')} />
