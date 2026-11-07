@@ -195,6 +195,58 @@ test('the Dusk look renders every screen', async ({ page }) => {
   }
   expect(problems).toEqual([]);
 });
+test('chores: a routine step is ticked, and a reward is redeemed with the PIN', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  // The two viewports share one server: top Ava up so either run can afford the movie.
+  const topUp = await request.post('/api/stars/adjust', {
+    data: { personId: 'ava', delta: 20, reason: 'bonus', note: 'Smoke test', pin: '1234' },
+  });
+  expect(topUp.ok()).toBe(true);
+
+  await page.goto('/?mode=daylight');
+  const dock = page.getByRole('navigation', { name: 'Screens' });
+  await dock.getByRole('button', { name: 'Lists' }).click();
+  await page.getByRole('tab', { name: /Chore chart/ }).click();
+
+  // The routine card: pick the morning and tick a step that isn't done yet.
+  await page.getByRole('button', { name: 'Routine now' }).click();
+  await page.getByRole('button', { name: /^Morning/ }).click();
+  const routine = page.getByRole('region', { name: 'Morning routine' });
+  await expect(routine).toBeVisible();
+  const step = routine.getByRole('checkbox', { checked: false }).first();
+  const label = (await step.getAttribute('aria-label'))!;
+  const id = await step.evaluate((el) => {
+    const col = el.closest('.rcol')!;
+    return `${col.getAttribute('aria-label')}|${[...col.querySelectorAll('.rrow')].indexOf(el)}`;
+  });
+  await step.click();
+  const [col, index] = id.split('|');
+  await expect(
+    routine.locator(`.rcol[aria-label="${col}"] .rrow`).nth(Number(index)),
+  ).toHaveAttribute('aria-checked', 'true');
+  expect(label).toBeTruthy();
+
+  // The week's chart groups by part of the day, with icons.
+  await page.getByRole('button', { name: 'This week' }).click();
+  const ava = page.getByRole('region', { name: "Ava's chores" });
+  await expect(ava.getByText(/^Evening · Bedtime$/)).toBeVisible();
+
+  // Rewards: open Ava's stars, redeem the movie with the PIN, see the banner.
+  await page.getByRole('button', { name: /^Ava: \d+ stars banked\. Rewards$/ }).click();
+  const drawer = page.getByRole('dialog', { name: 'Rewards' });
+  await expect(drawer).toBeVisible();
+  await drawer.getByRole('button', { name: /^Pick the movie, 10 stars$/ }).click();
+  const confirm = page.getByRole('alertdialog');
+  await confirm.getByLabel('Admin PIN').fill('1234');
+  await confirm.getByRole('button', { name: 'Redeem' }).click();
+  await expect(drawer).toBeHidden();
+  await expect(page.getByText('Ava got Pick the movie!')).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
 
 /** Every settings section, by hash, with the heading each one shows. */
 const SECTIONS: Array<[string, string]> = [
@@ -209,6 +261,7 @@ const SECTIONS: Array<[string, string]> = [
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
   ['meals', 'Meals'],
+  ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
   ['schedule', 'Screen schedule'],
   ['features', 'Features'],

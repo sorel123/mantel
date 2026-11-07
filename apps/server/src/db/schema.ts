@@ -65,6 +65,12 @@ export const chores = sqliteTable('chores', {
   createdAt: text('created_at').notNull(),
   /** Set when a chore is retired; its completions keep counting toward this week's stars. */
   archivedAt: text('archived_at'),
+  // v3 (workstream R)
+  timeOfDay: text('time_of_day', { enum: ['morning', 'afternoon', 'evening', 'any'] })
+    .notNull()
+    .default('any'),
+  icon: text('icon'),
+  routineId: text('routine_id'),
 });
 
 /** One row per tap on the chore chart. Stars are copied so changing a chore never rewrites history. */
@@ -110,3 +116,37 @@ export const plannedMeals = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.date, t.slot] })],
 );
+/* ---- v3 workstream R: star bank, rewards, routines ---- */
+
+/** Every star earned or spent. A person's balance is the sum; it never resets. */
+export const starLedger = sqliteTable('star_ledger', {
+  id: text('id').primaryKey(),
+  personId: text('person_id').notNull(),
+  delta: integer('delta').notNull(),
+  reason: text('reason', { enum: ['chore', 'bonus', 'redeem', 'adjust'] }).notNull(),
+  /** `completion:<chore_completions.id>` for a chore tap, the reward id for a redemption. */
+  refId: text('ref_id'),
+  note: text('note'),
+  at: text('at').notNull(),
+});
+
+export const rewards = sqliteTable('rewards', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  cost: integer('cost').notNull(),
+  icon: text('icon').notNull(),
+  /** JSON array of person ids; empty means everyone. */
+  personIds: text('person_ids').notNull(),
+  active: integer('active', { mode: 'boolean' }).notNull(),
+  sort: integer('sort').notNull(),
+});
+
+export const routines = sqliteTable('routines', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  /** JSON array of person ids. */
+  personIds: text('person_ids').notNull(),
+  timeOfDay: text('time_of_day', { enum: ['morning', 'afternoon', 'evening', 'any'] }).notNull(),
+  icon: text('icon').notNull(),
+  sort: integer('sort').notNull(),
+});

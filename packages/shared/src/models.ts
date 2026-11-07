@@ -11,6 +11,7 @@
 import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
+import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -300,6 +301,12 @@ export const Chore = z.object({
   target: z.number().int().positive(),
   /** Completions on each day of the current week, Monday first (7 entries). Drives the chart. */
   week: z.array(z.number().int().nonnegative()).length(7).optional(),
+  // v3 (workstream R): routines and pre-reader icons. Defaults keep older payloads parsing.
+  /** When in the day it is done; a chore in a routine takes the routine's. */
+  timeOfDay: ChoreTimeOfDay.default('any'),
+  /** A key into the bundled icon set (`CHORE_ICONS`). */
+  icon: ChoreIcon.optional(),
+  routineId: Id.optional(),
 });
 export type Chore = z.infer<typeof Chore>;
 
@@ -559,6 +566,8 @@ export const Settings = z.object({
   integrations: IntegrationToggles.default({}),
   /** v3 M: the meal planner's slots, calendar mirror and grocery list. */
   meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
+  /** v3 (workstream R): celebrations on the chore chart. */
+  chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
 });
 export type Settings = z.infer<typeof Settings>;
 

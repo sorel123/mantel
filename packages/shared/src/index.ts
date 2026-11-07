@@ -12,3 +12,4 @@ export * from './skins.js';
 export * from './weather-extended.js';
 export * from './home-webrtc.js';
 export * from './meals.js';
+export * from './rewards.js';

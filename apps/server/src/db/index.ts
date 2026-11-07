@@ -94,12 +94,45 @@ const migrations = [
     updated_at TEXT NOT NULL,
     PRIMARY KEY (date, slot)
   )`,
+  // v3 (workstream R): star bank, rewards, routines
+  `CREATE TABLE IF NOT EXISTS star_ledger (
+    id TEXT PRIMARY KEY,
+    person_id TEXT NOT NULL,
+    delta INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    ref_id TEXT,
+    note TEXT,
+    at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS star_ledger_person ON star_ledger (person_id, at)`,
+  `CREATE INDEX IF NOT EXISTS star_ledger_ref ON star_ledger (ref_id)`,
+  `CREATE TABLE IF NOT EXISTS rewards (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    cost INTEGER NOT NULL,
+    icon TEXT NOT NULL,
+    person_ids TEXT NOT NULL,
+    active INTEGER NOT NULL,
+    sort INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS routines (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    person_ids TEXT NOT NULL,
+    time_of_day TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    sort INTEGER NOT NULL
+  )`,
 ];
 
 /** Columns added after a table shipped. `ALTER TABLE` has no IF NOT EXISTS, so each is tried once. */
 const addedColumns: Array<[table: string, column: string, definition: string]> = [
   // v2 (workstream A): per-display overrides as JSON (look, defaultScreen, fit, scale)
   ['devices', 'overrides', 'TEXT'],
+  // v3 (workstream R): chores get a time of day, an icon and a routine
+  ['chores', 'time_of_day', "TEXT NOT NULL DEFAULT 'any'"],
+  ['chores', 'icon', 'TEXT'],
+  ['chores', 'routine_id', 'TEXT'],
 ];
 
 export function openDb(dataDir: string): Db {

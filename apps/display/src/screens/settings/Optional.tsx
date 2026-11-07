@@ -7,7 +7,13 @@ import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
  * shows until then.
  */
 const modules = import.meta.glob<Record<string, unknown>>(
-  ['./home/index.tsx', './appearance/index.tsx', './layout/index.tsx', './meals/index.tsx'],
+  [
+    './home/index.tsx',
+    './appearance/index.tsx',
+    './layout/index.tsx',
+    './chores/index.tsx',
+    './meals/index.tsx',
+  ],
   { eager: false },
 );
 
@@ -29,6 +35,7 @@ export const HomeSetupSection = optional('./home/index.tsx', 'HomeSetupSection')
 export const AppearanceSection = optional('./appearance/index.tsx', 'AppearanceSection');
 export const LayoutSection = optional('./layout/index.tsx', 'LayoutSection');
 export const MealsSection = optional('./meals/index.tsx', 'MealsSection');
+export const ChoresSection = optional('./chores/index.tsx', 'ChoresSection');
 
 export function Mount({
   Component,

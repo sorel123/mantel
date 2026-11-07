@@ -22,6 +22,7 @@ import { AdvancedSection, IntegrationCard, IntegrationsSection } from './Integra
 import { ListsSection } from './ListsAdmin';
 import {
   AppearanceSection,
+  ChoresSection,
   HomeSetupSection,
   LayoutSection,
   MealsSection,
@@ -71,6 +72,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     items: [
       { id: 'lists', label: 'Lists and chores' },
       { id: 'meals', label: 'Meals' },
+      { id: 'chores', label: 'Chores and rewards' },
       { id: 'places', label: 'Leave-by places' },
       { id: 'schedule', label: 'Screen schedule' },
       { id: 'features', label: 'Features' },
@@ -356,6 +358,7 @@ export function SettingsPage() {
         fallback={null}
       />
     ),
+    chores: () => <Mount Component={ChoresSection} props={{ draft, set }} fallback={null} />,
     places: () => (
       <Destinations
         value={draft.destinations}

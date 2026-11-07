@@ -69,5 +69,6 @@ export function settings(): Settings {
     weather: { savedPlaces: [], personality: 'friendly', newsJokes: false },
     integrations: { quips: { enabled: false } },
     meals: { ...DEFAULT_MEALS_SETTINGS },
+    chores: { celebrationsOff: [], chime: false },
   };
 }
