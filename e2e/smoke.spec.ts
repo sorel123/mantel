@@ -773,3 +773,97 @@ test('the meal planner plans a dinner from a favourite and sends its ingredients
   await expect(page.getByRole('combobox', { name: 'Grocery list' })).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test('people and touch: person filter, guest mode, live swipe, a weekly event with a place', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  // One mock server serves both sizes: each run adds its own series.
+  const swim = `Swim ${test.info().project.name}`;
+  await page.goto('/?mode=daylight');
+  const dock = page.getByRole('navigation', { name: 'Screens' });
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
+
+  // Agenda chips: tap Ava, her events stay bright and the rest dim; tap again to clear.
+  const agenda = page.locator('.agenda');
+  await agenda.getByRole('button', { name: 'Show Ava' }).click();
+  await expect(agenda.getByRole('button', { name: /^Showing Ava/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(agenda.getByText(/ for Ava$/)).toBeVisible();
+  await expect(agenda.locator('.ev.pf-dim').first()).toBeVisible();
+  await agenda.getByRole('button', { name: /^Showing Ava/ }).click();
+  await expect(agenda.locator('.pf-dim')).toHaveCount(0);
+
+  // The dock's chips work from any screen: Month dims everyone but Sam.
+  await dock.getByRole('button', { name: 'Month' }).click();
+  await dock.getByRole('button', { name: 'Show Sam' }).click();
+  await expect(page.locator('.mgrid .pill.pf-dim').first()).toBeVisible();
+  await dock.getByRole('button', { name: /^Showing Sam/ }).click();
+  await expect(page.locator('.mgrid .pf-dim')).toHaveCount(0);
+
+  // Guest mode: only Today and Month in the dock, and it survives a reload in this tab.
+  await dock.getByRole('button', { name: /^Guest mode/ }).click();
+  await expect(dock.getByRole('button', { name: 'Lists' })).toHaveCount(0);
+  await expect(dock.getByRole('button', { name: 'Home' })).toHaveCount(0);
+  await page.reload();
+  await expect(dock.getByRole('button', { name: 'Guest mode is on. Turn off' })).toBeVisible();
+  await dock.getByRole('button', { name: 'Guest mode is on. Turn off' }).click();
+  await expect(dock.getByRole('button', { name: 'Lists' })).toBeVisible();
+
+  // Live swipe: drag Today left from the date and the next screen follows the finger in.
+  await dock.getByRole('button', { name: 'Today' }).click();
+  await expect(page.locator('.screen[data-screen="today"]')).toBeVisible();
+  const panel = (await page.locator('.screens').boundingBox())!;
+  const y = panel.y + 90;
+  const x0 = panel.x + panel.width * 0.3;
+  await page.mouse.move(x0, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 - i * 30, y + 2);
+  await expect(page.locator('.screen-peek')).toHaveCount(1);
+  for (let i = 11; i <= 16; i++) await page.mouse.move(x0 - i * 30, y + 2);
+  await page.mouse.up();
+  await expect(page.locator('.screen[data-screen="month"]')).toBeVisible();
+  await expect(dock.getByRole('button', { name: 'Month' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.screen-peek')).toHaveCount(0);
+
+  // Quick add: a weekly event on a date from the picker, with a place and a countdown star.
+  await page.locator('.mgrid .today-btn').click();
+  await page.locator('.mgrid .cell.is-today').click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Quick add' }).click();
+  await sheet.getByLabel('Event title').fill(swim);
+  await sheet.getByRole('button', { name: 'Other date' }).click();
+  await sheet.getByRole('button', { name: 'Next month' }).click();
+  await sheet.locator('.qp-day:not(.out)', { hasText: /^10$/ }).click();
+  await sheet.getByRole('button', { name: /^Every (Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/ }).click();
+  await sheet.getByRole('button', { name: 'L Leo' }).click();
+  await sheet.getByLabel('Place').fill('123 Pool Rd, Springfield');
+  await expect(sheet.getByText('Gets a leave-by time on the day')).toBeVisible();
+  await sheet.getByRole('button', { name: 'Count down to it' }).click();
+  await sheet.getByRole('button', { name: 'Add to calendar' }).click();
+  await expect(sheet.getByRole('button', { name: 'Quick add' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Close' }).click();
+
+  // It repeats every week next month.
+  await page.locator('.mgrid button[aria-label="Next month"]').click();
+  const swims = page.locator('.mgrid .pill', { hasText: swim });
+  await expect(swims.first()).toBeVisible();
+  expect(await swims.count()).toBeGreaterThanOrEqual(3);
+
+  // Editing one occurrence asks "this one or all".
+  await page
+    .locator('.mgrid .cell', { has: page.locator('.pill', { hasText: swim }) })
+    .nth(1)
+    .click();
+  await sheet.getByRole('button', { name: `Edit ${swim}` }).click();
+  await expect(sheet.getByLabel('Place')).toHaveValue('123 Pool Rd, Springfield');
+  await sheet.getByLabel('Event title').fill(`${swim} (pool B)`);
+  await sheet.getByRole('button', { name: 'Save' }).click();
+  await sheet.getByRole('button', { name: 'Change this one' }).click();
+  await sheet.getByRole('button', { name: 'Close' }).click();
+  await expect(page.locator('.mgrid .pill', { hasText: `${swim} (pool B)` })).toHaveCount(1);
+
+  expect(problems).toEqual([]);
+});

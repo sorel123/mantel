@@ -281,7 +281,9 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('calendarEventPatch', async ({ params, body }) =>
     providers.calendar.updateEvent(params.id!, body),
   );
-  handle('calendarEventDelete', async ({ params }) => providers.calendar.deleteEvent(params.id!));
+  handle('calendarEventDelete', async ({ params, query }) =>
+    providers.calendar.deleteEvent(params.id!, query.scope),
+  );
   handle('countdowns', async () => providers.calendar.countdowns());
   // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
   registerMealRoutes(handle, createMealsService(deps));
