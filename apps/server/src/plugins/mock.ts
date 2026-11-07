@@ -7,6 +7,7 @@ import type { PluginManifest } from '@mantel/shared';
 import { integrationStatuses } from '@mantel/shared/fixtures';
 import type { Plugin } from './types.js';
 import {
+  localPlugins,
   googleManifest,
   homeAssistantManifest,
   icalManifest,
@@ -16,6 +17,8 @@ import {
   pollenManifest,
   quipsManifest,
   routesManifest,
+  timersManifest,
+  trashManifest,
   weatherManifest,
 } from './index.js';
 
@@ -30,39 +33,50 @@ export const builtInManifests: PluginManifest[] = [
   weatherManifest,
   quipsManifest,
   mealsManifest,
+  trashManifest,
+  timersManifest,
 ];
 
+/** The manifests whose plugins run for real in mock mode (they need no outside service). */
+const LOCAL = new Set<string>([trashManifest.id, timersManifest.id]);
+
 export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {
-  return builtInManifests.map((manifest) => ({
-    manifest,
-    start() {},
-    stop() {},
-    apply() {},
-    async test() {
-      return { ok: true, message: `${manifest.name} answered (mock mode, nothing was contacted).` };
-    },
-    status() {
-      const fixture = integrationStatuses(now()).find((s) => s.id === manifest.id)!;
-      return {
-        state: fixture.state === 'disabled' ? 'not_set_up' : fixture.state,
-        summary: fixture.state === 'disabled' ? 'Not set up' : fixture.summary,
-        lastOkAt: fixture.lastOkAt,
-        lastError: fixture.lastError,
-      };
-    },
-    computed() {
-      const fixture = integrationStatuses(now()).find((s) => s.id === manifest.id)!;
-      return fixture.config;
-    },
-    ...(manifest.connect === 'oauth'
-      ? {
-          authorizeUrl: () => ({
-            url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=mock&scope=calendar',
-            redirectUri: 'http://localhost:8787/api/calendar/google/callback',
-            pasteBack: true,
-          }),
-          callback: async () => {},
-        }
-      : {}),
-  }));
+  const mocked = builtInManifests
+    .filter((m) => !LOCAL.has(m.id))
+    .map((manifest) => ({
+      manifest,
+      start() {},
+      stop() {},
+      apply() {},
+      async test() {
+        return {
+          ok: true,
+          message: `${manifest.name} answered (mock mode, nothing was contacted).`,
+        };
+      },
+      status() {
+        const fixture = integrationStatuses(now()).find((s) => s.id === manifest.id)!;
+        return {
+          state: fixture.state === 'disabled' ? 'not_set_up' : fixture.state,
+          summary: fixture.state === 'disabled' ? 'Not set up' : fixture.summary,
+          lastOkAt: fixture.lastOkAt,
+          lastError: fixture.lastError,
+        };
+      },
+      computed() {
+        const fixture = integrationStatuses(now()).find((s) => s.id === manifest.id)!;
+        return fixture.config;
+      },
+      ...(manifest.connect === 'oauth'
+        ? {
+            authorizeUrl: () => ({
+              url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=mock&scope=calendar',
+              redirectUri: 'http://localhost:8787/api/calendar/google/callback',
+              pasteBack: true,
+            }),
+            callback: async () => {},
+          }
+        : {}),
+    }));
+  return [...mocked, ...localPlugins({ mock: true })];
 }

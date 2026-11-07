@@ -404,7 +404,7 @@ export const DEFAULT_TODAY_ROWS: TodayRow[] = ['tonight', 'week'];
  */
 export const TODAY_GRID_COLS = 12;
 export const TODAY_GRID_ROWS = 8;
-export const TodayCardKind = z.enum([
+export const BuiltInCardKind = z.enum([
   'date',
   'weather',
   'forecast',
@@ -417,7 +417,13 @@ export const TodayCardKind = z.enum([
   /** v3 M: the week's dinners from the meal planner. */
   'meals-week',
 ]);
+export type BuiltInCardKind = z.infer<typeof BuiltInCardKind>;
+/** A card a plugin contributes (`contributes.todayCard`), named after the plugin: `plugin:trash`. */
+export const PluginCardKind = z.templateLiteral(['plugin:', z.string().regex(/^[a-z][a-z0-9-]*$/)]);
+export type PluginCardKind = z.infer<typeof PluginCardKind>;
+export const TodayCardKind = z.union([BuiltInCardKind, PluginCardKind]);
 export type TodayCardKind = z.infer<typeof TodayCardKind>;
+export const isPluginCard = (kind: string): kind is PluginCardKind => kind.startsWith('plugin:');
 /** Cards move and resize in half cells. */
 export const TODAY_CARD_STEP = 0.5;
 const cardUnit = (min: number, max: number) =>

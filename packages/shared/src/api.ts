@@ -27,7 +27,13 @@ import {
   TestRequest,
   TestResult,
 } from './integrations.js';
-import { PluginsResponse } from './plugins.js';
+import {
+  PluginActionRequest,
+  PluginActionResponse,
+  PluginBlocksResponse,
+  PluginChipResponse,
+  PluginsResponse,
+} from './plugins.js';
 import {
   Calendar,
   CalendarEvent,
@@ -891,6 +897,32 @@ export const routes = {
     query: NoQuery,
     body: NoBody,
     response: PluginsResponse,
+    auth: true,
+  }),
+  /** v3 X: what a plugin's card, Ambient line or sheet shows (`contributes`). */
+  pluginBlocks: route({
+    method: 'GET',
+    path: '/plugins/:id/blocks/:name',
+    query: NoQuery,
+    body: NoBody,
+    response: PluginBlocksResponse,
+    auth: true,
+  }),
+  pluginChip: route({
+    method: 'GET',
+    path: '/plugins/:id/chip/:name',
+    query: NoQuery,
+    body: NoBody,
+    response: PluginChipResponse,
+    auth: true,
+  }),
+  /** A button on a plugin's card, sheet or banner. */
+  pluginAction: route({
+    method: 'POST',
+    path: '/plugins/:id/actions/:name',
+    query: NoQuery,
+    body: PluginActionRequest,
+    response: PluginActionResponse,
     auth: true,
   }),
   integrations: route({

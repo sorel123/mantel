@@ -176,6 +176,8 @@ describe('settings-first server (real mode, fresh data dir)', () => {
         'pollen',
         'quips',
         'routes',
+        'timers',
+        'trash',
         'weather',
       ].sort(),
     );

@@ -5,8 +5,12 @@
  */
 import type {
   AuthorizeUrlResponse,
+  ConfigValue,
   IntegrationConfig,
   IntegrationId,
+  PluginActionResponse,
+  PluginBlocksInput,
+  PluginChipInput,
   PluginManifest,
   PluginRuntime,
 } from '@mantel/shared';
@@ -26,7 +30,22 @@ export interface Plugin extends PluginRuntime<ProviderContext> {
   callback?(url: string): Promise<void>;
   /** Fill server-computed read-only fields (a redirect URI) into the status config. */
   computed?(): IntegrationConfig;
+
+  /* ---- what it shows on the display (`manifest.contributes`); see docs/plugins.md ---- */
+
+  /**
+   * The blocks a card, Ambient line or sheet draws, by the name the manifest gives as `data`.
+   * Null shows nothing (an Ambient line with nothing to say); undefined means no such name.
+   */
+  blocks?(name: string): Blocks | Promise<Blocks>;
+  /** The dock chip, by name. Null hides it (or shows the manifest's `idle` chip). */
+  chip?(name: string): Chip | Promise<Chip>;
+  /** A button was pressed on a card, sheet or banner. Throw an HttpError for a bad request. */
+  action?(name: string, args: Record<string, ConfigValue>): Promise<PluginActionResponse>;
 }
+
+type Blocks = PluginBlocksInput | null | undefined;
+type Chip = PluginChipInput | null | undefined;
 
 export type PluginFactory = (ctx: ProviderContext) => Plugin;
 

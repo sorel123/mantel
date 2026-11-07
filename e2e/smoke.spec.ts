@@ -675,6 +675,54 @@ test('Your own layout: the cards from the address, and the editor moves, resizes
   expect(problems).toEqual([]);
 });
 
+test('plugin cards: trash day on Today, kitchen timers from the dock, a timer banner, and the editor lists them', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+
+  // A plugin card on a custom layout, drawn from the plugin's blocks.
+  await page.goto('/?mode=daylight&today=custom&cards=plugin:trash:0.0.4.3,agenda:4.0.8.8');
+  const trash = page.locator('.region[data-region="plugin:trash"] .plugin-card');
+  await expect(trash).toBeVisible();
+  await expect(trash.getByText('Recycling', { exact: true })).toBeVisible();
+
+  // The timers chip in the dock opens the sheet; a preset starts a timer that counts down.
+  await page.locator('.dock .pchip[data-plugin="timers"]').click();
+  const sheet = page.getByRole('dialog', { name: 'Kitchen timers' });
+  await sheet.getByRole('button', { name: '1 min', exact: true }).click();
+  await expect(page.getByText('1 min timer started.')).toBeVisible();
+  const row = sheet.locator('li', { hasText: '1 min timer' }).first();
+  await expect(row.locator('.pb-count')).toHaveText(/^0:[0-5]\d$|^1:00$/);
+  await row.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByText('1 min timer cancelled.')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // A timer that rings shows a banner on every display; Stop clears it.
+  await request.post('/api/plugins/timers/actions/start', {
+    data: { args: { seconds: 1, label: 'Smoke test' } },
+  });
+  const banner = page.getByRole('alert').filter({ hasText: 'Smoke test is done' });
+  await expect(banner).toBeVisible();
+  await banner.getByRole('button', { name: 'Stop' }).click();
+  await expect(banner).toBeHidden();
+
+  // Settings › Layout › Your own lists plugin cards under "From plugins".
+  await page.goto('/settings#layout');
+  await page.getByRole('radio', { name: /Your own/ }).click();
+  const canvas = page.getByRole('group', { name: 'Today layout' });
+  // Make room: the starting layout fills the grid.
+  await canvas.getByRole('button', { name: /^List,/ }).click();
+  await page.getByRole('button', { name: 'Remove List' }).click();
+  await page
+    .getByRole('group', { name: 'Add a card from a plugin' })
+    .getByRole('button', { name: '+ Kitchen timers' })
+    .click();
+  await expect(canvas.getByRole('button', { name: /^Kitchen timers,/ })).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
 test('fill and scale reach the edges of the viewport', async ({ page }) => {
   const problems = watchConsole(page);
   const size = page.viewportSize()!;

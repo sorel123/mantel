@@ -174,6 +174,16 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   /* ---- v2 workstream A: plugins, integrations, admin PIN, setup, backup, geocode ---- */
   handle('plugins', async () => ({ plugins: registry.manifests() }));
   handle('integrations', async () => ({ integrations: registry.statuses() }));
+  // v3 X: what plugins draw on the display (`contributes`), and their buttons.
+  handle('pluginBlocks', async ({ params }) => ({
+    blocks: await registry.blocks(params.id!, params.name!),
+  }));
+  handle('pluginChip', async ({ params }) => ({
+    chip: await registry.chip(params.id!, params.name!),
+  }));
+  handle('pluginAction', async ({ params, body }) =>
+    registry.action(params.id!, params.name!, body.args),
+  );
   handle('integrationPut', async ({ params, body }) => {
     const integration = await registry.update(params.id!, body);
     if (integration.state === 'connected') setup.markDone(stepFor(registry, params.id!));

@@ -11,6 +11,7 @@ import type {
   SetupState,
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
+import { timersManifest, trashManifest } from './plugin-cards.js';
 import { settings } from './settings.js';
 
 const field = (
@@ -418,6 +419,8 @@ export const pluginManifests: PluginManifest[] = [
     fields: [],
     contributes: { events: ['calendar.changed', 'list.changed'] },
   },
+  trashManifest,
+  timersManifest,
 ];
 
 export function integrationStatuses(now = new Date()): IntegrationStatus[] {
@@ -484,6 +487,12 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
     },
     { ...base('quips'), enabled: false, state: 'disabled', summary: 'Turned off' },
     { ...base('meals'), state: 'connected', summary: 'Built in: 8 favourites', lastOkAt: ok },
+    {
+      ...base('trash'),
+      state: 'connected',
+      summary: 'Trash Thursday, recycling every other Thursday',
+    },
+    { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
   ];
 }
 
