@@ -1,59 +1,16 @@
 import type { ChoreCadence, Person } from '@mantel/shared';
-import { useEffect, useState, type FormEvent } from 'react';
-import { Pairing } from '../../../app/Pairing';
-import { useBootstrap, useBootstrapState } from '../../../lib/bootstrap';
-import { connectEvents } from '../../../lib/events';
-import { useThemeMode } from '../../../lib/theme';
-import { Avatar } from '../Avatar';
-import { groceryList } from '../GroceryPeek';
-import { useChores, useLists } from '../data';
-import '../lists.css';
-import './add.css';
+import { useState, type FormEvent } from 'react';
+import { Avatar } from '../lists/Avatar';
+import { groceryList } from '../lists/GroceryPeek';
+import { useChores, useLists } from '../lists/data';
+import { MagicImport } from './MagicImport';
 
 /**
- * The phone page at `/add`: add to any list in a couple of taps, tick or remove items, and
- * set up the kids' chores. A phone pairs once with the code from the server log, like a display.
+ * The companion's Lists tab (the original `/add` page): add to any list in a couple of taps, tick
+ * or remove items, create lists. `ManageChores` sets up the kids' chores and is reused by the
+ * Chores tab.
  */
-export function AddPage() {
-  const { state, reload } = useBootstrapState();
-  useThemeMode(state.status === 'ready' ? state.data.theme : 'auto');
-  useEffect(() => {
-    document.body.classList.add('phone');
-    return () => document.body.classList.remove('phone');
-  }, []);
-
-  if (state.status === 'ready') return <Ready />;
-  return (
-    <main className="addpage">
-      {state.status === 'unpaired' ? (
-        <Pairing onPaired={reload} />
-      ) : state.status === 'error' ? (
-        <div className="card apanel">
-          <h1 className="h2">Can't reach Mantel</h1>
-          <p className="amuted">{state.message}</p>
-          <button className="abtn" onClick={reload}>
-            Retry
-          </button>
-        </div>
-      ) : (
-        <div className="amuted">Loading</div>
-      )}
-    </main>
-  );
-}
-
-function Ready() {
-  const boot = useBootstrap();
-  useEffect(connectEvents, []);
-  return (
-    <main className="addpage">
-      <AddItems people={boot.people} />
-      {boot.flags.chores && <ManageChores people={boot.people} />}
-    </main>
-  );
-}
-
-function PersonChips({
+export function PersonChips({
   people,
   value,
   onChange,
@@ -94,7 +51,7 @@ function PersonChips({
   );
 }
 
-function AddItems({ people }: { people: Person[] }) {
+export function AddItems({ people }: { people: Person[] }) {
   const { lists, error, toggle, add, remove, createList, deleteList } = useLists();
   const [listId, setListId] = useState<string>();
   const [text, setText] = useState('');
@@ -127,9 +84,9 @@ function AddItems({ people }: { people: Person[] }) {
 
   return (
     <>
-      <header className="ahead">
-        <div className="eyebrow">Mantel</div>
+      <header className="ahead arow">
         <h1 className="h1">Add to a list</h1>
+        <MagicImport hint="list" compact />
       </header>
 
       <div className="atabs" role="tablist" aria-label="Lists">
@@ -233,7 +190,7 @@ function AddItems({ people }: { people: Person[] }) {
   );
 }
 
-function ManageChores({ people }: { people: Person[] }) {
+export function ManageChores({ people }: { people: Person[] }) {
   const { chart, create, retire } = useChores();
   const [title, setTitle] = useState('');
   const [personId, setPersonId] = useState<string | undefined>(people[people.length - 1]?.id);
@@ -251,8 +208,8 @@ function ManageChores({ people }: { people: Person[] }) {
   return (
     <>
       <header className="ahead">
-        <h1 className="h1">Chores</h1>
-        <p className="amuted">Kids tick these off on the wall. Stars reset every Monday.</p>
+        <h2 className="h2">Set up chores</h2>
+        <p className="amuted">Kids tick these off on the wall or here. Stars reset every Monday.</p>
       </header>
 
       <form className="card apanel" onSubmit={submit}>

@@ -27,6 +27,7 @@ import {
   TestRequest,
   TestResult,
 } from './integrations.js';
+import { companionRoutes } from './companion.js';
 import {
   PluginActionRequest,
   PluginActionResponse,
@@ -1024,6 +1025,8 @@ export const routes = {
     response: GeocodeResponse,
     auth: true,
   }),
+  /* v3 C: wall notes, Web Push, Magic Import (companion.ts) */
+  ...companionRoutes,
   /* ---- v3 M: the meal planner (meals.ts) ---- */
   ...mealRoutes,
 } as const;

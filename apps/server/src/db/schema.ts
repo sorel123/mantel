@@ -1,4 +1,4 @@
-import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /** Paired displays. Only the SHA-256 of each key is stored. */
 export const devices = sqliteTable('devices', {
@@ -84,6 +84,36 @@ export const choreCompletions = sqliteTable('chore_completions', {
   day: text('day').notNull(),
   at: text('at').notNull(),
   stars: integer('stars').notNull(),
+});
+
+/* ---- v3 C: wall notes and Web Push ---- */
+
+/** Notes on the wall: typed on a phone or drawn on the wall. Expired rows are swept on read. */
+export const notes = sqliteTable('notes', {
+  id: text('id').primaryKey(),
+  kind: text('kind', { enum: ['text', 'drawing'] }).notNull(),
+  text: text('text').notNull(),
+  color: text('color').notNull(),
+  personId: text('person_id'),
+  fromName: text('from_name'),
+  /** A drawing's PNG bytes. */
+  image: blob('image', { mode: 'buffer' }),
+  createdAt: text('created_at').notNull(),
+  expiresAt: text('expires_at'),
+});
+
+/** One row per phone that allowed notifications. Events are a JSON array of PushEventKind. */
+export const pushSubscriptions = sqliteTable('push_subscriptions', {
+  id: text('id').primaryKey(),
+  deviceId: text('device_id').notNull(),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  events: text('events').notNull(),
+  personId: text('person_id'),
+  createdAt: text('created_at').notNull(),
+  lastSentAt: text('last_sent_at'),
+  lastError: text('last_error'),
 });
 
 /* ---- v3 M: the meal planner ---- */

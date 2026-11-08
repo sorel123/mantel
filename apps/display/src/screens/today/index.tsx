@@ -29,11 +29,15 @@ import { Icon, Svg } from './parts';
 import { PhotoPanel } from './PhotoPanel';
 import { usePersonFilter } from './personFilter';
 import { WeatherLine, WeekAhead } from './WeatherBits';
+import { useAddMenu } from '../companion/wall/AddMenu';
+import { AmbientNote, NotesCard } from '../companion/wall/NotesCard';
 import './today.css';
 import './presets.css';
 
 // Ambient shows the next event under the weather line.
 registerAmbientSlot({ id: 'next-event', Component: AmbientNextEvent, order: 1 });
+// v3 C: the newest wall note under it.
+registerAmbientSlot({ id: 'wall-note', Component: AmbientNote, order: 2 });
 
 type View = 'day' | 'week';
 /** Day or Week, remembered while the display runs (leaving Today and coming back keeps it). */
@@ -74,7 +78,8 @@ export function TodayScreen() {
   };
   const toggle = <ViewToggle value={view} onChange={setView} />;
   const weather = useWeather();
-  const onAdd = () => openDay(today, { add: true });
+  // v3 C: the + offers an event, a note, a drawing or a photo to read.
+  const onAdd = useAddMenu(() => openDay(today, { add: true }));
   const onDay = (day: Date) => openDay(day);
 
   const render = (slot: string): ReactNode => {
@@ -164,7 +169,11 @@ export function TodayScreen() {
         return <Bill now={now} events={events} onAdd={onAdd} onDay={onDay} />;
       case 'add':
         return (
-          <button className="add-round" aria-label="Add an event today" onClick={onAdd}>
+          <button
+            className="add-round"
+            aria-label="Add an event, a note or a photo"
+            onClick={onAdd}
+          >
             <Svg>{Icon.plus}</Svg>
           </button>
         );
@@ -228,6 +237,12 @@ export function TodayScreen() {
             <div className="card cc-pad">
               <TonightSlot today={today} />
             </div>
+          );
+        case 'notes':
+          return (
+            <Guard name="notes">
+              <NotesCard />
+            </Guard>
           );
         case 'meals-week':
           return (

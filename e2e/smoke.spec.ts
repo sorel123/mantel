@@ -26,8 +26,10 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await expect(page.getByText(/^Now · /)).toBeVisible();
 
   // Quick add opens in the day sheet and closes with Escape.
-  await page.getByRole('button', { name: 'Add an event today' }).click();
-  const sheet = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Add an event, a note or a photo' }).click();
+  await page.getByRole('button', { name: /An event/ }).click();
+  // The add menu is still sliding out when the day sheet arrives: pick the one with the form.
+  const sheet = page.getByRole('dialog').filter({ has: page.getByLabel('Event title') });
   await expect(sheet.getByLabel('Event title')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
@@ -260,6 +262,7 @@ const SECTIONS: Array<[string, string]> = [
   ['quips', 'Weather quips'],
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
+  ['companion', 'Phone app'],
   ['meals', 'Meals'],
   ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
@@ -553,8 +556,9 @@ test('layout presets switch, and the day sheet and quick add still work in each'
     await expect(dock()).toBeVisible();
     await expect(page.locator(`.today[data-preset="${preset}"]`)).toBeVisible();
     await check();
-    await page.getByRole('button', { name: 'Add an event today' }).click();
-    const sheet = page.getByRole('dialog');
+    await page.getByRole('button', { name: 'Add an event, a note or a photo' }).click();
+    await page.getByRole('button', { name: /An event/ }).click();
+    const sheet = page.getByRole('dialog').filter({ has: page.getByLabel('Event title') });
     await expect(sheet.getByLabel('Event title')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(sheet).toBeHidden();
@@ -913,5 +917,129 @@ test('people and touch: person filter, guest mode, live swipe, a weekly event wi
   await sheet.getByRole('button', { name: 'Close' }).click();
   await expect(page.locator('.mgrid .pill', { hasText: `${swim} (pool B)` })).toHaveCount(1);
 
+  expect(problems).toEqual([]);
+});
+
+/* ---------- v3 C: the companion app, wall notes, Magic Import and push ---------- */
+
+/** A 1×1 PNG: enough for the mock import, which ignores the pixels and returns the fixtures. */
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+test.describe('companion app on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('every tab opens, a note goes up, a photo is read and added, and the manifest is served', async ({
+    page,
+    request,
+  }) => {
+    const problems = watchConsole(page);
+
+    // Installable: a manifest and a service worker at the root.
+    const manifest = await request.get('/manifest.webmanifest');
+    expect(manifest.ok()).toBe(true);
+    expect((await manifest.json()).start_url).toBe('/app');
+    expect((await request.get('/sw.js')).ok()).toBe(true);
+
+    await page.goto('/app');
+    const tabs = page.getByRole('navigation', { name: 'Companion tabs' });
+    await expect(tabs).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Add to a list' })).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Add to home screen' })).toBeVisible();
+    await page.getByRole('button', { name: 'Got it' }).click();
+
+    await tabs.getByRole('button', { name: 'Calendar' }).click();
+    await expect(page.getByRole('heading', { name: 'Calendar' })).toBeVisible();
+    await expect(page).toHaveURL(/#calendar$/);
+    await tabs.getByRole('button', { name: 'Meals' }).click();
+    await expect(page.getByRole('heading', { name: 'Meals' })).toBeVisible();
+    await tabs.getByRole('button', { name: 'Chores' }).click();
+    await expect(page.getByRole('heading', { name: 'Chores' })).toBeVisible();
+
+    // A note for the wall.
+    await tabs.getByRole('button', { name: 'Note' }).click();
+    await expect(page.getByRole('heading', { name: 'Note for the wall' })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Note' }).fill('Back by six');
+    await page.getByRole('button', { name: 'Put it on the wall' }).click();
+    await expect(
+      page.getByRole('region', { name: 'Notes on the wall now' }).getByText('Back by six'),
+    ).toBeVisible();
+
+    // Magic Import from the Lists tab: the mock reads the fixtures off any photo, and nothing is
+    // written until Add.
+    await page.goto('/app#lists');
+    await expect(page.getByRole('button', { name: 'Take a photo' })).toBeEnabled();
+    await page.getByTestId('import-file').setInputFiles({
+      name: 'flyer.png',
+      mimeType: 'image/png',
+      buffer: TINY_PNG,
+    });
+    await expect(page.getByRole('heading', { name: 'Check what was found' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Events found' })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Add Science fair' })).toBeChecked();
+    await page.getByRole('checkbox', { name: 'Add Glue sticks' }).click();
+    await page.getByRole('button', { name: /^Add \d+ things$/ }).click();
+    await expect(page.getByRole('heading', { name: /^Added / })).toBeVisible();
+    const { lists } = (await (await request.get('/api/lists')).json()) as {
+      lists: Array<{ id: string; items: Array<{ text: string }> }>;
+    };
+    const grocery = lists.find((l) => l.id === 'list-grocery')!.items.map((i) => i.text);
+    expect(grocery).toContain('Poster board');
+    expect(grocery).not.toContain('Glue sticks');
+
+    // The old address still opens the app.
+    await page.goto('/add');
+    await expect(tabs).toBeVisible();
+    expect(problems).toEqual([]);
+  });
+});
+
+test('the wall shows notes, the + button offers a note, a drawing or a photo, and a phone can subscribe to push', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  // One mock server serves both sizes: each run leaves its own notes.
+  const who = test.info().project.name;
+  await request.post('/api/notes', {
+    data: { kind: 'text', text: `Dentist at 4 (${who})`, color: 'sun' },
+  });
+  await page.goto('/?mode=daylight&today=custom&cards=date:0.0.3.1,notes:0.1.5.7,agenda:5.0.7.8');
+  const notes = page.locator('.notes-card');
+  await expect(notes.getByText(`Dentist at 4 (${who})`)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add an event, a note or a photo' }).click();
+  const menu = page.getByRole('dialog');
+  await expect(menu.getByRole('button', { name: /A note/ })).toBeVisible();
+  await expect(menu.getByRole('button', { name: /A drawing/ })).toBeVisible();
+  await expect(menu.getByRole('button', { name: /A photo of a flyer/ })).toBeVisible();
+  await menu.getByRole('button', { name: /A note/ }).click();
+  await page.getByRole('textbox', { name: 'Note' }).fill(`Pizza Friday (${who})`);
+  await page.getByRole('button', { name: 'Put it on the wall' }).click();
+  await expect(notes.getByText(`Pizza Friday (${who})`)).toBeVisible();
+
+  // Push in mock: a fake endpoint subscribes, a test message lands in the outbox, and Settings
+  // lists the phone.
+  const sub = await request.post('/api/push/subscriptions', {
+    data: {
+      endpoint: 'https://push.example.test/fake-endpoint',
+      keys: { p256dh: 'BPfake', auth: 'fakeauth' },
+      events: ['doorbell', 'chores'],
+      personId: null,
+    },
+  });
+  expect(sub.ok()).toBe(true);
+  const { subscription } = (await sub.json()) as { subscription: { id: string } };
+  const sent = await request.post(`/api/push/subscriptions/${subscription.id}/test`);
+  expect(((await sent.json()) as { ok: boolean }).ok).toBe(true);
+  await page.goto('/settings#companion');
+  await expect(page.getByRole('heading', { name: 'Phone app' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Phones with notifications' })).toContainText(
+    'Doorbell, Chores',
+  );
+  await expect(page.getByText('The photo is sent to Anthropic')).toBeVisible();
+  await request.delete(`/api/push/subscriptions/${subscription.id}`);
   expect(problems).toEqual([]);
 });

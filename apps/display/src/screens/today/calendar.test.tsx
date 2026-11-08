@@ -148,9 +148,11 @@ describe('Today', () => {
 
   it('opens quick add for today and posts the event', async () => {
     mount(<TodayScreen />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Add an event today' }));
-    const sheet = await screen.findByRole('dialog');
-    fireEvent.change(within(sheet).getByLabelText('Event title'), {
+    fireEvent.click(await screen.findByRole('button', { name: 'Add an event, a note or a photo' }));
+    fireEvent.click(await screen.findByRole('button', { name: /An event/ }));
+    const title = await screen.findByLabelText('Event title');
+    const sheet = title.closest('[role="dialog"]') as HTMLElement;
+    fireEvent.change(title, {
       target: { value: 'Pizza night' },
     });
     fireEvent.click(within(sheet).getByRole('button', { name: /Leo/ }));

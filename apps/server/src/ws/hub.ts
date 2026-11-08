@@ -14,6 +14,8 @@ export class WsHub {
   /** Which device each socket authenticated as, so revoking a key closes its socket. */
   private readonly deviceOf = new WeakMap<WebSocket, string>();
   private timer: NodeJS.Timeout | undefined;
+  /** Server-side listeners (Web Push turns some events into phone notifications). */
+  private readonly listeners = new Set<(event: WsEvent) => void>();
 
   constructor(private readonly auth: DeviceAuth) {
     this.wss.on('connection', (socket) => {
@@ -29,8 +31,22 @@ export class WsHub {
 
   /** Validate and send one event to every display. Throws on a malformed event. */
   broadcast(event: WsEventInput): void {
-    const msg = JSON.stringify(WsEvent.parse(event));
+    const parsed = WsEvent.parse(event);
+    const msg = JSON.stringify(parsed);
     for (const client of this.wss.clients) if (client.readyState === client.OPEN) client.send(msg);
+    for (const l of this.listeners) {
+      try {
+        l(parsed);
+      } catch (err) {
+        log.warn('ws: an event listener failed', { err: String(err) });
+      }
+    }
+  }
+
+  /** Hear every event the server broadcasts. Returns an unsubscribe. */
+  onEvent(listener: (event: WsEvent) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   attach(server: Server): void {

@@ -16,6 +16,9 @@ import type { AppDeps } from '../app.js';
 import type { HomeBytes } from '../providers/types.js';
 import { dateInZone } from '../providers/real/weather-time.js';
 import { VERSION } from '../version.js';
+import { registerImportRoutes } from '../plugins/import/index.js';
+import { registerNotesRoutes } from '../plugins/notes/index.js';
+import { registerPushRoutes } from '../plugins/push/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
 
@@ -414,6 +417,11 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   };
   handle('weatherQuip', async () => providers.weather.quip(todaysEvents));
   handle('commute', async () => providers.weather.commute(todaysEvents));
+
+  /* ---- v3 C: companion (wall notes, Web Push, Magic Import) in plugins/{notes,push,import} ---- */
+  const push = registerPushRoutes(handle, deps, todaysEvents);
+  registerNotesRoutes(handle, deps, push);
+  registerImportRoutes(handle, deps);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');

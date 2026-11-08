@@ -74,6 +74,7 @@ export type SectionId =
   | 'layout'
   | 'screens'
   | 'lists'
+  | 'companion'
   | 'meals'
   | 'places'
   | 'schedule'

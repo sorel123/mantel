@@ -235,7 +235,7 @@ export function Agenda({
           {toggle}
           {/* The narrow agenda keeps its header to the switch and the add button. */}
           {full && <PersonChips />}
-          <button className="add" aria-label="Add an event today" onClick={onAdd}>
+          <button className="add" aria-label="Add an event, a note or a photo" onClick={onAdd}>
             <Svg>{Icon.plus}</Svg>
           </button>
         </div>

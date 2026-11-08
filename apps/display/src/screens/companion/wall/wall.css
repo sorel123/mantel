@@ -1,0 +1,180 @@
+/* Notes on the wall: the Today card, Ambient's line, the add menu and the sheets. */
+.today .notes-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+.today .notes-card .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.today .notes-card .add {
+  width: 48px;
+  height: 48px;
+  margin: -6px -6px -6px 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  transition: transform var(--fast) var(--ease);
+}
+.today .notes-card .add:active {
+  transform: scale(0.94);
+}
+.today .notes-card .add svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  fill: none;
+  stroke-linecap: round;
+}
+.notes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
+.notes-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+  padding: 4px 6px;
+}
+.notes-stack::-webkit-scrollbar {
+  display: none;
+}
+.notes-tap {
+  text-align: left;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform var(--fast) var(--ease);
+  border-radius: 6px 6px 18px 6px;
+}
+.notes-tap:active {
+  transform: rotate(0deg) scale(0.98);
+}
+.notes-more {
+  font-size: 13px;
+  padding: 0 4px;
+}
+.ambient .a-side .ambient-note b {
+  display: block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-menu {
+  gap: 10px;
+}
+.add-choice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  color: var(--ink);
+  text-align: left;
+  transition: transform var(--fast) var(--ease);
+}
+.add-choice:active {
+  transform: scale(0.985);
+}
+.add-choice svg {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.add-choice span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.add-choice b {
+  font-size: 19px;
+}
+.add-choice small {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* the composer and Magic Import inside a wall sheet reuse the phone's classes */
+.sheet .nc,
+.sheet .wall-import .mi {
+  font-size: 16px;
+}
+.sheet .achips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sheet .achip,
+.sheet .abtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 16px;
+}
+.sheet .achip {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+.sheet .achip[aria-checked='true'],
+.sheet .achip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.sheet .abtn {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.sheet .abtn.ghost {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.sheet .abtn:disabled {
+  opacity: 0.45;
+}
+.sheet .ainput {
+  min-width: 0;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0 14px;
+  font: 500 17px/1 var(--body);
+  color: var(--ink);
+}
+.sheet .amuted {
+  color: var(--ink-2);
+  margin: 0;
+}
+.sheet .wall-import .mi-pick {
+  gap: 18px;
+}
+.sheet .wall-import .mi-buttons .abtn {
+  min-height: var(--tap);
+}

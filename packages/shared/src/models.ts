@@ -414,6 +414,8 @@ export const BuiltInCardKind = z.enum([
   'list',
   'countdowns',
   'tonight',
+  /** v3 C: wall notes from the phone and the wall. */
+  'notes',
   /** v3 M: the week's dinners from the meal planner. */
   'meals-week',
 ]);

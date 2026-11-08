@@ -202,6 +202,7 @@ export const TODAY_CARDS: ReadonlyArray<PresetInfo<BuiltInCardKind>> = [
   { id: 'list', name: 'List', description: 'The list pinned to Today.' },
   { id: 'countdowns', name: 'Countdowns', description: 'Days until starred events.' },
   { id: 'tonight', name: 'Tonight', description: "Tonight's dinner from the meal plan." },
+  { id: 'notes', name: 'Notes', description: 'Notes and drawings left for the family.' },
   { id: 'meals-week', name: 'Meals this week', description: "The week's dinners; tap to plan." },
 ];
 
@@ -265,6 +266,7 @@ export const CARD_MIN: Readonly<Record<BuiltInCardKind, readonly [number, number
   list: [2, 1.5],
   countdowns: [2.5, 1],
   tonight: [2.5, 1],
+  notes: [2, 1.5],
   'meals-week': [3, 2],
 };
 
@@ -283,6 +285,7 @@ const CARD_COMFORT: Readonly<Record<BuiltInCardKind, readonly [number, number] |
   list: [3, 2.5],
   countdowns: [4, 1],
   tonight: [4, 1],
+  notes: [3, 2.5],
   'meals-week': [4, 3.5],
 };
 export const CARD_ZOOM_MIN = 0.75;

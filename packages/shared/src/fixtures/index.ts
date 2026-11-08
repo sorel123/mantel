@@ -3,6 +3,7 @@
  * Dates are generated relative to `now` so the mock always looks like "today".
  * Every value here must parse against its route's response schema (see fixtures.test.ts).
  */
+import { companionRouteFixtures } from '../companion.js';
 import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
 import { MOCK_WEBRTC_ANSWER } from '../home-webrtc.js';
@@ -204,6 +205,7 @@ export function routeFixtures(now = new Date()): {
     settingsExport: settingsBundle(now),
     settingsImport: { ok: true, secretsRestored: ['google', 'homeassistant'] },
     geocode: { candidates: geocodeCandidates },
+    ...companionRouteFixtures(now),
     ...rewardRouteFixtures(now),
     ...mealFixtures(now),
   };
@@ -307,5 +309,6 @@ export function wsFixtures(now = new Date()) {
     { type: 'display.reload', payload: {} },
     { type: 'display.wake', payload: { reason: 'presence' } },
     { type: 'display.sleep', payload: { reason: 'schedule' } },
+    { type: 'notes.changed', payload: {} },
   ] as const;
 }

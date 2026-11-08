@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence } from './models.js';
+import { NotesChanged } from './companion.js';
 import { PluginAlertPayload } from './plugins.js';
 import { WeatherAlertPayload, WeatherSnapshotExtended } from './weather-extended.js';
 import { RewardsRedeemed } from './rewards.js';
@@ -75,6 +76,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   DisplayReload,
   DisplayWake,
   DisplaySleep,
+  NotesChanged,
 ]);
 export type WsEvent = z.infer<typeof WsEvent>;
 export type WsEventType = WsEvent['type'];
