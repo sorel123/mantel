@@ -8,6 +8,7 @@ import {
   type Routine,
 } from '@mantel/shared';
 import { useState } from 'react';
+import { dimClass, useDimmed } from '../today/personFilter';
 import { Avatar } from './Avatar';
 import { useCelebrate } from './celebrate';
 import { Star } from './ChoreChart';
@@ -44,6 +45,7 @@ export function RoutineCard({
   const current = dayPartAt(now);
   const [part, setPart] = useState<DayPart>(current);
   const celebrate = useCelebrate();
+  const dimmed = useDimmed();
   const who = people.filter((p) => choresAt(chores, p.id, part).length > 0);
   const partRoutines = routines.filter((r) => r.timeOfDay === part);
   const title =
@@ -90,7 +92,11 @@ export function RoutineCard({
             const rows = choresAt(chores, person.id, part);
             const left = rows.filter((c) => !isComplete(c)).length;
             return (
-              <div className="rcol" key={person.id} aria-label={`${person.name}'s ${part}`}>
+              <div
+                className={`rcol${dimClass(dimmed([person.id]))}`}
+                key={person.id}
+                aria-label={`${person.name}'s ${part}`}
+              >
                 <div className="rwho">
                   <Avatar person={person} size="lg" />
                   <b>{person.name}</b>

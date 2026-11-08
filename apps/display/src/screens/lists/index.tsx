@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, type CSSProperties, type ReactNode } fro
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useOverlay } from '../../app/overlay';
 import { useBootstrap } from '../../lib/bootstrap';
+import { dimClass, useDimmed } from '../today/personFilter';
 import { Avatar } from './Avatar';
 import { CelebrationLayer, useCelebrate } from './celebrate';
 import { ChoreChart, Star } from './ChoreChart';
@@ -181,6 +182,7 @@ function ChoresView({
 }) {
   const overlay = useOverlay();
   const celebrate = useCelebrate();
+  const dimmed = useDimmed();
   const { routines } = useRoutines();
   const hasRoutines = chart.chores.some((c) => c.cadence === 'daily' && c.timeOfDay !== 'any');
   const [picked, setMode] = useState<ChoresMode | null>(null);
@@ -231,7 +233,7 @@ function ChoresView({
               <button
                 key={p.id}
                 type="button"
-                className="cbank-chip"
+                className={`cbank-chip${dimClass(dimmed([p.id]))}`}
                 style={{ '--pc': p.color } as CSSProperties}
                 aria-label={`${p.name}: ${balances.find((b) => b.personId === p.id)?.stars ?? 0} stars banked. Rewards`}
                 onClick={() => openRewards(p.id)}

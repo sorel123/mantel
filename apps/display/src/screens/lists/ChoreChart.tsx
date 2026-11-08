@@ -7,6 +7,7 @@ import {
   type StarBalance,
 } from '@mantel/shared';
 import { Fragment } from 'react';
+import { dimClass, useDimmed } from '../today/personFilter';
 import { Avatar } from './Avatar';
 import { useCelebrate } from './celebrate';
 import { isComplete, todayIndex, type ChoreChart as Chart } from './data';
@@ -65,6 +66,8 @@ export function ChoreChart({
 }) {
   const today = todayIndex();
   const celebrate = useCelebrate();
+  // v3 P: while one person is chosen, the other kids' cards dim.
+  const dimmed = useDimmed();
   const kids = chart.stars
     .map((s) => ({ person: people.find((p) => p.id === s.personId), stars: s.stars }))
     .filter((k): k is { person: Person; stars: number } => !!k.person)
@@ -88,7 +91,11 @@ export function ChoreChart({
         const banked = balances.find((b) => b.personId === person.id)?.stars;
         const grouped = groups(mine, routines);
         return (
-          <section key={person.id} className="card kid" aria-label={`${person.name}'s chores`}>
+          <section
+            key={person.id}
+            className={`card kid${dimClass(dimmed([person.id]))}`}
+            aria-label={`${person.name}'s chores`}
+          >
             <header className="kh">
               <Avatar person={person} size="lg" />
               <div className="kn">

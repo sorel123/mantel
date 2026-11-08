@@ -299,7 +299,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   );
   handle('countdowns', async () => providers.calendar.countdowns());
   // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
-  registerMealRoutes(handle, createMealsService(deps));
+  const meals = createMealsService(deps);
+  registerMealRoutes(handle, meals);
 
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());
@@ -421,7 +422,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   /* ---- v3 C: companion (wall notes, Web Push, Magic Import) in plugins/{notes,push,import} ---- */
   const push = registerPushRoutes(handle, deps, todaysEvents);
   registerNotesRoutes(handle, deps, push);
-  registerImportRoutes(handle, deps);
+  registerImportRoutes(handle, deps, meals);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');

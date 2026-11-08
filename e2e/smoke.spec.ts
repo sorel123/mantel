@@ -855,6 +855,23 @@ test('people and touch: person filter, guest mode, live swipe, a weekly event wi
   await dock.getByRole('button', { name: /^Showing Sam/ }).click();
   await expect(page.locator('.mgrid .pf-dim')).toHaveCount(0);
 
+  // Lists too: with Sam chosen, Ava's list items and her chore card dim; unowned items stay.
+  await dock.getByRole('button', { name: 'Lists' }).click();
+  await dock.getByRole('button', { name: 'Show Sam' }).click();
+  const grid = page.locator('.lgrid');
+  await expect(grid.locator('li.pf-dim .litem').first()).toBeVisible();
+  await expect(grid.locator('li:not(.pf-dim) .litem').first()).toBeVisible();
+  // The chore chart: switch to Ava from the dock and Leo's card dims while hers stays bright.
+  await page.getByRole('tab', { name: /Chore chart/ }).click();
+  await page.getByRole('button', { name: 'This week' }).click();
+  await expect(page.getByRole('region', { name: "Ava's chores" })).toHaveClass(/pf-dim/);
+  await dock.getByRole('button', { name: 'Show Ava' }).click();
+  await expect(page.getByRole('region', { name: "Leo's chores" })).toHaveClass(/pf-dim/);
+  await expect(page.getByRole('region', { name: "Ava's chores" })).not.toHaveClass(/pf-dim/);
+  await dock.getByRole('button', { name: /^Showing Ava/ }).click();
+  await expect(page.locator('.chart .pf-dim')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Lists' }).click();
+
   // Guest mode: only Today and Month in the dock, and it survives a reload in this tab.
   await dock.getByRole('button', { name: /^Guest mode/ }).click();
   await expect(dock.getByRole('button', { name: 'Lists' })).toHaveCount(0);

@@ -6,6 +6,7 @@ import type { CalendarEvent, ImportCommitRequest, ImportEvent } from '@mantel/sh
 import { ImportCommitRequest as CommitSchema } from '@mantel/shared';
 import type { z } from 'zod';
 import type { Providers } from '../../providers/types.js';
+import type { MealsService } from '../meals/index.js';
 import { isoInZone } from '../../providers/real/weather-time.js';
 import { shiftDate, wallIso } from './zone.js';
 
@@ -38,6 +39,7 @@ export async function commitImport(
   req: Commit | ImportCommitRequest,
   providers: Pick<Providers, 'calendar' | 'lists'>,
   timeZone: string,
+  planner?: Pick<MealsService, 'enabled' | 'plan'>,
 ) {
   const body = CommitSchema.parse(req);
   const problems: string[] = [];
@@ -85,18 +87,34 @@ export async function commitImport(
     }
   }
 
-  // Meals go on the Meals calendar as all-day "Dinner: Tacos" events, which the wall already
-  // reads as the meal plan. The meal planner (workstream M) can take these over later.
+  // Meals go into the meal planner (v3 M) while it is on, which mirrors them to the Meals
+  // calendar when that is set up. With the planner off, or for a meal in no planner slot, they
+  // go on the Meals calendar as all-day "Dinner: Tacos" events, which the wall reads as the plan.
   let meals = 0;
-  if (body.meals.length) {
+  const forCalendar: typeof body.meals = [];
+  if (planner?.enabled()) {
+    for (const m of body.meals) {
+      if (m.slot === 'other') {
+        forCalendar.push(m);
+        continue;
+      }
+      try {
+        await planner.plan({ date: m.date, slot: m.slot, title: m.title.slice(0, 80) });
+        meals++;
+      } catch (err) {
+        problems.push(`Could not plan ${m.title}: ${why(err)}`);
+      }
+    }
+  } else forCalendar.push(...body.meals);
+  if (forCalendar.length) {
     const cals = await providers.calendar.calendars().catch(() => []);
     const mealsCal = cals.find((c) => c.isMeals && !c.readOnly && c.source !== 'ical');
     if (!mealsCal) {
       problems.push(
-        `${body.meals.length} meal${body.meals.length === 1 ? '' : 's'} not added: connect a Meals calendar that Mantel can write to, in Settings › Calendars.`,
+        `${forCalendar.length} meal${forCalendar.length === 1 ? '' : 's'} not added: connect a Meals calendar that Mantel can write to, in Settings › Calendars.`,
       );
     } else {
-      for (const m of body.meals) {
+      for (const m of forCalendar) {
         try {
           await providers.calendar.quickAdd({
             title: `${SLOT_WORD[m.slot]}: ${m.title}`,
