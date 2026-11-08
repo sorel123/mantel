@@ -11,11 +11,13 @@ import { HttpError } from '../../errors.js';
 import { log } from '../../log.js';
 import { dateInZone } from '../../providers/real/weather-time.js';
 import { IMPORT_MODEL, ImportError, analyseWithClaude } from './claude.js';
+import type { MealsService } from '../meals/index.js';
 import { commitImport } from './commit.js';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export function registerImportRoutes(handle: Handle, deps: AppDeps) {
+/** `meals` is the planner (v3 M): imported meals go into it while it is on. */
+export function registerImportRoutes(handle: Handle, deps: AppDeps, meals?: MealsService) {
   const { config, settings, providers, registry } = deps;
   /** The Claude key saved for weather quips (a shared Claude integration can take over later). */
   const key = () => registry.resolve('quips').secrets.claudeApiKey ?? '';
@@ -73,6 +75,6 @@ export function registerImportRoutes(handle: Handle, deps: AppDeps) {
   });
 
   handle('importCommit', async ({ body }) =>
-    commitImport(body, providers, settings.get().timezone),
+    commitImport(body, providers, settings.get().timezone, meals),
   );
 }

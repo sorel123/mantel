@@ -1,12 +1,14 @@
 /**
- * This week's meals, read-only, from the Meals calendar (the meal planner's own routes take over
- * when workstream M lands). Each meal can push its name onto the grocery list.
+ * This week's meals, read-only, as the wall shows them: the meal planner's plan merged over the
+ * Meals calendar. Each meal can push its ingredients (or, without any, its name) onto the grocery
+ * list through the planner's own route.
  */
 import { addDays, startOfDay, toIsoDate, type Meal } from '@mantel/shared';
 import { useState } from 'react';
 import { useNow } from '../../../app/Clock';
 import { groceryList } from '../../lists/GroceryPeek';
 import { useLists } from '../../lists/data';
+import { groceryToast, mealToGrocery } from '../../meals/data';
 import { slotWord, useMealPlan } from '../../today/Agenda';
 import { relativeDay } from '../../today/calendar';
 import { MagicImport } from '../MagicImport';
@@ -23,8 +25,17 @@ export function MealsTab() {
 
   const toGrocery = async (m: Meal) => {
     if (!grocery) return;
-    const item = await add(grocery.id, m.title);
-    setFlash(item ? `Added ${m.title} to ${grocery.name}` : `Couldn't add ${m.title}`);
+    let text: string;
+    try {
+      // A planned meal's ingredients, when it has some and the planner is on.
+      if (m.slot === 'other') throw new Error('no planner slot');
+      text = groceryToast(await mealToGrocery(m.date, m.slot));
+    } catch {
+      // Otherwise the meal's name is the item.
+      const item = await add(grocery.id, m.title);
+      text = item ? `Added ${m.title} to ${grocery.name}` : `Couldn't add ${m.title}`;
+    }
+    setFlash(text);
     setTimeout(() => setFlash(null), 2000);
   };
 
@@ -86,8 +97,9 @@ export function MealsTab() {
         );
       })}
       <p className="amuted small">
-        Meals come from the calendar named Meals. Plan them from a phone by adding an event like
-        "Dinner: Tacos" to that calendar, or snap a photo of a menu.
+        Meals are planned on the wall under Meals, where favourites keep their ingredients. From a
+        phone, snap a photo of a menu, or add an event like "Dinner: Tacos" to the calendar named
+        Meals.
       </p>
     </>
   );

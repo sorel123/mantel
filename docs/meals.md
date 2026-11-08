@@ -16,6 +16,10 @@ Per date and slot, a meal planned in Mantel wins; otherwise the Meals calendar's
 
 **Write planned meals to the Meals calendar** (Settings, Meals) mirrors each planned meal as an all-day event ("Dinner: Tacos") on the Meals calendar when it is writable (Google or iCloud, not an iCal link), so phones see the plan. Changing the meal updates the event; clearing the slot deletes it.
 
+## From a phone
+
+The companion app's **Meals** tab shows the same merged week and sends a meal's ingredients to the grocery list (a meal without ingredients adds its name). A photo of a menu through **Magic Import** plans the meals it finds, one per date and slot; see [`companion.md`](companion.md).
+
 ## Settings
 
 | Setting                      | Where                                                                                            | Default |

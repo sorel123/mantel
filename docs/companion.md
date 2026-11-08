@@ -4,13 +4,13 @@ Mantel's companion app is the family's remote for the wall. It lives at `/app` o
 (`http://<server>:8787/app`; the old `/add` opens the same app) and installs on a phone's home
 screen like any app. Five tabs along the bottom:
 
-| Tab          | What it does                                                                         |
-| ------------ | ------------------------------------------------------------------------------------ |
-| **Lists**    | Add to any list with who it's for, tick and remove items, make lists, set up chores. |
-| **Calendar** | The next two weeks; add an event to any day with the same quick add the wall has.    |
-| **Meals**    | The week's dinners, straight from the meal plan.                                     |
-| **Chores**   | Each person's chores for today and the stars they have this week.                    |
-| **Note**     | Write or draw a note that goes up on the wall.                                       |
+| Tab          | What it does                                                                            |
+| ------------ | --------------------------------------------------------------------------------------- |
+| **Lists**    | Add to any list with who it's for, tick and remove items, make lists, set up chores.    |
+| **Calendar** | The next two weeks; add an event to any day with the same quick add the wall has.       |
+| **Meals**    | The week's meals as the wall plans them; send a meal's ingredients to the grocery list. |
+| **Chores**   | Each person's chores for today and the stars they have this week.                       |
+| **Note**     | Write or draw a note that goes up on the wall.                                          |
 
 Settings has a **Phone app** section with the address, a QR code, the install steps, the phones
 that take notifications and the state of Magic Import.
@@ -71,8 +71,10 @@ plainly whether a key is set, and the import screen repeats the privacy note.
 
 The server side is `plugins/import/`: `POST /api/import/analyse` returns the candidates (JSON
 from a strict schema, never free text), and `POST /api/import/commit` writes the checked ones
-through the normal calendar, lists and meals routes. In mock mode (`MOCK=1`) any photo returns the
-fixture flyer, so the flow can be tried without a key.
+through the normal calendar and lists routes; meals go into the meal planner (see
+[`meals.md`](meals.md)), or onto the Meals calendar as "Dinner: Tacos" events while the planner
+is off. In mock mode (`MOCK=1`) any photo returns the fixture flyer, so the flow can be tried
+without a key.
 
 ## For developers
 

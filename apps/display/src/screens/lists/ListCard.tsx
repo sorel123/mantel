@@ -1,5 +1,6 @@
 import type { List, ListItem, Person } from '@mantel/shared';
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { dimClass, useDimmed } from '../today/personFilter';
 import { Avatar } from './Avatar';
 
 export function ListCard({
@@ -20,6 +21,7 @@ export function ListCard({
   handle?: ReactNode;
 }) {
   const [draft, setDraft] = useState('');
+  const dimmed = useDimmed();
   const left = list.items.filter((i) => !i.done).length;
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -53,8 +55,10 @@ export function ListCard({
       <ul className="litems">
         {list.items.map((item) => {
           const who = people.find((p) => p.id === item.personId);
+          // v3 P: while one person is chosen, items for someone else dim (unowned ones stay).
+          const dim = dimmed(item.personId ? [item.personId] : []);
           return (
-            <li key={item.id}>
+            <li key={item.id} className={dimClass(dim).trim() || undefined}>
               <button
                 className={`litem${item.done ? ' done' : ''}`}
                 role="checkbox"
