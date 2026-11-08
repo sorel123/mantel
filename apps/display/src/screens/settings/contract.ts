@@ -64,6 +64,7 @@ export const SCREEN_LABELS: Record<string, string> = {
 /** The settings sections, in the order the left nav and the wizard use them. */
 export type SectionId =
   | 'home'
+  | 'chores'
   | 'people'
   | 'calendars'
   | 'integrations'
@@ -74,6 +75,7 @@ export type SectionId =
   | 'screens'
   | 'lists'
   | 'companion'
+  | 'meals'
   | 'places'
   | 'schedule'
   | 'features'

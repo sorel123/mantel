@@ -9,15 +9,19 @@
  * draft like every other field; Save keeps it.
  */
 import {
-  CARD_MIN,
   CARD_STARTERS,
   TODAY_CARD_STEP,
   TODAY_CARDS,
   TODAY_GRID_COLS,
   TODAY_GRID_ROWS,
   cardFits,
+  cardMin,
+  cardName,
   cardSize,
   findSpot,
+  isPluginCard,
+  pluginCardList,
+  type BuiltInCardKind,
   type LayoutSettings,
   type SavedTodayLayout,
   type TodayCard,
@@ -31,10 +35,11 @@ import {
   type FormEvent,
   type PointerEvent,
 } from 'react';
+import { usePluginManifests } from '../../../features/plugins';
 import { openPreview, previewUrl } from '../../../lib/preview';
 
 /** The size a new card asks for first, then smaller ones until one fits. */
-const START_SIZE: Record<TodayCardKind, [number, number]> = {
+const START_SIZE: Record<BuiltInCardKind, [number, number]> = {
   date: [4, 2],
   weather: [4, 4],
   forecast: [6, 2],
@@ -45,9 +50,16 @@ const START_SIZE: Record<TodayCardKind, [number, number]> = {
   countdowns: [4, 1],
   tonight: [4, 1],
   notes: [3, 3],
+  'meals-week': [4, 4],
 };
 
-const nameOf = (k: TodayCardKind) => TODAY_CARDS.find((c) => c.id === k)?.name ?? k;
+const startSize = (k: TodayCardKind): readonly [number, number] => {
+  if (!isPluginCard(k)) return START_SIZE[k];
+  const info = pluginCardList().find((c) => c.kind === k);
+  return info?.comfort ?? info?.min ?? cardMin(k);
+};
+
+const nameOf = cardName;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const STEP = TODAY_CARD_STEP;
 
@@ -84,8 +96,8 @@ function dragTo(o: TodayCard, edges: Edges | 'move', dx: number, dy: number) {
       },
       atMin: false,
     };
-  const mw = Math.min(CARD_MIN[o.kind][0], o.w);
-  const mh = Math.min(CARD_MIN[o.kind][1], o.h);
+  const mw = Math.min(cardMin(o.kind)[0], o.w);
+  const mh = Math.min(cardMin(o.kind)[1], o.h);
   let { x, y, w, h } = o;
   let atMin = false;
   if (edges.r) {
@@ -110,7 +122,7 @@ function dragTo(o: TodayCard, edges: Edges | 'move', dx: number, dy: number) {
 }
 
 const minNote = (k: TodayCardKind) =>
-  `${nameOf(k)} can't get smaller than ${cardSize(CARD_MIN[k][0])} by ${cardSize(CARD_MIN[k][1])}.`;
+  `${nameOf(k)} can't get smaller than ${cardSize(cardMin(k)[0])} by ${cardSize(cardMin(k)[1])}.`;
 
 const sameCards = (a: readonly TodayCard[], b: readonly TodayCard[]) =>
   a.length === b.length &&
@@ -135,6 +147,10 @@ export function CardEditor({
   const [ghost, setGhost] = useState<TodayCard | null>(null);
   const [note, setNote] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  // Plugin cards on offer (`contributes.todayCard`); loading them also teaches the layout
+  // helpers their names and sizes.
+  const manifests = usePluginManifests();
+  const pluginCards = manifests.length ? pluginCardList() : [];
 
   const cell = () => {
     const r = canvas.current?.getBoundingClientRect();
@@ -206,14 +222,17 @@ export function CardEditor({
   };
 
   const add = (kind: TodayCardKind) => {
-    const [w0, h0] = START_SIZE[kind];
-    const [mw, mh] = CARD_MIN[kind];
+    const [w0, h0] = startSize(kind);
+    const [mw, mh] = cardMin(kind);
     for (let h = h0; h >= mh; h -= STEP)
       for (let w = w0; w >= mw; w -= STEP) {
         const spot = findSpot(value, w, h);
         if (!spot) continue;
-        let id: string = kind;
-        for (let n = 2; value.some((c) => c.id === id); n++) id = `${kind}-${n}`;
+        let id: string;
+        // Plugin kinds have a colon; ids keep to the same characters as the built-in ones.
+        const base = kind.replace(':', '-');
+        id = base;
+        for (let n = 2; value.some((c) => c.id === id); n++) id = `${base}-${n}`;
         setCards([...value, { id, kind, ...spot, w, h }]);
         setSelected(id);
         setNote('');
@@ -269,7 +288,7 @@ export function CardEditor({
               style={box(c)}
               aria-label={`${nameOf(c.kind)}, ${c.w} by ${c.h}`}
               aria-pressed={c.id === selected}
-              title={`Smallest: ${cardSize(CARD_MIN[c.kind][0])} × ${cardSize(CARD_MIN[c.kind][1])}`}
+              title={`Smallest: ${cardSize(cardMin(c.kind)[0])} × ${cardSize(cardMin(c.kind)[1])}`}
               onPointerDown={(e) => down(e, c, 'move')}
               onKeyDown={(e) => key(e, c)}
               onFocus={() => setSelected(c.id)}
@@ -342,6 +361,22 @@ export function CardEditor({
             </button>
           ))}
         </div>
+        {pluginCards.length > 0 && (
+          <div className="lay-addrow" role="group" aria-label="Add a card from a plugin">
+            <span className="set-label">From plugins</span>
+            {pluginCards.map((k) => (
+              <button
+                key={k.kind}
+                type="button"
+                className="set-btn"
+                title={k.description}
+                onClick={() => add(k.kind)}
+              >
+                + {k.name}
+              </button>
+            ))}
+          </div>
+        )}
         <SaveAs
           saved={saved}
           cards={value}

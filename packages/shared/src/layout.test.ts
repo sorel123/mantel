@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CARD_MIN,
+  cardMin,
   CARD_STARTERS,
   DEFAULT_LAYOUT,
   LayoutSettings,
@@ -14,8 +14,10 @@ import {
   layoutFromSearch,
   resolveLayout,
   tidyCards,
+  cardName,
+  setPluginCards,
 } from './layout.js';
-import { DEFAULT_TODAY_CARDS, type TodayCard } from './models.js';
+import { DEFAULT_TODAY_CARDS, TodayCard as TodayCardSchema, type TodayCard } from './models.js';
 
 describe('LayoutSettings', () => {
   it('fills defaults for an old database', () => {
@@ -163,9 +165,53 @@ describe('Saved and starter layouts', () => {
       expect(tidyCards(s.cards)).toHaveLength(s.cards.length);
       for (const c of s.cards) {
         expect(cardFits(c, s.cards)).toBe(true);
-        expect(c.w).toBeGreaterThanOrEqual(CARD_MIN[c.kind][0]);
-        expect(c.h).toBeGreaterThanOrEqual(CARD_MIN[c.kind][1]);
+        expect(c.w).toBeGreaterThanOrEqual(cardMin(c.kind)[0]);
+        expect(c.h).toBeGreaterThanOrEqual(cardMin(c.kind)[1]);
       }
     }
+  });
+});
+
+describe('cards from plugins', () => {
+  it('accept plugin:<id> kinds and refuse anything else', () => {
+    const ok = { id: 'plugin-trash', kind: 'plugin:trash', x: 0, y: 0, w: 3, h: 2 };
+    expect(TodayCardSchema.safeParse(ok).success).toBe(true);
+    expect(TodayCardSchema.safeParse({ ...ok, kind: 'plugin:' }).success).toBe(false);
+    expect(TodayCardSchema.safeParse({ ...ok, kind: 'plugin:Bad Name' }).success).toBe(false);
+    expect(TodayCardSchema.safeParse({ ...ok, kind: 'trash' }).success).toBe(false);
+    expect(resolveLayout({ todayCards: [ok] } as never).todayCards).toEqual([ok]);
+  });
+
+  it('take their name and sizes from the manifest once known', () => {
+    setPluginCards([]);
+    expect(cardName('plugin:trash')).toBe('trash');
+    expect(cardMin('plugin:trash')).toEqual([2, 1.5]);
+    expect(cardZoom({ kind: 'plugin:trash', w: 2, h: 2 })).toBe(1);
+    setPluginCards([
+      {
+        kind: 'plugin:trash',
+        name: 'Trash and recycling',
+        description: '',
+        min: [2.5, 1.5],
+        comfort: [4, 2.5],
+      },
+    ]);
+    expect(cardName('plugin:trash')).toBe('Trash and recycling');
+    expect(cardMin('plugin:trash')).toEqual([2.5, 1.5]);
+    expect(cardZoom({ kind: 'plugin:trash', w: 3, h: 2.5 })).toBe(0.75);
+    setPluginCards([]);
+  });
+
+  it('survive a display address', () => {
+    const cards: TodayCard[] = [
+      { id: 'a', kind: 'plugin:trash', x: 0, y: 0, w: 3, h: 2 },
+      { id: 'b', kind: 'date', x: 3, y: 0, w: 2.5, h: 1 },
+    ];
+    expect(
+      cardsFromParam(cardsToParam(cards)).map(({ kind, x, y, w, h }) => [kind, x, y, w, h]),
+    ).toEqual([
+      ['plugin:trash', 0, 0, 3, 2],
+      ['date', 3, 0, 2.5, 1],
+    ]);
   });
 });

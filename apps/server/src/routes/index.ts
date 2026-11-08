@@ -19,6 +19,8 @@ import { VERSION } from '../version.js';
 import { registerImportRoutes } from '../plugins/import/index.js';
 import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
+import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
+import { registerRewardRoutes } from './rewards.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
 export function registerRoutes(handle: Handle, deps: AppDeps) {
@@ -175,6 +177,16 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   /* ---- v2 workstream A: plugins, integrations, admin PIN, setup, backup, geocode ---- */
   handle('plugins', async () => ({ plugins: registry.manifests() }));
   handle('integrations', async () => ({ integrations: registry.statuses() }));
+  // v3 X: what plugins draw on the display (`contributes`), and their buttons.
+  handle('pluginBlocks', async ({ params }) => ({
+    blocks: await registry.blocks(params.id!, params.name!),
+  }));
+  handle('pluginChip', async ({ params }) => ({
+    chip: await registry.chip(params.id!, params.name!),
+  }));
+  handle('pluginAction', async ({ params, body }) =>
+    registry.action(params.id!, params.name!, body.args),
+  );
   handle('integrationPut', async ({ params, body }) => {
     const integration = await registry.update(params.id!, body);
     if (integration.state === 'connected') setup.markDone(stepFor(registry, params.id!));
@@ -282,11 +294,12 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('calendarEventPatch', async ({ params, body }) =>
     providers.calendar.updateEvent(params.id!, body),
   );
-  handle('calendarEventDelete', async ({ params }) => providers.calendar.deleteEvent(params.id!));
-  handle('countdowns', async () => providers.calendar.countdowns());
-  handle('meals', async ({ query }) =>
-    providers.calendar.meals(query.week ? fromIsoDate(query.week) : undefined),
+  handle('calendarEventDelete', async ({ params, query }) =>
+    providers.calendar.deleteEvent(params.id!, query.scope),
   );
+  handle('countdowns', async () => providers.calendar.countdowns());
+  // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
+  registerMealRoutes(handle, createMealsService(deps));
 
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());
@@ -368,6 +381,21 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
     'cameraStream',
     image('camera', (id, signal) => providers.home.cameraStream(id, signal), 'no-store'),
   );
+  // Live video over WebRTC: the server relays offer, answer and candidates to Home Assistant.
+  handle('cameraWebrtcOffer', async ({ params, body }) =>
+    providers.home.webrtcOffer(params.id ?? '', body.offer),
+  );
+  handle('cameraWebrtcCandidate', async ({ params, body }) => {
+    await providers.home.webrtcCandidate(params.id ?? '', params.session ?? '', body.candidate);
+    return { ok: true as const };
+  });
+  handle('cameraWebrtcCandidates', async ({ params }) =>
+    providers.home.webrtcCandidates(params.id ?? '', params.session ?? ''),
+  );
+  handle('cameraWebrtcClose', async ({ params }) => {
+    await providers.home.webrtcClose(params.id ?? '', params.session ?? '');
+    return { ok: true as const };
+  });
   handle(
     'mediaArtwork',
     image('artwork', (id) => providers.home.mediaArtwork(id), 'private, max-age=300'),
@@ -419,6 +447,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('choreUndo', async ({ params }) => providers.lists.choreUndo(params.id!));
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
+  registerRewardRoutes(handle, deps);
 }
 
 /** The wizard step a plugin belongs to, for marking progress from the server side. */

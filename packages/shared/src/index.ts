@@ -11,3 +11,7 @@ export * from './layout.js';
 export * from './skins.js';
 export * from './weather-extended.js';
 export * from './companion.js';
+export * from './home-webrtc.js';
+export * from './meals.js';
+export * from './people-filter.js';
+export * from './rewards.js';

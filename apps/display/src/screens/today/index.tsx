@@ -3,7 +3,7 @@
  * agenda, grocery, photo, people columns and the poster's bill as the chosen preset says. Every
  * preset shares the data hooks; `?today=<preset>` on the display's address pins one.
  */
-import { addDays, cardZoom, startOfDay, type TodayCard } from '@mantel/shared';
+import { addDays, cardZoom, isPluginCard, startOfDay, type TodayCard } from '@mantel/shared';
 import { Component, useState, type ReactNode } from 'react';
 import { registerAmbientSlot } from '../../app/ambient';
 import { useNow } from '../../app/Clock';
@@ -11,9 +11,11 @@ import { CardGrid, Slots, todayLayouts, todayWeekLayouts, useLayout } from '../.
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { useNav } from '../../app/nav';
 import { PhotoSlideshow } from '../../features/photos';
+import { PluginCard } from '../../features/plugins';
 import { WeatherCard, useWeather } from '../../features/weather';
 import { useBootstrap } from '../../lib/bootstrap';
 import { GroceryPeek } from '../lists/GroceryPeek';
+import { MealsWeekCard } from '../meals';
 import { useDaySheet } from '../month/DaySheet';
 import { WeekStrip } from '../month/WeekStrip';
 import '../month/month.css';
@@ -25,6 +27,7 @@ import { DateBox, DateLine, Masthead } from './DateParts';
 import { FamilyBoard } from './FamilyBoard';
 import { Icon, Svg } from './parts';
 import { PhotoPanel } from './PhotoPanel';
+import { usePersonFilter } from './personFilter';
 import { WeatherLine, WeekAhead } from './WeatherBits';
 import { useAddMenu } from '../companion/wall/AddMenu';
 import { AmbientNote, NotesCard } from '../companion/wall/NotesCard';
@@ -66,6 +69,7 @@ export function TodayScreen() {
   const nav = useNav();
   const boot = useBootstrap();
   const layout = useLayout();
+  const { guest } = usePersonFilter();
   const preset = layout.todayPreset;
   const [view, setViewState] = useState<View>(chosenView);
   const setView = (v: View) => {
@@ -142,6 +146,8 @@ export function TodayScreen() {
           />
         );
       case 'grocery':
+        // Guests see the calendar, weather and photos only.
+        if (guest) return null;
         return (
           <Guard name="grocery">
             <GroceryPeek onOpen={() => nav.go('lists')} />
@@ -238,6 +244,19 @@ export function TodayScreen() {
               <NotesCard />
             </Guard>
           );
+        case 'meals-week':
+          return (
+            <Guard name="meals-week">
+              <MealsWeekCard />
+            </Guard>
+          );
+        default:
+          // A card a plugin contributes (`plugin:<id>`), drawn from the blocks it serves.
+          return isPluginCard(c.kind) ? (
+            <Guard name={c.kind}>
+              <PluginCard kind={c.kind} />
+            </Guard>
+          ) : null;
       }
     };
     return (

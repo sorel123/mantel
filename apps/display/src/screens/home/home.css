@@ -195,10 +195,10 @@
 
 /* ---- room cards ---- */
 .hm-room {
-  padding: 16px 18px 14px;
+  padding: 14px 14px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 .hm-rh {
   display: flex;
@@ -220,55 +220,81 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.hm-light {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-bottom: 6px;
+/* A light or plug is one tile: the fill is the brightness, the whole tile is the switch. */
+.hm-tile {
+  position: relative;
+  border-radius: 14px;
+  background: var(--surface-2);
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
-.hm-light.na {
+.hm-tile.na {
   opacity: 0.45;
 }
+.hm-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--v);
+  background: color-mix(in srgb, var(--lc) 42%, var(--surface));
+  transition: width var(--std) var(--ease);
+  pointer-events: none;
+}
+.hm-tile.dragging .hm-fill {
+  transition: none;
+}
+.hm-tile.dim.on .hm-fill {
+  box-shadow: inset -3px 0 0 color-mix(in srgb, var(--lc) 80%, var(--ink));
+}
+.hm-tile.off .hm-fill {
+  width: 0;
+}
 .hm-lr {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 48px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 14px;
   font-size: 15px;
+  font-weight: 600;
   text-align: left;
+  background: transparent;
+}
+.hm-tile.off .hm-lr {
+  font-weight: 500;
+  color: var(--ink-2);
 }
 .hm-lr span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.hm-sw {
-  width: 50px;
-  height: 30px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  position: relative;
-  transition: background var(--fast) var(--ease);
+.hm-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex: none;
+  font-size: 14px;
+  color: var(--ink-2);
 }
-.hm-sw::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
+.hm-tile.on .hm-pct {
+  color: var(--ink);
+}
+.hm-ldot {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform var(--fast) var(--ease);
+  background: var(--lc);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink) 18%, transparent);
 }
-.hm-sw.on {
-  background: var(--accent);
-}
-.hm-sw.on::after {
-  transform: translateX(20px);
+.hm-tile.off .hm-ldot {
+  background: conic-gradient(#f66, #fd6, #6d6, #6cf, #96f, #f6c, #f66);
+  opacity: 0.6;
 }
 .hm-bri {
   -webkit-appearance: none;
@@ -297,7 +323,6 @@
   background: #fff;
   border: 0;
 }
-.hm-light.off .hm-bri,
 .hm-bri:disabled {
   opacity: 0.35;
 }
@@ -374,7 +399,7 @@
   padding-top: 8px;
 }
 /* Under controls, sensors sit at the foot of the card as in the mockup. */
-.hm-light ~ .hm-sens,
+.hm-tile ~ .hm-sens,
 .hm-lock ~ .hm-sens,
 .hm-cover ~ .hm-sens {
   margin-top: auto;
@@ -913,6 +938,63 @@
   outline-offset: -2px;
 }
 
+/* ---- dragging in Arrange mode ---- */
+.hm-slot.arranging {
+  touch-action: none;
+  cursor: grab;
+}
+.hm-lift {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+/* The slot stays where the card will land; the card itself follows the finger. */
+.hm-slot.dragging {
+  z-index: 5;
+  cursor: grabbing;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+.hm-slot.dragging .hm-lift {
+  z-index: 5;
+  opacity: 0.94;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.28));
+  scale: 1.02;
+}
+.hm-slot.dragging .hm-tools {
+  visibility: hidden;
+}
+/* Mid-drag the columns let the card travel over them. */
+.hm-main.dragging .hm-rooms,
+.hm-main.dragging .hm-rail {
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.hm-drop {
+  flex: 1;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  border-radius: 20px;
+  outline: 2px dashed color-mix(in srgb, var(--ink) 18%, transparent);
+  outline-offset: -2px;
+  color: var(--ink-2);
+  text-align: center;
+  font-size: 14px;
+}
+.hm-tools button.arrow {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
 /* ---- the Arrange bar ---- */
 .hm-arrange {
   display: flex;
@@ -979,33 +1061,6 @@
 }
 
 /* ---- colour lights ---- */
-.hm-lctl {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.hm-lctl .hm-bri {
-  flex: 1;
-  min-width: 0;
-}
-.hm-lcolor {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--lc);
-  box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--ink) 12%, transparent),
-    0 1px 3px rgba(0, 0, 0, 0.18);
-  transition: transform var(--fast) var(--ease);
-}
-.hm-lcolor.off {
-  background: conic-gradient(#f66, #fd6, #6d6, #6cf, #96f, #f6c, #f66);
-  opacity: 0.6;
-}
-.hm-lcolor:active {
-  transform: scale(0.92);
-}
 .hm-color {
   display: flex;
   flex-direction: column;

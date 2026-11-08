@@ -11,6 +11,7 @@ import { PhotoSlideshow } from '../../features/photos';
 import { GroceryPeek } from '../lists/GroceryPeek';
 import { EmptyIcon, EmptyState } from '../../app/EmptyState';
 import { LeaveByChip, matchLeaveBy, useCommute } from '../../features/weather';
+import { PlannerTap } from '../meals';
 import { useBootstrap } from '../../lib/bootstrap';
 import {
   countdownLabel,
@@ -22,15 +23,21 @@ import {
   useCountdowns,
   useMeals,
 } from './calendar';
-import { Avatars, EventRow, Icon, Svg, pc } from './parts';
+import { EventRow, Icon, Svg, pc } from './parts';
+import { PersonChips, dimClass, useDimmed, usePersonFilter } from './personFilter';
 
 export function Countdowns() {
   const countdowns = useCountdowns().slice(0, 3);
+  const dimmed = useDimmed();
   if (!countdowns.length) return null;
   return (
     <div className="countdowns" aria-label="Countdowns">
       {countdowns.map((c) => (
-        <span key={c.eventId} className="countdown" style={pc(c.color)}>
+        <span
+          key={c.eventId}
+          className={`countdown${dimClass(dimmed(c.personIds))}`}
+          style={pc(c.color)}
+        >
           <Svg>{Icon.star}</Svg>
           <b>{c.title}</b>
           <span>{countdownLabel(c.daysRemaining)}</span>
@@ -70,19 +77,22 @@ export const mainMeal = (ms: Meal[] | undefined) =>
 export function Tonight({ meals }: { meals: Meal[] | undefined }) {
   const main = mainMeal(meals);
   const others = (meals ?? []).filter((m) => m !== main);
+  // v3 M: a tap opens the meal planner (when it is on).
   return (
-    <div className="tonight" aria-label="Tonight's meal">
-      <Svg>{Icon.meal}</Svg>
-      <span className="eyebrow">
-        {!main || main.slot === 'dinner' ? 'Tonight' : slotWord[main.slot]}
-      </span>
-      <b className={main ? '' : 'none'}>{main?.title ?? 'Nothing planned'}</b>
-      {others.length > 0 && (
-        <span className="also">
-          {others.map((m) => `${slotWord[m.slot]}: ${m.title}`).join(' · ')}
+    <PlannerTap>
+      <div className="tonight" aria-label="Tonight's meal">
+        <Svg>{Icon.meal}</Svg>
+        <span className="eyebrow">
+          {!main || main.slot === 'dinner' ? 'Tonight' : slotWord[main.slot]}
         </span>
-      )}
-    </div>
+        <b className={main ? '' : 'none'}>{main?.title ?? 'Nothing planned'}</b>
+        {others.length > 0 && (
+          <span className="also">
+            {others.map((m) => `${slotWord[m.slot]}: ${m.title}`).join(' · ')}
+          </span>
+        )}
+      </div>
+    </PlannerTap>
   );
 }
 
@@ -101,7 +111,7 @@ export function Agenda({
   onDay,
   onList,
   variant = 'full',
-  rows: chosen = DEFAULT_TODAY_ROWS,
+  rows: rowsChosen = DEFAULT_TODAY_ROWS,
   toggle,
 }: {
   now: Date;
@@ -118,9 +128,13 @@ export function Agenda({
   toggle?: ReactNode;
 }) {
   const boot = useBootstrap();
+  const { personId, guest } = usePersonFilter();
+  const dimmed = useDimmed();
+  const chosen = personId ? boot.people.find((p) => p.id === personId) : undefined;
   const today = startOfDay(now);
   const meals = useMealPlan(today);
   const todays = eventsOn(events, today);
+  const theirs = chosen ? todays.filter((e) => !dimmed(e.personIds)).length : 0;
   const allDay = todays.filter((e) => e.allDay);
   const timed = todays.filter((e) => !e.allDay);
   const t = now.getTime();
@@ -164,7 +178,10 @@ export function Agenda({
   rows.splice(nowIndex === -1 ? rows.length : nowIndex, 0, line);
 
   const full = variant === 'full';
-  const extra: TodayRow[] = full ? chosen : ['tonight'];
+  // Guests see the calendar, weather and photos only: no list.
+  const extra: TodayRow[] = (full ? rowsChosen : (['tonight'] as TodayRow[])).filter(
+    (r) => !(guest && r === 'list'),
+  );
   // The one row that stretches into the room the timeline doesn't need.
   const grow = (['photo', 'week', 'list'] as const).find((r) => extra.includes(r));
   const row = (r: TodayRow): ReactNode => {
@@ -207,15 +224,17 @@ export function Agenda({
         <div className="l">
           <h2 className="h2">Today</h2>
           <span className="cnt">
-            {todays.length === 0
-              ? 'Nothing planned'
-              : `${todays.length} ${todays.length === 1 ? 'event' : 'events'}`}
+            {chosen
+              ? `${theirs} for ${chosen.name}`
+              : todays.length === 0
+                ? 'Nothing planned'
+                : `${todays.length} ${todays.length === 1 ? 'event' : 'events'}`}
           </span>
         </div>
         <div className="r">
           {toggle}
           {/* The narrow agenda keeps its header to the switch and the add button. */}
-          {full && <Avatars ids={boot.people.map((p) => p.id)} />}
+          {full && <PersonChips />}
           <button className="add" aria-label="Add an event, a note or a photo" onClick={onAdd}>
             <Svg>{Icon.plus}</Svg>
           </button>
@@ -224,7 +243,7 @@ export function Agenda({
       {allDay.length > 0 && (
         <div className="allday">
           {allDay.map((e) => (
-            <span key={e.id} className="band" style={pc(e.color)}>
+            <span key={e.id} className={`band${dimClass(dimmed(e.personIds))}`} style={pc(e.color)}>
               <i />
               {e.title}
               {spanLabel(e, today) && <small>{spanLabel(e, today)}</small>}
@@ -264,6 +283,7 @@ function Upcoming({
   perDay: number;
 }) {
   const boot = useBootstrap();
+  const dimmed = useDimmed();
   return (
     <div className={`upcoming${className}`}>
       {[1, 2, 3].map((n) => {
@@ -279,7 +299,7 @@ function Upcoming({
               </span>
             </div>
             {es.slice(0, perDay).map((e) => (
-              <div key={e.id} className="r" style={pc(e.color)}>
+              <div key={e.id} className={`r${dimClass(dimmed(e.personIds))}`} style={pc(e.color)}>
                 <i />
                 {e.allDay ? 'All day' : formatTime(new Date(e.start))} · {e.title}
               </div>

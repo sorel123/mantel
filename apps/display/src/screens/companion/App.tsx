@@ -159,7 +159,7 @@ function Ready() {
         {tab === 'note' && <NoteTab />}
       </div>
 
-      <nav className="cbar" aria-label="Companion tabs">
+      <nav className="ctabbar" aria-label="Companion tabs">
         {TABS.filter((t) => t.id !== 'chores' || boot.flags.chores)
           .filter((t) => t.id !== 'meals' || boot.flags.meals)
           .map((t) => (

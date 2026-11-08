@@ -1,4 +1,4 @@
-import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /** Paired displays. Only the SHA-256 of each key is stored. */
 export const devices = sqliteTable('devices', {
@@ -65,6 +65,12 @@ export const chores = sqliteTable('chores', {
   createdAt: text('created_at').notNull(),
   /** Set when a chore is retired; its completions keep counting toward this week's stars. */
   archivedAt: text('archived_at'),
+  // v3 (workstream R)
+  timeOfDay: text('time_of_day', { enum: ['morning', 'afternoon', 'evening', 'any'] })
+    .notNull()
+    .default('any'),
+  icon: text('icon'),
+  routineId: text('routine_id'),
 });
 
 /** One row per tap on the chore chart. Stars are copied so changing a chore never rewrites history. */
@@ -108,4 +114,69 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
   createdAt: text('created_at').notNull(),
   lastSentAt: text('last_sent_at'),
   lastError: text('last_error'),
+});
+
+/* ---- v3 M: the meal planner ---- */
+
+/** Favourite meals. Ingredients and tags are JSON arrays of strings. */
+export const mealFavourites = sqliteTable('meal_favourites', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  slot: text('slot', { enum: ['breakfast', 'lunch', 'dinner', 'any'] }).notNull(),
+  ingredients: text('ingredients').notNull(),
+  tags: text('tags').notNull(),
+  lastUsed: text('last_used'),
+  createdAt: text('created_at').notNull(),
+});
+
+/**
+ * One planned meal per date and slot. `ingredients` (JSON) is set when typed with the meal;
+ * null means "the favourite's". `eventId` is the mirror on the Meals calendar, when one is written.
+ */
+export const plannedMeals = sqliteTable(
+  'planned_meals',
+  {
+    date: text('date').notNull(),
+    slot: text('slot', { enum: ['breakfast', 'lunch', 'dinner'] }).notNull(),
+    title: text('title').notNull(),
+    favouriteId: text('favourite_id'),
+    ingredients: text('ingredients'),
+    eventId: text('event_id'),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.date, t.slot] })],
+);
+/* ---- v3 workstream R: star bank, rewards, routines ---- */
+
+/** Every star earned or spent. A person's balance is the sum; it never resets. */
+export const starLedger = sqliteTable('star_ledger', {
+  id: text('id').primaryKey(),
+  personId: text('person_id').notNull(),
+  delta: integer('delta').notNull(),
+  reason: text('reason', { enum: ['chore', 'bonus', 'redeem', 'adjust'] }).notNull(),
+  /** `completion:<chore_completions.id>` for a chore tap, the reward id for a redemption. */
+  refId: text('ref_id'),
+  note: text('note'),
+  at: text('at').notNull(),
+});
+
+export const rewards = sqliteTable('rewards', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  cost: integer('cost').notNull(),
+  icon: text('icon').notNull(),
+  /** JSON array of person ids; empty means everyone. */
+  personIds: text('person_ids').notNull(),
+  active: integer('active', { mode: 'boolean' }).notNull(),
+  sort: integer('sort').notNull(),
+});
+
+export const routines = sqliteTable('routines', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  /** JSON array of person ids. */
+  personIds: text('person_ids').notNull(),
+  timeOfDay: text('time_of_day', { enum: ['morning', 'afternoon', 'evening', 'any'] }).notNull(),
+  icon: text('icon').notNull(),
+  sort: integer('sort').notNull(),
 });

@@ -6,6 +6,7 @@
 import { companionRouteFixtures } from '../companion.js';
 import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
+import { MOCK_WEBRTC_ANSWER } from '../home-webrtc.js';
 import { eventsInRange, countdowns, meals } from './calendar.js';
 import { homeConfig, homeConnection, homeDiscovery, homeState, mediaPlayers } from './home.js';
 import {
@@ -16,7 +17,10 @@ import {
   settingsBundle,
   setupState,
 } from './integrations.js';
-import { chores, lists } from './lists.js';
+import { mealFavourites, mealsWeek } from './meals.js';
+import { chores, lists, rewardRouteFixtures } from './lists.js';
+import { PluginBlocks, PluginChip } from '../plugins.js';
+import { pluginBlocks, pluginChips } from './plugin-cards.js';
 import { calendars, people } from './people.js';
 import { photos } from './photos.js';
 import { settings } from './settings.js';
@@ -26,8 +30,10 @@ export * from './calendar.js';
 export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
+export * from './meals.js';
 export * from './people.js';
 export * from './photos.js';
+export * from './plugin-cards.js';
 export * from './settings.js';
 export * from './weather.js';
 export { DEFAULT_PANEL };
@@ -98,6 +104,15 @@ export function routeFixtures(now = new Date()): {
     homeState: home,
     homeCall: { ok: true, entity: home.entities[0]! },
     homeAnnounce: { ok: true, targets: home.announceTargets.map((t) => t.id) },
+    cameraWebrtcOffer: {
+      session: 'webrtc-mock',
+      answer: MOCK_WEBRTC_ANSWER,
+      candidates: [],
+      expiresAt: new Date(now.getTime() + 120_000).toISOString(),
+    },
+    cameraWebrtcCandidate: { ok: true },
+    cameraWebrtcCandidates: { candidates: [], closed: false },
+    cameraWebrtcClose: { ok: true },
     media: { players },
     mediaCall: { ok: true, player: players[0]! },
     homeConnection: homeConnection(now),
@@ -171,6 +186,9 @@ export function routeFixtures(now = new Date()): {
       },
     },
     plugins: { plugins: pluginManifests },
+    pluginBlocks: { blocks: PluginBlocks.parse(pluginBlocks(now)['trash/card']) },
+    pluginChip: { chip: PluginChip.parse(pluginChips(now)['timers/chip']) },
+    pluginAction: { ok: true, message: '5 min timer started.' },
     integrations: { integrations: integrationStatuses(now) },
     integrationPut: { integration: integrationStatuses(now)[2]! },
     integrationTest: { ok: true, message: 'Connected to Home Assistant 2026.10, 3 rooms found.' },
@@ -188,6 +206,40 @@ export function routeFixtures(now = new Date()): {
     settingsImport: { ok: true, secretsRestored: ['google', 'homeassistant'] },
     geocode: { candidates: geocodeCandidates },
     ...companionRouteFixtures(now),
+    ...rewardRouteFixtures(now),
+    ...mealFixtures(now),
+  };
+}
+
+/** v3 M: the meal planner's routes. */
+function mealFixtures(now: Date) {
+  const week = mealsWeek(now);
+  const favourites = mealFavourites(now);
+  const toGrocery = {
+    listId: 'list-grocery',
+    listName: 'Grocery',
+    added: ['Tortillas', 'Ground beef', 'Salsa'],
+    skipped: ['Cheddar'],
+  };
+  return {
+    mealsWeek: week,
+    mealsPlan: { meal: week.meals[0]! },
+    mealFavourites: { favourites },
+    mealFavouriteCreate: { favourite: favourites[0]! },
+    mealFavouritePatch: { favourite: favourites[0]! },
+    mealFavouriteDelete: { ok: true as const },
+    mealsWeekToGrocery: toGrocery,
+    mealToGrocery: toGrocery,
+    mealsUnbought: {
+      weekStart: week.weekStart,
+      items: [
+        {
+          ingredient: 'Tortillas',
+          onList: false,
+          meals: [{ date: week.days[0]!, slot: 'dinner' as const, title: 'Tacos' }],
+        },
+      ],
+    },
   };
 }
 
@@ -212,6 +264,16 @@ export function wsFixtures(now = new Date()) {
     { type: 'media.state', payload: { player: { ...mediaPlayers(now)[0]!, state: 'paused' } } },
     { type: 'list.changed', payload: { listId: 'list-grocery' } },
     { type: 'chores.changed', payload: {} },
+    {
+      type: 'rewards.redeemed',
+      payload: {
+        personId: 'ava',
+        rewardId: 'reward-movie',
+        title: 'Pick the movie',
+        cost: 10,
+        at: toLocalIso(now),
+      },
+    },
     { type: 'weather.updated', payload: { weather: weather(now) } },
     {
       type: 'weather.alert',
@@ -226,6 +288,22 @@ export function wsFixtures(now = new Date()) {
           starts: toLocalIso(now),
           ends: toLocalIso(addDays(today, 1)),
         },
+      },
+    },
+    { type: 'plugin.changed', payload: { id: 'timers', cleared: ['t1'] } },
+    {
+      type: 'plugin.alert',
+      payload: {
+        id: 'timers',
+        key: 't1',
+        title: 'Pasta is done',
+        text: 'Set for 10 min',
+        icon: 'bell',
+        chime: true,
+        actions: [
+          { name: 'add', label: '+1 min', args: { id: 't1', minutes: 1 }, tone: 'normal' },
+          { name: 'stop', label: 'Stop', args: { id: 't1' }, tone: 'primary' },
+        ],
       },
     },
     { type: 'display.reload', payload: {} },

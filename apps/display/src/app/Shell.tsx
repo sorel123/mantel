@@ -12,6 +12,7 @@ import {
   useAppearance,
   useThemeMode,
 } from '../lib/theme';
+import { PluginChips } from '../features/plugins';
 import { AmbientWeather, useWeather } from '../features/weather';
 import { Ambient, ScreenOff, registerAmbientSlot, useIdle } from './ambient';
 import { formatClock, formatDockDate, useNow } from './Clock';
@@ -340,6 +341,8 @@ function DisplayInner() {
         onAmbient={() => setMode('ambient')}
         awake={{ held: awake.held, label: awakeLabel(awake.until, now) }}
         onAwake={openAwake}
+        people={boot.people}
+        trailing={<PluginChips />}
       />
       <div className="status">
         {previewing && (

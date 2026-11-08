@@ -4,6 +4,7 @@
  */
 import ICAL from 'ical.js';
 import { fromIsoDate, toLocalIso } from '@mantel/shared';
+import { rrule, shiftSeries, icsLocal, vtimezone } from './repeat.js';
 import type { EditEvent, NewEvent, RawEvent } from './types.js';
 
 /** Caps per series: occurrences stepped through (a daily series from years ago) and kept. */
@@ -44,7 +45,13 @@ export function expandIcs(ics: string, calendarId: string, from: Date, to: Date)
   const hi = to.getTime();
   const out: RawEvent[] = [];
 
-  const push = (item: ICAL.Event, start: ICAL.Time, end: ICAL.Time, key: string) => {
+  const push = (
+    item: ICAL.Event,
+    start: ICAL.Time,
+    end: ICAL.Time,
+    key: string,
+    recurring = false,
+  ) => {
     if (end.compare(start) <= 0) {
       end = start.clone();
       if (start.isDate) end.adjust(1, 0, 0, 0);
@@ -66,6 +73,7 @@ export function expandIcs(ics: string, calendarId: string, from: Date, to: Date)
       ...(item.location ? { location: item.location } : {}),
       ...(item.description ? { description: item.description } : {}),
       ...(people ? { personIds: people.split(/[\s,]+/).filter(Boolean) } : {}),
+      ...(recurring ? { recurring: true } : {}),
     });
   };
 
@@ -87,7 +95,7 @@ export function expandIcs(ics: string, calendarId: string, from: Date, to: Date)
       if (t < skipBefore) continue;
       const d = event.getOccurrenceDetails(next);
       const before = out.length;
-      push(d.item, d.startDate, d.endDate, `${event.uid}@${next.toString()}`);
+      push(d.item, d.startDate, d.endDate, `${event.uid}@${next.toString()}`, true);
       if (out.length > before && ++kept >= MAX_OCCURRENCES) break;
     }
   }
@@ -102,6 +110,7 @@ export function expandIcs(ics: string, calendarId: string, from: Date, to: Date)
       e.startDate,
       e.endDate,
       `${e.uid}@${e.recurrenceId?.toString() ?? e.startDate.toString()}`,
+      true,
     );
   }
   return out;
@@ -146,18 +155,28 @@ const utcStamp = (d: Date) =>
 const dateStamp = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
 
 export function buildIcs(uid: string, ev: NewEvent, now = new Date()): string {
+  // A repeating timed event is written in the household's zone (with its VTIMEZONE) so it keeps
+  // its wall-clock time across daylight saving; everything else in UTC.
+  const zone = ev.repeat && !ev.allDay && ev.timeZone ? ev.timeZone : null;
   const when = (name: string, d: Date) =>
-    ev.allDay ? `${name};VALUE=DATE:${dateStamp(d)}` : `${name}:${utcStamp(d)}`;
+    ev.allDay
+      ? `${name};VALUE=DATE:${dateStamp(d)}`
+      : zone
+        ? `${name};TZID=${zone}:${icsLocal(d, zone)}`
+        : `${name}:${utcStamp(d)}`;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Mantel//Wall display//EN',
+    ...(zone ? vtimezone(zone, ev.start.getFullYear()) : []),
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${utcStamp(now)}`,
     when('DTSTART', ev.start),
     when('DTEND', ev.end),
     `SUMMARY:${escapeText(ev.title)}`,
+    ...(ev.location?.trim() ? [`LOCATION:${escapeText(ev.location.trim())}`] : []),
+    ...(ev.repeat ? [`RRULE:${rrule(ev.repeat)}`] : []),
     ...(ev.personIds.length ? [`X-MANTEL-PEOPLE:${ev.personIds.join(' ')}`] : []),
     'END:VEVENT',
     'END:VCALENDAR',
@@ -214,5 +233,155 @@ export function editIcs(ics: string, ev: EditEvent, now = new Date()): string {
   const seq = Number(vevent.getFirstPropertyValue('sequence') ?? 0);
   vevent.removeAllProperties('sequence');
   vevent.addPropertyWithValue('sequence', (Number.isFinite(seq) ? seq : 0) + 1);
+  return root.toString();
+}
+
+/* ---- repeating series: one occurrence or all ---- */
+
+/** The master VEVENT of a series and the recurrence id (as ical.js iterates it) behind `key`. */
+function occurrence(root: ICAL.Component, key: string) {
+  registerTimezones(root);
+  const vevents = root.getAllSubcomponents('vevent');
+  const master = vevents.find((v) => !v.hasProperty('recurrence-id'));
+  if (!master) throw new Error('no series in the object');
+  const at = key.lastIndexOf('@');
+  const wanted = at > 0 ? key.slice(at + 1) : '';
+  const event = new ICAL.Event(master);
+  const it = event.iterator();
+  for (let i = 0, next = it.next(); next && i < MAX_STEPS; i++, next = it.next()) {
+    if (next.toString() === wanted) return { master, rid: next, vevents };
+  }
+  // A moved occurrence: its key is its recurrence id, which the iterator also yields above;
+  // reaching here means the series no longer has that slot.
+  throw new Error('that occurrence is no longer in the series');
+}
+
+/** Set a date-time property keeping the TZID of a zoned time. */
+function setTime(comp: ICAL.Component, name: string, time: ICAL.Time) {
+  comp.removeAllProperties(name);
+  const prop = comp.addPropertyWithValue(name, time);
+  const tzid = time.zone?.tzid;
+  if (!time.isDate && tzid && tzid !== 'UTC' && tzid !== 'floating')
+    prop.setParameter('tzid', tzid);
+}
+
+const timeOf = (d: Date, allDay: boolean): ICAL.Time =>
+  allDay
+    ? ICAL.Time.fromDateString(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+    : ICAL.Time.fromJSDate(d, true);
+
+function stamp(comp: ICAL.Component, now: Date) {
+  setTime(comp, 'dtstamp', ICAL.Time.fromJSDate(now, true));
+  setTime(comp, 'last-modified', ICAL.Time.fromJSDate(now, true));
+  const seq = Number(comp.getFirstPropertyValue('sequence') ?? 0);
+  comp.removeAllProperties('sequence');
+  comp.addPropertyWithValue('sequence', (Number.isFinite(seq) ? seq : 0) + 1);
+}
+
+function applyFields(comp: ICAL.Component, ev: EditEvent) {
+  comp.removeAllProperties('summary');
+  comp.addPropertyWithValue('summary', ev.title);
+  if (ev.location !== undefined) {
+    comp.removeAllProperties('location');
+    if (ev.location.trim()) comp.addPropertyWithValue('location', ev.location.trim());
+  }
+  if (ev.personIds !== undefined) {
+    comp.removeAllProperties(PEOPLE_PROP);
+    if (ev.personIds.length) comp.addPropertyWithValue(PEOPLE_PROP, ev.personIds.join(' '));
+  }
+}
+
+/**
+ * Change one occurrence of a repeating series: an exception VEVENT for its slot (replacing an
+ * earlier one) with the new title, times, place and people. The rest of the series is untouched.
+ */
+export function editIcsOccurrence(ics: string, key: string, ev: EditEvent, now = new Date()) {
+  const root = new ICAL.Component(ICAL.parse(ics));
+  const { master, rid, vevents } = occurrence(root, key);
+  const old = vevents.find(
+    (v) => v.hasProperty('recurrence-id') && new ICAL.Event(v).recurrenceId?.compare(rid) === 0,
+  );
+  const ex = old ?? new ICAL.Component('vevent');
+  if (!old) {
+    for (const p of master.getAllProperties()) {
+      if (['rrule', 'rdate', 'exdate', 'dtstart', 'dtend', 'duration'].includes(p.name)) continue;
+      ex.addProperty(ICAL.Property.fromString(p.toICALString()));
+    }
+    setTime(ex, 'recurrence-id', rid);
+    root.addSubcomponent(ex);
+  }
+  setTime(ex, 'dtstart', timeOf(ev.start, ev.allDay));
+  ex.removeAllProperties('duration');
+  setTime(ex, 'dtend', timeOf(ev.end, ev.allDay));
+  applyFields(ex, ev);
+  stamp(ex, now);
+  return root.toString();
+}
+
+/**
+ * Change every occurrence: the master moves by as many days as this occurrence did, takes its
+ * new time of day and length, title, place and people.
+ */
+export function editIcsSeries(ics: string, key: string, ev: EditEvent, now = new Date()) {
+  const root = new ICAL.Component(ICAL.parse(ics));
+  const { master, rid } = occurrence(root, key);
+  const event = new ICAL.Event(master);
+  const first = event.startDate.toJSDate();
+  const moved = shiftSeries(first, rid.toJSDate(), ev.start, ev.allDay);
+  let start: ICAL.Time;
+  if (ev.allDay) start = timeOf(moved, true);
+  else {
+    // Keep the series' own zone; set the new wall-clock time in it.
+    start = event.startDate.clone();
+    if (start.isDate) start = ICAL.Time.fromJSDate(moved, true);
+    else {
+      const days = Math.round((startOfLocal(moved) - startOfLocal(first)) / 864e5);
+      start.adjust(days, 0, 0, 0);
+      start.hour = ev.start.getHours();
+      start.minute = ev.start.getMinutes();
+      start.second = 0;
+    }
+  }
+  const end = start.clone();
+  if (ev.allDay) end.adjust(Math.max(1, Math.round((+ev.end - +ev.start) / 864e5)), 0, 0, 0);
+  else end.adjust(0, 0, 0, Math.round((+ev.end - +ev.start) / 1000));
+  // Deleted days move with the series; edited single days are folded back into it (their slots
+  // no longer exist once the time changes), as the Calendar app does for "all events".
+  const days = Math.round((startOfLocal(start.toJSDate()) - startOfLocal(first)) / 864e5);
+  for (const prop of master.getAllProperties('exdate')) {
+    const t = prop.getFirstValue();
+    if (!(t instanceof ICAL.Time)) continue;
+    const moved = t.clone();
+    moved.adjust(days, 0, 0, 0);
+    if (!moved.isDate && !start.isDate) {
+      moved.hour = start.hour;
+      moved.minute = start.minute;
+    }
+    prop.setValue(moved);
+  }
+  for (const v of root.getAllSubcomponents('vevent'))
+    if (v.hasProperty('recurrence-id')) root.removeSubcomponent(v);
+  setTime(master, 'dtstart', start);
+  master.removeAllProperties('duration');
+  setTime(master, 'dtend', end);
+  applyFields(master, ev);
+  stamp(master, now);
+  return root.toString();
+}
+
+const startOfLocal = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** Delete one occurrence: an EXDATE on the master, and any edited copy of it goes too. */
+export function excludeIcsOccurrence(ics: string, key: string, now = new Date()) {
+  const root = new ICAL.Component(ICAL.parse(ics));
+  const { master, rid, vevents } = occurrence(root, key);
+  for (const v of vevents) {
+    if (v.hasProperty('recurrence-id') && new ICAL.Event(v).recurrenceId?.compare(rid) === 0)
+      root.removeSubcomponent(v);
+  }
+  const prop = master.addPropertyWithValue('exdate', rid);
+  const tzid = rid.zone?.tzid;
+  if (!rid.isDate && tzid && tzid !== 'UTC' && tzid !== 'floating') prop.setParameter('tzid', tzid);
+  stamp(master, now);
   return root.toString();
 }

@@ -7,6 +7,7 @@ import { startOfDay } from '@mantel/shared';
 import { useBootstrap } from '../../lib/bootstrap';
 import { Countdowns } from './Agenda';
 import { eventsOn, formatTime, spanLabel } from './calendar';
+import { dimClass, useDimmed } from './personFilter';
 import { Avatars, Icon, Svg, pc } from './parts';
 
 export function Bill({
@@ -21,6 +22,7 @@ export function Bill({
   onDay: (day: Date) => void;
 }) {
   const boot = useBootstrap();
+  const dimmed = useDimmed();
   const today = startOfDay(now);
   const todays = eventsOn(events, today);
   const t = now.getTime();
@@ -42,7 +44,7 @@ export function Bill({
           return (
             <button
               key={e.id}
-              className={`brow${state ? ` ${state}` : ''}`}
+              className={`brow${state ? ` ${state}` : ''}${dimClass(dimmed(e.personIds))}`}
               style={pc(e.color)}
               onClick={() => onDay(today)}
               data-testid="event"

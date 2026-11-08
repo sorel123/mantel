@@ -114,11 +114,59 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await confirm.getByRole('button', { name: 'Keep locked' }).click();
   await expect(confirm).toBeHidden();
 
-  // A doorbell press pops the live view over the screen.
+  // A light is one tile: tap toggles it, a sideways drag dims it.
+  const ceiling = page.getByRole('switch', { name: 'Ceiling' });
+  const wasOn = await ceiling.getAttribute('aria-checked');
+  await ceiling.click();
+  await expect(ceiling).not.toHaveAttribute('aria-checked', wasOn ?? 'true');
+  await ceiling.click();
+  await expect(ceiling).toHaveAttribute('aria-checked', wasOn ?? 'true');
+  const tile = (await ceiling.boundingBox())!;
+  const dimmed = page.waitForRequest(
+    (r) => r.url().endsWith('/api/home/call') && /brightness_pct/.test(r.postData() ?? ''),
+  );
+  const y = tile.y + tile.height / 2;
+  await page.mouse.move(tile.x + tile.width * 0.8, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(tile.x + tile.width * (0.8 - i * 0.05), y);
+  await page.mouse.up();
+  await dimmed;
+  await expect(ceiling).toHaveAttribute('aria-checked', 'true');
+
+  // Arrange: drag a room card onto the next one, and the order changes; Cancel keeps the old.
+  await page.getByRole('button', { name: 'Arrange the Home screen' }).click();
+  const order = () =>
+    page.locator('.hm-rooms > .hm-slot').evaluateAll((els) => els.map((e) => e.dataset.card));
+  const before = await order();
+  const first = (await page.locator(`.hm-slot[data-card="${before[0]}"]`).boundingBox())!;
+  const second = (await page.locator(`.hm-slot[data-card="${before[1]}"]`).boundingBox())!;
+  await page.mouse.move(first.x + first.width / 2, first.y + 20);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++)
+    await page.mouse.move(
+      first.x + first.width / 2 + ((second.x - first.x) * i) / 10,
+      first.y + 20 + ((second.y - first.y + second.height / 2) * i) / 10,
+    );
+  await expect.poll(order).not.toEqual(before);
+  await page.mouse.up();
+  expect((await order()).slice(0, 2)).toEqual([before[1], before[0]]);
+  await page
+    .getByRole('region', { name: 'Arrange Home' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+  await expect.poll(order).toEqual(before);
+
+  // A doorbell press pops the live view over the screen. Mock HA offers a WebRTC path that
+  // cannot connect, so the view falls back to the MJPEG stream.
+  const offered = page.waitForRequest(
+    (r) =>
+      r.method() === 'POST' && /\/api\/home\/cameras\/camera\.front_door\/webrtc$/.test(r.url()),
+  );
   const ring = await request.post('/api/dev/doorbell');
   expect(ring.ok()).toBe(true);
   const live = page.getByRole('dialog', { name: "Someone's at the front door" });
   await expect(live).toBeVisible();
+  await offered;
   await expect(live.getByRole('img')).toHaveAttribute(
     'src',
     /^\/api\/home\/cameras\/camera\.front_door\/stream/,
@@ -149,6 +197,58 @@ test('the Dusk look renders every screen', async ({ page }) => {
   }
   expect(problems).toEqual([]);
 });
+test('chores: a routine step is ticked, and a reward is redeemed with the PIN', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  // The two viewports share one server: top Ava up so either run can afford the movie.
+  const topUp = await request.post('/api/stars/adjust', {
+    data: { personId: 'ava', delta: 20, reason: 'bonus', note: 'Smoke test', pin: '1234' },
+  });
+  expect(topUp.ok()).toBe(true);
+
+  await page.goto('/?mode=daylight');
+  const dock = page.getByRole('navigation', { name: 'Screens' });
+  await dock.getByRole('button', { name: 'Lists' }).click();
+  await page.getByRole('tab', { name: /Chore chart/ }).click();
+
+  // The routine card: pick the morning and tick a step that isn't done yet.
+  await page.getByRole('button', { name: 'Routine now' }).click();
+  await page.getByRole('button', { name: /^Morning/ }).click();
+  const routine = page.getByRole('region', { name: 'Morning routine' });
+  await expect(routine).toBeVisible();
+  const step = routine.getByRole('checkbox', { checked: false }).first();
+  const label = (await step.getAttribute('aria-label'))!;
+  const id = await step.evaluate((el) => {
+    const col = el.closest('.rcol')!;
+    return `${col.getAttribute('aria-label')}|${[...col.querySelectorAll('.rrow')].indexOf(el)}`;
+  });
+  await step.click();
+  const [col, index] = id.split('|');
+  await expect(
+    routine.locator(`.rcol[aria-label="${col}"] .rrow`).nth(Number(index)),
+  ).toHaveAttribute('aria-checked', 'true');
+  expect(label).toBeTruthy();
+
+  // The week's chart groups by part of the day, with icons.
+  await page.getByRole('button', { name: 'This week' }).click();
+  const ava = page.getByRole('region', { name: "Ava's chores" });
+  await expect(ava.getByText(/^Evening · Bedtime$/)).toBeVisible();
+
+  // Rewards: open Ava's stars, redeem the movie with the PIN, see the banner.
+  await page.getByRole('button', { name: /^Ava: \d+ stars banked\. Rewards$/ }).click();
+  const drawer = page.getByRole('dialog', { name: 'Rewards' });
+  await expect(drawer).toBeVisible();
+  await drawer.getByRole('button', { name: /^Pick the movie, 10 stars$/ }).click();
+  const confirm = page.getByRole('alertdialog');
+  await confirm.getByLabel('Admin PIN').fill('1234');
+  await confirm.getByRole('button', { name: 'Redeem' }).click();
+  await expect(drawer).toBeHidden();
+  await expect(page.getByText('Ava got Pick the movie!')).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
 
 /** Every settings section, by hash, with the heading each one shows. */
 const SECTIONS: Array<[string, string]> = [
@@ -163,6 +263,8 @@ const SECTIONS: Array<[string, string]> = [
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
   ['companion', 'Phone app'],
+  ['meals', 'Meals'],
+  ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
   ['schedule', 'Screen schedule'],
   ['features', 'Features'],
@@ -577,6 +679,54 @@ test('Your own layout: the cards from the address, and the editor moves, resizes
   expect(problems).toEqual([]);
 });
 
+test('plugin cards: trash day on Today, kitchen timers from the dock, a timer banner, and the editor lists them', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+
+  // A plugin card on a custom layout, drawn from the plugin's blocks.
+  await page.goto('/?mode=daylight&today=custom&cards=plugin:trash:0.0.4.3,agenda:4.0.8.8');
+  const trash = page.locator('.region[data-region="plugin:trash"] .plugin-card');
+  await expect(trash).toBeVisible();
+  await expect(trash.getByText('Recycling', { exact: true })).toBeVisible();
+
+  // The timers chip in the dock opens the sheet; a preset starts a timer that counts down.
+  await page.locator('.dock .pchip[data-plugin="timers"]').click();
+  const sheet = page.getByRole('dialog', { name: 'Kitchen timers' });
+  await sheet.getByRole('button', { name: '1 min', exact: true }).click();
+  await expect(page.getByText('1 min timer started.')).toBeVisible();
+  const row = sheet.locator('li', { hasText: '1 min timer' }).first();
+  await expect(row.locator('.pb-count')).toHaveText(/^0:[0-5]\d$|^1:00$/);
+  await row.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByText('1 min timer cancelled.')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // A timer that rings shows a banner on every display; Stop clears it.
+  await request.post('/api/plugins/timers/actions/start', {
+    data: { args: { seconds: 1, label: 'Smoke test' } },
+  });
+  const banner = page.getByRole('alert').filter({ hasText: 'Smoke test is done' });
+  await expect(banner).toBeVisible();
+  await banner.getByRole('button', { name: 'Stop' }).click();
+  await expect(banner).toBeHidden();
+
+  // Settings › Layout › Your own lists plugin cards under "From plugins".
+  await page.goto('/settings#layout');
+  await page.getByRole('radio', { name: /Your own/ }).click();
+  const canvas = page.getByRole('group', { name: 'Today layout' });
+  // Make room: the starting layout fills the grid.
+  await canvas.getByRole('button', { name: /^List,/ }).click();
+  await page.getByRole('button', { name: 'Remove List' }).click();
+  await page
+    .getByRole('group', { name: 'Add a card from a plugin' })
+    .getByRole('button', { name: '+ Kitchen timers' })
+    .click();
+  await expect(canvas.getByRole('button', { name: /^Kitchen timers,/ })).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
 test('fill and scale reach the edges of the viewport', async ({ page }) => {
   const problems = watchConsole(page);
   const size = page.viewportSize()!;
@@ -612,6 +762,160 @@ test('fill and scale reach the edges of the viewport', async ({ page }) => {
     expect(Math.abs(box.y), q).toBeLessThanOrEqual(1);
     expect(Math.abs(box.width - 1000), q).toBeLessThanOrEqual(2);
   }
+
+  expect(problems).toEqual([]);
+});
+
+test('the meal planner plans a dinner from a favourite and sends its ingredients to the grocery list', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/?mode=daylight');
+
+  // Tonight on Today opens the planner on this week.
+  await page.getByRole('button', { name: 'Open the meal planner' }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'Meal planner' });
+  await expect(sheet.getByLabel('Meal plan')).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Monday dinner: Tacos' })).toBeVisible();
+
+  // Sunday dinner comes from the Meals calendar; plan a favourite over it.
+  await sheet.getByRole('button', { name: /^(Plan )?Sunday dinner/ }).click();
+  await expect(sheet.getByRole('heading', { name: 'Sunday dinner' })).toBeVisible();
+  // (The other viewport's run planned it already: Change opens the picker again.)
+  const change = sheet.getByRole('button', { name: 'Change' });
+  if (await change.isVisible()) await change.click();
+  await sheet.getByRole('button', { name: 'Plan Sheet-pan chicken' }).click();
+  await expect(page.getByText('Sheet-pan chicken for Sunday dinner')).toBeVisible();
+  const planned = sheet.getByRole('button', { name: 'Sunday dinner: Sheet-pan chicken' });
+  await expect(planned).toBeVisible();
+
+  // Its ingredients go to the grocery list (a second project run finds them already there).
+  await planned.click();
+  await sheet.getByRole('button', { name: /^Add ingredients to Grocery/ }).click();
+  await expect(
+    page.getByText(/^Added \d+ items? to Grocery|^Everything is already on Grocery/),
+  ).toBeVisible();
+  const lists = await (await request.get('/api/lists')).json();
+  const grocery = lists.lists.find((l: { name: string }) => l.name === 'Grocery');
+  expect(grocery.items.map((i: { text: string }) => i.text)).toEqual(
+    expect.arrayContaining(['Potatoes', 'Carrots', 'Lemon']),
+  );
+
+  // The favourites manager opens from the week.
+  await sheet.getByRole('button', { name: 'Back to the week' }).click();
+  await sheet.getByRole('button', { name: 'Favourites' }).click();
+  await expect(sheet.getByRole('button', { name: 'Edit Tacos' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+
+  // The meals-week card on a custom Today layout lists the dinners and opens the planner too.
+  await page.goto(
+    '/?mode=daylight&today=custom&cards=date:0.0.4.2,meals-week:0.2.4.6,agenda:4.0.8.8',
+  );
+  const card = page.getByRole('button', { name: /Dinners this week/ });
+  await expect(card.getByText('Sheet-pan chicken')).toBeVisible();
+  await card.click();
+  await expect(page.getByRole('dialog', { name: 'Meal planner' })).toBeVisible();
+
+  // Settings › Meals: slots, grocery list and the calendar mirror.
+  await page.goto('/settings#meals');
+  await expect(page.getByRole('switch', { name: 'Meal planner' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Meal slots' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Grocery list' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test('people and touch: person filter, guest mode, live swipe, a weekly event with a place', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  // One mock server serves both sizes: each run adds its own series.
+  const swim = `Swim ${test.info().project.name}`;
+  await page.goto('/?mode=daylight');
+  const dock = page.getByRole('navigation', { name: 'Screens' });
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
+
+  // Agenda chips: tap Ava, her events stay bright and the rest dim; tap again to clear.
+  const agenda = page.locator('.agenda');
+  await agenda.getByRole('button', { name: 'Show Ava' }).click();
+  await expect(agenda.getByRole('button', { name: /^Showing Ava/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(agenda.getByText(/ for Ava$/)).toBeVisible();
+  await expect(agenda.locator('.ev.pf-dim').first()).toBeVisible();
+  await agenda.getByRole('button', { name: /^Showing Ava/ }).click();
+  await expect(agenda.locator('.pf-dim')).toHaveCount(0);
+
+  // The dock's chips work from any screen: Month dims everyone but Sam.
+  await dock.getByRole('button', { name: 'Month' }).click();
+  await dock.getByRole('button', { name: 'Show Sam' }).click();
+  await expect(page.locator('.mgrid .pill.pf-dim').first()).toBeVisible();
+  await dock.getByRole('button', { name: /^Showing Sam/ }).click();
+  await expect(page.locator('.mgrid .pf-dim')).toHaveCount(0);
+
+  // Guest mode: only Today and Month in the dock, and it survives a reload in this tab.
+  await dock.getByRole('button', { name: /^Guest mode/ }).click();
+  await expect(dock.getByRole('button', { name: 'Lists' })).toHaveCount(0);
+  await expect(dock.getByRole('button', { name: 'Home' })).toHaveCount(0);
+  await page.reload();
+  await expect(dock.getByRole('button', { name: 'Guest mode is on. Turn off' })).toBeVisible();
+  await dock.getByRole('button', { name: 'Guest mode is on. Turn off' }).click();
+  await expect(dock.getByRole('button', { name: 'Lists' })).toBeVisible();
+
+  // Live swipe: drag Today left from the date and the next screen follows the finger in.
+  await dock.getByRole('button', { name: 'Today' }).click();
+  await expect(page.locator('.screen[data-screen="today"]')).toBeVisible();
+  const panel = (await page.locator('.screens').boundingBox())!;
+  const y = panel.y + 90;
+  const x0 = panel.x + panel.width * 0.3;
+  await page.mouse.move(x0, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 - i * 30, y + 2);
+  await expect(page.locator('.screen-peek')).toHaveCount(1);
+  for (let i = 11; i <= 16; i++) await page.mouse.move(x0 - i * 30, y + 2);
+  await page.mouse.up();
+  await expect(page.locator('.screen[data-screen="month"]')).toBeVisible();
+  await expect(dock.getByRole('button', { name: 'Month' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.screen-peek')).toHaveCount(0);
+
+  // Quick add: a weekly event on a date from the picker, with a place and a countdown star.
+  await page.locator('.mgrid .today-btn').click();
+  await page.locator('.mgrid .cell.is-today').click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Quick add' }).click();
+  await sheet.getByLabel('Event title').fill(swim);
+  await sheet.getByRole('button', { name: 'Other date' }).click();
+  await sheet.getByRole('button', { name: 'Next month' }).click();
+  await sheet.locator('.qp-day:not(.out)', { hasText: /^10$/ }).click();
+  await sheet.getByRole('button', { name: /^Every (Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/ }).click();
+  await sheet.getByRole('button', { name: 'L Leo' }).click();
+  await sheet.getByLabel('Place').fill('123 Pool Rd, Springfield');
+  await expect(sheet.getByText('Gets a leave-by time on the day')).toBeVisible();
+  await sheet.getByRole('button', { name: 'Count down to it' }).click();
+  await sheet.getByRole('button', { name: 'Add to calendar' }).click();
+  await expect(sheet.getByRole('button', { name: 'Quick add' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Close' }).click();
+
+  // It repeats every week next month.
+  await page.locator('.mgrid button[aria-label="Next month"]').click();
+  const swims = page.locator('.mgrid .pill', { hasText: swim });
+  await expect(swims.first()).toBeVisible();
+  expect(await swims.count()).toBeGreaterThanOrEqual(3);
+
+  // Editing one occurrence asks "this one or all".
+  await page
+    .locator('.mgrid .cell', { has: page.locator('.pill', { hasText: swim }) })
+    .nth(1)
+    .click();
+  await sheet.getByRole('button', { name: `Edit ${swim}` }).click();
+  await expect(sheet.getByLabel('Place')).toHaveValue('123 Pool Rd, Springfield');
+  await sheet.getByLabel('Event title').fill(`${swim} (pool B)`);
+  await sheet.getByRole('button', { name: 'Save' }).click();
+  await sheet.getByRole('button', { name: 'Change this one' }).click();
+  await sheet.getByRole('button', { name: 'Close' }).click();
+  await expect(page.locator('.mgrid .pill', { hasText: `${swim} (pool B)` })).toHaveCount(1);
 
   expect(problems).toEqual([]);
 });
@@ -697,10 +1001,14 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   request,
 }) => {
   const problems = watchConsole(page);
-  await request.post('/api/notes', { data: { kind: 'text', text: 'Dentist at 4', color: 'sun' } });
+  // One mock server serves both sizes: each run leaves its own notes.
+  const who = test.info().project.name;
+  await request.post('/api/notes', {
+    data: { kind: 'text', text: `Dentist at 4 (${who})`, color: 'sun' },
+  });
   await page.goto('/?mode=daylight&today=custom&cards=date:0.0.3.1,notes:0.1.5.7,agenda:5.0.7.8');
   const notes = page.locator('.notes-card');
-  await expect(notes.getByText('Dentist at 4')).toBeVisible();
+  await expect(notes.getByText(`Dentist at 4 (${who})`)).toBeVisible();
 
   await page.getByRole('button', { name: 'Add an event, a note or a photo' }).click();
   const menu = page.getByRole('dialog');
@@ -708,9 +1016,9 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   await expect(menu.getByRole('button', { name: /A drawing/ })).toBeVisible();
   await expect(menu.getByRole('button', { name: /A photo of a flyer/ })).toBeVisible();
   await menu.getByRole('button', { name: /A note/ }).click();
-  await page.getByRole('textbox', { name: 'Note' }).fill('Pizza Friday');
+  await page.getByRole('textbox', { name: 'Note' }).fill(`Pizza Friday (${who})`);
   await page.getByRole('button', { name: 'Put it on the wall' }).click();
-  await expect(notes.getByText('Pizza Friday')).toBeVisible();
+  await expect(notes.getByText(`Pizza Friday (${who})`)).toBeVisible();
 
   // Push in mock: a fake endpoint subscribes, a test message lands in the outbox, and Settings
   // lists the phone.

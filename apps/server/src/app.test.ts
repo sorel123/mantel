@@ -171,10 +171,13 @@ describe('settings-first server (real mode, fresh data dir)', () => {
         'homeassistant',
         'ical',
         'icloud',
+        'meals',
         'photos',
         'pollen',
         'quips',
         'routes',
+        'timers',
+        'trash',
         'weather',
       ].sort(),
     );

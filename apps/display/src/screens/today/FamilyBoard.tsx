@@ -7,6 +7,7 @@ import { addDays, startOfDay } from '@mantel/shared';
 import { useBootstrap } from '../../lib/bootstrap';
 import { eventsOn, formatTime } from './calendar';
 import { Avatar, pc } from './parts';
+import { dimClass, personFilter, usePersonFilter } from './personFilter';
 
 interface Column {
   key: string;
@@ -27,6 +28,7 @@ export function FamilyBoard({
   onDay: (day: Date) => void;
 }) {
   const boot = useBootstrap();
+  const { personId } = usePersonFilter();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
   const todays = eventsOn(events, today);
@@ -59,8 +61,24 @@ export function FamilyBoard({
       style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}
     >
       {cols.map((c) => (
-        <section key={c.key} className="card famcol" role="listitem" style={pc(c.color)}>
-          <button className="fh" onClick={() => onDay(today)} aria-label={`${c.name}, today`}>
+        <section
+          key={c.key}
+          className={`card famcol${dimClass(!!personId && !!c.person && c.person.id !== personId)}`}
+          role="listitem"
+          style={pc(c.color)}
+        >
+          <button
+            className="fh"
+            onClick={() => (c.person ? personFilter.toggle(c.person.id) : onDay(today))}
+            aria-pressed={c.person ? personId === c.person.id : undefined}
+            aria-label={
+              c.person
+                ? personId === c.person.id
+                  ? `${c.name}. Show everyone`
+                  : `${c.name}. Show only ${c.name}`
+                : `${c.name}, today`
+            }
+          >
             {c.person ? <Avatar person={c.person} /> : <span className="av all">All</span>}
             <span className="who">{c.name}</span>
             <span className="cnt tnum">

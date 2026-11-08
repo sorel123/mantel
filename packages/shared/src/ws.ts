@@ -6,7 +6,9 @@
 import { z } from 'zod';
 import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence } from './models.js';
 import { NotesChanged } from './companion.js';
+import { PluginAlertPayload } from './plugins.js';
 import { WeatherAlertPayload, WeatherSnapshotExtended } from './weather-extended.js';
+import { RewardsRedeemed } from './rewards.js';
 
 const event = <T extends string, P extends z.ZodType>(type: T, payload: P) =>
   z.object({ type: z.literal(type), payload });
@@ -37,6 +39,17 @@ export const WeatherUpdated = event(
 );
 /** A warning just became active for the household's location; the display wakes and shows it. */
 export const WeatherAlertEvent = event('weather.alert', WeatherAlertPayload);
+/** A plugin's card, Ambient line or dock chip has something new; displays refetch that plugin. */
+export const PluginChanged = event(
+  'plugin.changed',
+  z.object({
+    id: z.string(),
+    /** Keys of `plugin.alert`s that no longer apply (a timer someone stopped); their banners close. */
+    cleared: z.array(z.string()).optional(),
+  }),
+);
+/** A plugin wants attention now (a kitchen timer rang): every display wakes and shows a banner. */
+export const PluginAlert = event('plugin.alert', PluginAlertPayload);
 export const DisplayReload = event('display.reload', z.object({}));
 export const DisplayWake = event(
   'display.wake',
@@ -55,8 +68,11 @@ export const WsEvent = z.discriminatedUnion('type', [
   MediaStateEvent,
   ListChanged,
   ChoresChanged,
+  RewardsRedeemed,
   WeatherUpdated,
   WeatherAlertEvent,
+  PluginChanged,
+  PluginAlert,
   DisplayReload,
   DisplayWake,
   DisplaySleep,

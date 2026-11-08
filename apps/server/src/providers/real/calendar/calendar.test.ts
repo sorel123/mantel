@@ -9,6 +9,7 @@ import type { ProviderContext } from '../../types.js';
 import { loadCalendarEnv } from './env.js';
 import type { GEvent } from './google.js';
 import { RealCalendar } from './index.js';
+import { wallClock } from './repeat.js';
 
 /* ---------- a fake Google and a fake iCloud behind one fetch ---------- */
 
@@ -59,6 +60,7 @@ function fakeUpstream() {
       { id: 'h1', summary: 'Holiday', start: { date: date(1) }, end: { date: date(2) } },
     ],
   };
+  const masters: Record<string, GEvent> = {};
   const icloud = { ctag: 'ctag-1', ics: '' };
   icloud.ics = vevent('sam-1', 'Book club', at(1, 19.5), at(1, 21));
   let googleDown = false;
@@ -141,6 +143,15 @@ function fakeUpstream() {
       }
       if (m) return json({ items: google[m[1]!] ?? [] });
       const one = /^\/calendars\/([^/]+)\/events\/([^/]+)$/.exec(path);
+      if (one && masters[one[2]!]) {
+        // A repeating series' master: never listed (singleEvents), fetched and patched by id.
+        if (method === 'PATCH') Object.assign(masters[one[2]!]!, JSON.parse(body!));
+        if (method === 'DELETE') {
+          delete masters[one[2]!];
+          return new Response(null, { status: 204 });
+        }
+        return json(masters[one[2]!]);
+      }
       if (one) {
         const list = google[one[1]!] ?? [];
         const i = list.findIndex((e) => e.id === one[2]);
@@ -204,6 +215,7 @@ function fakeUpstream() {
     fetch: fetch as unknown as typeof globalThis.fetch,
     calls,
     google,
+    masters,
     icloud,
     setGoogleDown: (v: boolean) => (googleDown = v),
   };
@@ -260,7 +272,7 @@ function harness(
     ...envOverrides,
   });
   const cal = new RealCalendar(ctx, { env, fetch: up.fetch, autoStart: false });
-  return { up, cal, ctx, events, synced };
+  return { up, cal, ctx, events, synced, settings: s };
 }
 
 async function connect(h: ReturnType<typeof harness>) {
@@ -469,15 +481,123 @@ describe('RealCalendar', () => {
     expect(h.up.calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/sam-1.ics'))).toBe(
       true,
     );
+  });
 
-    // A weekly series can't be changed from the wall.
+  it('edits one occurrence of a repeating iCloud event, or all of them, and deletes either', async () => {
+    const h = harness();
+    await connect(h);
     h.up.icloud.ics = h.up.icloud.ics.replace('END:VEVENT', 'RRULE:FREQ=WEEKLY\r\nEND:VEVENT');
     h.up.icloud.ctag = 'ctag-2';
     await h.cal.sync();
-    const [series] = (await h.cal.events(...dayRange(1))).events.filter((e) =>
+    const occ = (title = 'Book club') =>
+      h.cal
+        .events(addDays(today, 7), addDays(today, 9))
+        .then((r) => r.events.find((e) => e.title.startsWith(title))!);
+    const second = await occ();
+    expect(second.recurring).toBe(true);
+
+    // This one only: an exception for that day; the series keeps its title.
+    await h.cal.updateEvent(second.id, { title: 'Book club (Ana’s)', scope: 'one' });
+    expect(h.up.icloud.ics).toContain('RECURRENCE-ID');
+    expect(h.up.icloud.ics).toContain('SUMMARY:Book club (Ana’s)');
+    expect(h.up.icloud.ics).toMatch(/SUMMARY:Book club\r\n/);
+
+    // All: the master takes the new title and moves to 8 pm.
+    const first = (await h.cal.events(...dayRange(1))).events.find((e) =>
       e.title.startsWith('Book club'),
+    )!;
+    await h.cal.updateEvent(first.id, {
+      title: 'Reading group',
+      start: at(1, 20),
+      end: at(1, 21.5),
+      scope: 'all',
+    });
+    expect(h.up.icloud.ics).toContain('SUMMARY:Reading group');
+    expect(h.up.icloud.ics).toContain(`DTSTART:${utc(at(1, 20))}`);
+
+    // Delete one day: an EXDATE; delete all: the resource goes.
+    expect(h.up.icloud.ics).not.toContain('RECURRENCE-ID');
+    await h.cal.deleteEvent((await occ('Reading group')).id);
+    expect(h.up.icloud.ics).toContain('EXDATE');
+    const moved = (await h.cal.events(...dayRange(1))).events.find(
+      (e) => e.title === 'Reading group',
+    )!;
+    await h.cal.deleteEvent(moved.id, 'all');
+    expect(h.up.calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/sam-1.ics'))).toBe(
+      true,
     );
-    await expect(h.cal.deleteEvent(series!.id)).rejects.toThrow(/repeating/);
+  });
+
+  it('quick-adds a weekly Google event with a place and a countdown, in the household zone', async () => {
+    const h = harness();
+    await connect(h);
+    await h.cal.quickAdd({
+      title: 'Swim lessons',
+      start: at(2, 17),
+      end: at(2, 18),
+      location: '123 Pool Rd, Springfield',
+      repeat: 'weekly',
+      countdown: true,
+    });
+    const post = h.up.calls.find((c) => c.method === 'POST' && c.url.endsWith('/events'))!;
+    const body = JSON.parse(post.body!) as GEvent & { recurrence: string[] };
+    expect(body.recurrence).toEqual(['RRULE:FREQ=WEEKLY']);
+    expect(body.location).toBe('123 Pool Rd, Springfield');
+    expect(body.summary).toBe('Swim lessons #countdown');
+    expect(body.start?.timeZone).toBe(h.settings.timezone);
+    expect(body.start?.dateTime).toBe(wallClock(new Date(at(2, 17)), h.settings.timezone));
+  });
+
+  it('quick-adds a repeating iCloud event with its zone, so it keeps its time across DST', async () => {
+    const h = harness();
+    await connect(h);
+    await h.cal.quickAdd({
+      title: 'Piano',
+      start: at(1, 16),
+      end: at(1, 16.5),
+      repeat: 'weekdays',
+      calendarId: 'icloud:/123/calendars/sam/',
+    });
+    const put = h.up.calls.find((c) => c.method === 'PUT')!.body!;
+    expect(put).toContain('RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR');
+    expect(put).toContain(`DTSTART;TZID=${h.settings.timezone}:`);
+    expect(put).toContain('BEGIN:VTIMEZONE');
+  });
+
+  it('changes every occurrence of a Google series through its master', async () => {
+    const h = harness();
+    await connect(h);
+    h.up.masters.r1 = {
+      id: 'r1',
+      summary: 'Gym',
+      start: { dateTime: at(-14, 7), timeZone: 'America/Los_Angeles' },
+      end: { dateTime: at(-14, 8), timeZone: 'America/Los_Angeles' },
+      recurrence: ['RRULE:FREQ=WEEKLY'],
+    };
+    h.up.google['jay@example.com']!.push({
+      id: 'r1_20260101',
+      recurringEventId: 'r1',
+      summary: 'Gym',
+      start: { dateTime: at(0, 7) },
+      end: { dateTime: at(0, 8) },
+    });
+    await h.cal.sync();
+    const gym = (await h.cal.events(...dayRange())).events.find((e) => e.title === 'Gym')!;
+    expect(gym.recurring).toBe(true);
+    await h.cal.updateEvent(gym.id, {
+      title: 'Gym class',
+      start: at(0, 6.5),
+      end: at(0, 7.5),
+      scope: 'all',
+    });
+    expect(h.up.masters.r1!.summary).toBe('Gym class');
+    // The master moved to 6:30 on its own first day, in its own zone.
+    expect(h.up.masters.r1!.start?.dateTime).toBe(
+      wallClock(new Date(at(-14, 6.5)), 'America/Los_Angeles'),
+    );
+    expect(h.up.masters.r1!.start?.timeZone).toBe('America/Los_Angeles');
+    await h.cal.deleteEvent(gym.id, 'all');
+    expect(h.up.masters.r1).toBeUndefined();
   });
 
   it('refuses to edit read-only calendars and unknown events', async () => {

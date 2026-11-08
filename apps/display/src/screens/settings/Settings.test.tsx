@@ -157,7 +157,11 @@ describe('Settings page', () => {
     expect(screen.queryByRole('article', { name: 'Google Calendar' })).toBeNull();
     expect(screen.queryByRole('article', { name: 'Home Assistant' })).toBeNull();
     for (const p of fx.plugins.plugins.filter(
-      (p) => p.category !== 'calendar' && p.id !== 'homeassistant' && p.id !== 'quips',
+      (p) =>
+        p.category !== 'calendar' &&
+        p.id !== 'homeassistant' &&
+        p.id !== 'quips' &&
+        p.id !== 'meals',
     ))
       expect(screen.getByRole('article', { name: p.name })).toBeTruthy();
 

@@ -85,6 +85,37 @@ export function moveCard(
   return next;
 }
 
+/**
+ * Drop `key` onto `targetKey`: it takes the target's place (after it when moving forward in
+ * the same column, before it otherwise) and joins the target's column. A card that moves to
+ * the side column stops being wide.
+ */
+export function moveTo(cards: HomeCardPlace[], key: string, targetKey: string): HomeCardPlace[] {
+  const from = cards.findIndex((c) => c.key === key);
+  const to = cards.findIndex((c) => c.key === targetKey);
+  if (from < 0 || to < 0 || from === to) return cards;
+  const target = cards[to]!;
+  const was = cards[from]!;
+  const me: HomeCardPlace = { ...was, side: target.side, wide: target.side ? false : was.wide };
+  const next = cards.filter((c) => c.key !== key);
+  const at = next.findIndex((c) => c.key === targetKey);
+  next.splice(was.side === target.side && from < to ? at + 1 : at, 0, me);
+  return next;
+}
+
+/** Drop `key` on an empty part of a column: it goes to the end of that column. */
+export function moveToSide(cards: HomeCardPlace[], key: string, side: boolean): HomeCardPlace[] {
+  const me = cards.find((c) => c.key === key);
+  if (!me) return cards;
+  const last = cards.reduce((at, c, i) => (c.side === side && c.key !== key ? i : at), -1);
+  if (me.side === side && cards.indexOf(me) > last) return cards;
+  const rest = cards.filter((c) => c.key !== key);
+  const lastKey = last >= 0 ? cards[last]!.key : null;
+  const at = lastKey ? rest.findIndex((c) => c.key === lastKey) + 1 : rest.length;
+  rest.splice(at, 0, { ...me, side, wide: side ? false : me.wide });
+  return rest;
+}
+
 export function patchCard(
   cards: HomeCardPlace[],
   key: string,

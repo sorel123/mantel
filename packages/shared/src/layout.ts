@@ -8,6 +8,7 @@
 import { z } from 'zod';
 
 import {
+  type BuiltInCardKind,
   DEFAULT_TODAY_CARDS,
   Fit,
   Layout,
@@ -21,6 +22,7 @@ import {
   type TodayCardKind,
   TodayPreset,
   TodayRow,
+  isPluginCard,
 } from './models.js';
 
 /** The layout settings object (`Layout` in models.ts; this is the name the display uses). */
@@ -190,7 +192,7 @@ export const FIT_MODES: ReadonlyArray<PresetInfo<Fit>> = [
 
 /* ---------- the Custom layout's cards ---------- */
 
-export const TODAY_CARDS: ReadonlyArray<PresetInfo<TodayCardKind>> = [
+export const TODAY_CARDS: ReadonlyArray<PresetInfo<BuiltInCardKind>> = [
   { id: 'date', name: 'Date', description: 'The day and date; one line when short.' },
   { id: 'weather', name: 'Weather', description: 'Now, the next hours and the quip.' },
   { id: 'forecast', name: 'Next 7 days', description: "The week's highs, lows and rain." },
@@ -201,6 +203,7 @@ export const TODAY_CARDS: ReadonlyArray<PresetInfo<TodayCardKind>> = [
   { id: 'countdowns', name: 'Countdowns', description: 'Days until starred events.' },
   { id: 'tonight', name: 'Tonight', description: "Tonight's dinner from the meal plan." },
   { id: 'notes', name: 'Notes', description: 'Notes and drawings left for the family.' },
+  { id: 'meals-week', name: 'Meals this week', description: "The week's dinners; tap to plan." },
 ];
 
 /** Whether two cards share a cell. */
@@ -253,7 +256,7 @@ export function findSpot(
  * The smallest each card may get in the editor, [w, h] in cells: below this it stops being
  * readable on the wall.
  */
-export const CARD_MIN: Readonly<Record<TodayCardKind, readonly [number, number]>> = {
+export const CARD_MIN: Readonly<Record<BuiltInCardKind, readonly [number, number]>> = {
   date: [2, 1],
   weather: [2.5, 1],
   forecast: [4.5, 1.5],
@@ -264,6 +267,7 @@ export const CARD_MIN: Readonly<Record<TodayCardKind, readonly [number, number]>
   countdowns: [2.5, 1],
   tonight: [2.5, 1],
   notes: [2, 1.5],
+  'meals-week': [3, 2],
 };
 
 /**
@@ -271,7 +275,7 @@ export const CARD_MIN: Readonly<Record<TodayCardKind, readonly [number, number]>
  * a little smaller to fit (see cardZoom), down to CARD_ZOOM_MIN. Cards that change shape when
  * small (the date, the weather) give the size of each shape.
  */
-const CARD_COMFORT: Readonly<Record<TodayCardKind, readonly [number, number] | null>> = {
+const CARD_COMFORT: Readonly<Record<BuiltInCardKind, readonly [number, number] | null>> = {
   date: null,
   weather: [4, 4],
   forecast: [6, 2],
@@ -282,12 +286,55 @@ const CARD_COMFORT: Readonly<Record<TodayCardKind, readonly [number, number] | n
   countdowns: [4, 1],
   tonight: [4, 1],
   notes: [3, 2.5],
+  'meals-week': [4, 3.5],
 };
 export const CARD_ZOOM_MIN = 0.75;
 
+/* ---------- cards from plugins ---------- */
+
+/** What the display knows about a plugin's card, from its manifest's `contributes.todayCard`. */
+export interface PluginCardInfo {
+  kind: `plugin:${string}`;
+  name: string;
+  description: string;
+  min: readonly [number, number];
+  comfort?: readonly [number, number] | undefined;
+}
+
+/** Until the plugin list loads (or for a plugin that is gone), a plugin card is this small at least. */
+export const PLUGIN_CARD_MIN = [2, 1.5] as const;
+
+const pluginCards = new Map<string, PluginCardInfo>();
+
+/** Tell the layout helpers about the plugin cards on offer (the display does this as the plugin list loads). */
+export function setPluginCards(list: readonly PluginCardInfo[]): void {
+  pluginCards.clear();
+  for (const c of list) pluginCards.set(c.kind, c);
+}
+
+/** The plugin cards on offer, as last set. */
+export const pluginCardList = (): PluginCardInfo[] => [...pluginCards.values()];
+
+/** A card kind's name for people: "Weather", or the plugin card's own name. */
+export function cardName(kind: TodayCardKind): string {
+  if (isPluginCard(kind)) return pluginCards.get(kind)?.name ?? kind.slice('plugin:'.length);
+  return TODAY_CARDS.find((c) => c.id === kind)?.name ?? kind;
+}
+
+/** The smallest a card may get, [w, h] in cells. */
+export function cardMin(kind: TodayCardKind): readonly [number, number] {
+  if (isPluginCard(kind)) return pluginCards.get(kind)?.min ?? PLUGIN_CARD_MIN;
+  return CARD_MIN[kind];
+}
+
+function cardComfort(kind: TodayCardKind): readonly [number, number] | null {
+  if (isPluginCard(kind)) return pluginCards.get(kind)?.comfort ?? null;
+  return CARD_COMFORT[kind];
+}
+
 /** How much to shrink a card's content (1 = not at all) so it fits the card. */
 export function cardZoom(card: Pick<TodayCard, 'kind' | 'w' | 'h'>, shape?: 'line'): number {
-  const comfort = shape === 'line' ? ([4, 1] as const) : CARD_COMFORT[card.kind];
+  const comfort = shape === 'line' ? ([4, 1] as const) : cardComfort(card.kind);
   if (!comfort) return 1;
   const k = Math.min(card.w / comfort[0], card.h / comfort[1], 1);
   return Math.round(Math.max(CARD_ZOOM_MIN, k) * 100) / 100;
@@ -303,7 +350,7 @@ export interface CardStarter {
   name: string;
   cards: TodayCard[];
 }
-const card = (kind: TodayCardKind, x: number, y: number, w: number, h: number): TodayCard => ({
+const card = (kind: BuiltInCardKind, x: number, y: number, w: number, h: number): TodayCard => ({
   id: kind,
   kind,
   x,
@@ -390,7 +437,10 @@ export const cardsToParam = (cards: readonly TodayCard[]): string =>
 export function cardsFromParam(param: string): TodayCard[] {
   const out: TodayCard[] = [];
   for (const part of param.split(',')) {
-    const [kind, pos = ''] = part.split(':');
+    // `plugin:trash:0.0.4.2`: the position is after the last colon.
+    const at = part.lastIndexOf(':');
+    const kind = at < 0 ? part : part.slice(0, at);
+    const pos = at < 0 ? '' : part.slice(at + 1);
     const [x, y, w, h] = pos.split(pos.includes('_') ? '_' : '.').map(Number);
     const card = TodayCard.safeParse({ id: `${kind}-${out.length}`, kind, x, y, w, h });
     if (card.success) out.push(card.data);

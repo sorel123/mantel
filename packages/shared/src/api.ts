@@ -27,8 +27,14 @@ import {
   TestRequest,
   TestResult,
 } from './integrations.js';
-import { PluginsResponse } from './plugins.js';
 import { companionRoutes } from './companion.js';
+import {
+  PluginActionRequest,
+  PluginActionResponse,
+  PluginBlocksResponse,
+  PluginChipResponse,
+  PluginsResponse,
+} from './plugins.js';
 import {
   Calendar,
   CalendarEvent,
@@ -66,6 +72,8 @@ import {
   Location,
 } from './models.js';
 import { Appearance } from './skins.js';
+import { mealRoutes } from './meals.js';
+import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import {
   HomeConfig,
   HomeConnectionPatch,
@@ -75,6 +83,13 @@ import {
   HomeTestResult,
   HomeYaml,
 } from './home-setup.js';
+import {
+  WebRtcCandidateRequest,
+  WebRtcCandidatesResponse,
+  WebRtcOfferRequest,
+  WebRtcOfferResponse,
+  WebRtcOk,
+} from './home-webrtc.js';
 import {
   WeatherPlaceQuery,
   WeatherQuipResponse,
@@ -171,6 +186,13 @@ export const BootstrapResponse = z.object({
 export const CalendarQuery = z.object({ from: IsoDateTime, to: IsoDateTime });
 export const CalendarResponse = z.object({ events: z.array(CalendarEvent) });
 
+/** How a new event repeats. Weekly repeats on the start's weekday; weekdays is Monday to Friday. */
+export const Repeat = z.enum(['daily', 'weekly', 'monthly', 'weekdays']);
+export type Repeat = z.infer<typeof Repeat>;
+/** Editing or deleting one occurrence of a repeating event, or the whole series. */
+export const EditScope = z.enum(['one', 'all']);
+export type EditScope = z.infer<typeof EditScope>;
+
 export const QuickEventRequest = z.object({
   title: z.string().min(1),
   start: IsoDateTime,
@@ -180,6 +202,12 @@ export const QuickEventRequest = z.object({
   /** Defaults to the family calendar configured on the server. */
   calendarId: Id.optional(),
   personIds: z.array(Id).optional(),
+  /** Where: an address gets a leave-by chip on the day. */
+  location: z.string().max(300).optional(),
+  /** Repeats forever on this pattern; absent is a one-off. */
+  repeat: Repeat.optional(),
+  /** Count down to it on Today (the server tags it `#countdown`). */
+  countdown: z.boolean().optional(),
 });
 export const QuickEventResponse = z.object({ event: CalendarEvent });
 
@@ -192,7 +220,13 @@ export const EventPatchRequest = z.object({
   /** Empty string clears it. */
   location: z.string().max(300).optional(),
   personIds: z.array(Id).optional(),
+  /** Turn the countdown tag on or off; absent leaves it. */
+  countdown: z.boolean().optional(),
+  /** For a repeating event: this occurrence (default) or every one. */
+  scope: EditScope.optional(),
 });
+/** `?scope=all` deletes every occurrence of a repeating event. */
+export const EventDeleteQuery = z.object({ scope: EditScope.optional() });
 
 export const CountdownsResponse = z.object({ countdowns: z.array(Countdown) });
 
@@ -285,6 +319,9 @@ export const CreateChoreRequest = z.object({
   stars: z.number().int().min(1).max(5).default(1),
   /** Completions needed per period. */
   target: z.number().int().min(1).max(7).default(1),
+  timeOfDay: ChoreTimeOfDay.optional(),
+  icon: ChoreIcon.optional(),
+  routineId: Id.optional(),
 });
 export const ChoreResponse = z.object({ chore: Chore });
 
@@ -415,7 +452,7 @@ export const routes = {
   calendarEventDelete: route({
     method: 'DELETE',
     path: '/calendar/events/:id',
-    query: NoQuery,
+    query: EventDeleteQuery,
     body: NoBody,
     response: Ok,
     auth: true,
@@ -536,6 +573,39 @@ export const routes = {
     body: NoBody,
     response: null,
     auth: false,
+  }),
+  /** Live video: hand Home Assistant a WebRTC offer through the server (one session at a time). */
+  cameraWebrtcOffer: route({
+    method: 'POST',
+    path: '/home/cameras/:id/webrtc',
+    query: NoQuery,
+    body: WebRtcOfferRequest,
+    response: WebRtcOfferResponse,
+    auth: true,
+  }),
+  cameraWebrtcCandidate: route({
+    method: 'POST',
+    path: '/home/cameras/:id/webrtc/:session/candidate',
+    query: NoQuery,
+    body: WebRtcCandidateRequest,
+    response: WebRtcOk,
+    auth: true,
+  }),
+  cameraWebrtcCandidates: route({
+    method: 'GET',
+    path: '/home/cameras/:id/webrtc/:session/candidates',
+    query: NoQuery,
+    body: NoBody,
+    response: WebRtcCandidatesResponse,
+    auth: true,
+  }),
+  cameraWebrtcClose: route({
+    method: 'DELETE',
+    path: '/home/cameras/:id/webrtc/:session',
+    query: NoQuery,
+    body: NoBody,
+    response: WebRtcOk,
+    auth: true,
   }),
   media: route({
     method: 'GET',
@@ -737,6 +807,17 @@ export const routes = {
     response: Ok,
     auth: true,
   }),
+  /** Change a chore in place (v3 workstream R). */
+  choreUpdate: route({
+    method: 'PATCH',
+    path: '/chores/:id',
+    query: NoQuery,
+    body: ChorePatchRequest,
+    response: ChoreResponse,
+    auth: true,
+  }),
+  /* v3 workstream R: stars, rewards and routines (rewards.ts). */
+  ...rewardRoutes,
   settings: route({
     method: 'GET',
     path: '/settings',
@@ -817,6 +898,32 @@ export const routes = {
     query: NoQuery,
     body: NoBody,
     response: PluginsResponse,
+    auth: true,
+  }),
+  /** v3 X: what a plugin's card, Ambient line or sheet shows (`contributes`). */
+  pluginBlocks: route({
+    method: 'GET',
+    path: '/plugins/:id/blocks/:name',
+    query: NoQuery,
+    body: NoBody,
+    response: PluginBlocksResponse,
+    auth: true,
+  }),
+  pluginChip: route({
+    method: 'GET',
+    path: '/plugins/:id/chip/:name',
+    query: NoQuery,
+    body: NoBody,
+    response: PluginChipResponse,
+    auth: true,
+  }),
+  /** A button on a plugin's card, sheet or banner. */
+  pluginAction: route({
+    method: 'POST',
+    path: '/plugins/:id/actions/:name',
+    query: NoQuery,
+    body: PluginActionRequest,
+    response: PluginActionResponse,
     auth: true,
   }),
   integrations: route({
@@ -920,6 +1027,8 @@ export const routes = {
   }),
   /* v3 C: wall notes, Web Push, Magic Import (companion.ts) */
   ...companionRoutes,
+  /* ---- v3 M: the meal planner (meals.ts) ---- */
+  ...mealRoutes,
 } as const;
 
 export type Routes = typeof routes;

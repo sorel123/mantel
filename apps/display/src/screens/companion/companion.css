@@ -241,7 +241,7 @@ html[data-mode='dusk'] {
     animation: none;
   }
 }
-.cbar {
+.ctabbar {
   position: fixed;
   left: 0;
   right: 0;
@@ -255,7 +255,7 @@ html[data-mode='dusk'] {
   border-top: 1px solid var(--line);
   z-index: var(--z-dock);
 }
-.cbar button {
+.ctabbar button {
   flex: 1;
   min-height: 60px;
   display: flex;
@@ -269,7 +269,7 @@ html[data-mode='dusk'] {
   font-weight: 700;
   transition: color var(--fast) var(--ease);
 }
-.cbar button svg {
+.ctabbar button svg {
   width: 26px;
   height: 26px;
   stroke: currentColor;
@@ -278,7 +278,7 @@ html[data-mode='dusk'] {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.cbar button[aria-current='page'] {
+.ctabbar button[aria-current='page'] {
   color: var(--accent);
 }
 .install-hint b {
