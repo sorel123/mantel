@@ -14,5 +14,11 @@ export LOCAL_PAIR=1
 # snapd updates the snap; the GitHub release check is for the downloadable apps.
 export UPDATE_CHECK=0
 export MANTEL_SNAP=1
+# On Mantel OS (Ubuntu Core) the server is also the box: first-boot setup at /box, Wi-Fi,
+# the setup hotspot and the backlight. `snap set mantel box=false` turns that off.
+box="$(snapctl get box)"
+if [ "$box" = "true" ] || { [ -z "$box" ] && grep -qs '^ID=ubuntu-core' /etc/os-release; }; then
+  export MANTEL_BOX=1
+fi
 cd "$SNAP_DATA"
 exec "$SNAP/node" "$SNAP/app/dist/index.js"

@@ -15,6 +15,7 @@
     "@hono/node-server": "^2.1.5",
     "@mantel/shared": "workspace:*",
     "better-sqlite3": "^12.4.1",
+    "dbus-next": "^0.10.2",
     "drizzle-orm": "^0.45.4",
     "fast-xml-parser": "^5.11.2",
     "hono": "^4.13.14",

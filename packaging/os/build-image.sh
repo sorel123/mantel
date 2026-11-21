@@ -22,6 +22,7 @@ FRAME_CHANNEL="${FRAME_CHANNEL:-24/stable}"
 # The kiosk's 24 track is the current WebKit on core24 (shares Frame's graphics stack); its
 # latest/stable is WebKit 2.38 from 2023 on core20.
 KIOSK_CHANNEL="${KIOSK_CHANNEL:-24/edge}"
+NM_CHANNEL="${NM_CHANNEL:-24/stable}"
 
 snap_id() { snap info "$1" | awk '/^snap-id:/ {print $2}'; }
 ids="$(printf '{"ubuntu-frame":"%s","wpe-webkit-mir-kiosk":"%s"}' \
@@ -56,6 +57,7 @@ for attempt in 1 2 3 4 5 6 7 8; do
     --snap "$mantel_snap" \
     --snap "ubuntu-frame=$FRAME_CHANNEL" \
     --snap "wpe-webkit-mir-kiosk=$KIOSK_CHANNEL" \
+    --snap "network-manager=$NM_CHANNEL" \
     "${args[@]}" 2>&1 | tee build.log; then
     break
   fi
