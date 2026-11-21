@@ -1,0 +1,25 @@
+say:
+  fields:
+    text:
+      required: true
+      example: 'milk and eggs'
+      selector:
+        text:
+add_item:
+  fields:
+    item:
+      required: true
+      example: 'Paper towels'
+      selector:
+        text:
+    list:
+      example: 'Grocery'
+      selector:
+        text:
+post_note:
+  fields:
+    text:
+      required: true
+      example: 'Back at 5'
+      selector:
+        text:

@@ -264,6 +264,7 @@ const SECTIONS: Array<[string, string]> = [
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
   ['companion', 'Phone app'],
+  ['open', 'Siri and assistants'],
   ['meals', 'Meals'],
   ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
@@ -1101,4 +1102,69 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   await expect(page.getByText('The photo is sent to Anthropic')).toBeVisible();
   await request.delete(`/api/push/subscriptions/${subscription.id}`);
   expect(problems).toEqual([]);
+});
+
+/* ---------- v4 O: tokens, natural add, Siri, Alexa, Home Assistant, Claude ---------- */
+
+test('Siri and assistants: a token is made, used for /api/say and MCP, and revoked', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings#open');
+  await expect(
+    page.getByRole('heading', { name: 'Siri and assistants', exact: true }),
+  ).toBeVisible();
+
+  // Natural add: test a phrase without adding it.
+  await page.getByRole('textbox', { name: 'Try a phrase' }).fill('dentist Tuesday at 3');
+  await page.getByRole('button', { name: 'Test', exact: true }).click();
+  await expect(page.getByText(/Would add Dentist .* at 3 PM/)).toBeVisible();
+
+  // Make a token for Siri; the secret shows once and the guides fill it in.
+  await page.getByRole('button', { name: 'New token for Siri' }).click();
+  await page.getByLabel('Admin PIN').fill('1234');
+  await page.getByRole('button', { name: 'Make token' }).click();
+  const secretRow = page.locator('.open-secret code');
+  await expect(secretRow).toHaveText(/^mtl_/);
+  const secret = (await secretRow.textContent())!;
+  await page.getByRole('button', { name: /Add to Mantel by voice/ }).click();
+  await expect(page.getByText(`Bearer ${secret}`).first()).toBeVisible();
+
+  // The token works from outside: a phrase, the spoken day, and MCP.
+  const auth = { authorization: `Bearer ${secret}` };
+  const said = await request.post('/api/say', {
+    headers: auth,
+    data: { text: 'pickles and limes' },
+  });
+  expect((await said.json()).speech).toMatch(/^Added pickles and limes to /);
+  const today = await request.get('/api/today.txt', { headers: auth });
+  expect(await today.text()).toMatch(/^Today is/);
+  const tools = await request.post('/mcp', {
+    headers: auth,
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  });
+  expect((await tools.json()).result.tools.length).toBeGreaterThan(3);
+  // A Siri token cannot change settings.
+  expect((await request.get('/api/settings', { headers: auth })).status()).toBe(403);
+
+  // The Alexa and Claude guides open.
+  await page.getByRole('button', { name: /Alexa, ask Mantel to add milk/ }).click();
+  await expect(page.getByText('Interaction model (JSON Editor)')).toBeVisible();
+  await page.getByRole('button', { name: /Let Claude read and add/ }).click();
+  await expect(page.getByText(/claude mcp add --transport http mantel/)).toBeVisible();
+
+  // Revoke it: the token stops working.
+  await page
+    .getByRole('button', { name: /^Revoke Siri/ })
+    .first()
+    .click();
+  await page
+    .getByRole('group', { name: /Revoke Siri/ })
+    .getByLabel('Admin PIN')
+    .fill('1234');
+  await page.getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(page.getByText('Siri can no longer reach Mantel.')).toBeVisible();
+  expect((await request.get('/api/lists', { headers: auth })).status()).toBe(401);
+  expect(problems.filter((p) => !/Failed to load resource/.test(p))).toEqual([]);
 });

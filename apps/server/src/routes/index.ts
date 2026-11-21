@@ -22,9 +22,10 @@ import { registerPushRoutes } from '../plugins/push/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
 import { registerPhotoSourceRoutes } from '../providers/real/photos-routes.js';
+import { createOpenService, registerOpenRoutes, type OpenService } from '../plugins/voice/index.js';
 
-/** Every contract route. Each block is owned by the workstream named beside it. */
-export function registerRoutes(handle: Handle, deps: AppDeps) {
+/** Every contract route. Each block is owned by the workstream named beside it. Returns the Open Mantel service for MCP. */
+export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   const { providers, auth, settings, config, sync, hub, registry, setup, geocoder } = deps;
   const started = Date.now();
 
@@ -422,9 +423,12 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
 
   /* ---- v3 C: companion (wall notes, Web Push, Magic Import) in plugins/{notes,push,import} ---- */
   const push = registerPushRoutes(handle, deps, todaysEvents);
-  registerNotesRoutes(handle, deps, push);
+  const notes = registerNotesRoutes(handle, deps, push);
   registerImportRoutes(handle, deps, meals);
   registerPhotoSourceRoutes(handle, deps);
+  /* ---- v4 O: tokens, natural add, Siri's summary, Home Assistant state (plugins/voice) ---- */
+  const open = createOpenService(deps, { meals, notes, push });
+  registerOpenRoutes(handle, deps, open);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');
@@ -451,6 +455,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
   registerRewardRoutes(handle, deps);
+  return open;
 }
 
 /** The wizard step a plugin belongs to, for marking progress from the server side. */
