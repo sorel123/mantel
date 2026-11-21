@@ -76,3 +76,46 @@ jobs:
           name: mantel-snap-amd64
           path: dist/snap/*.snap
           if-no-files-found: error
+
+  image:
+    name: PC image (amd64) and VM boot test
+    needs: snap
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: mantel-snap-amd64
+          path: snap
+      - name: Tools
+        run: |
+          sudo snap install ubuntu-image --classic
+          sudo apt-get update -q
+          sudo apt-get install -y -q squashfs-tools python3-yaml python3-pil qemu-system-x86 ovmf xz-utils
+          # KVM for the VM test.
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
+          ls -la /dev/kvm || true
+      - name: Build the image
+        run: sudo packaging/os/build-image.sh snap/mantel_*.snap dist/os
+      - name: Boot it in a VM
+        run: sudo packaging/os/vm-test.sh dist/os/mantel-os-pc-amd64.img dist/vm
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vm-test
+          path: |
+            dist/vm/*.png
+            dist/vm/serial.log
+          if-no-files-found: ignore
+      - name: Compress the image
+        run: |
+          sudo chown -R "$USER" dist/os
+          xz -T0 -6 dist/os/mantel-os-pc-amd64.img
+          ls -la dist/os
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mantel-os-pc-amd64
+          path: dist/os/mantel-os-pc-amd64.img.xz
+          compression-level: 0
+          if-no-files-found: error
