@@ -26,6 +26,7 @@ import {
   ChoresSection,
   HomeSetupSection,
   LayoutSection,
+  ListSharingSection,
   MealsSection,
   Mount,
 } from './Optional';
@@ -352,7 +353,12 @@ export function SettingsPage() {
         onStatus={integrations.onStatus}
       />
     ),
-    lists: () => <ListsSection people={draft.people} />,
+    lists: () => (
+      <>
+        <ListsSection people={draft.people} />
+        <Mount Component={ListSharingSection} fallback={null} />
+      </>
+    ),
     companion: () => <CompanionSection />,
     meals: () => (
       <Mount

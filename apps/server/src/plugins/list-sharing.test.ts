@@ -118,9 +118,9 @@ describe('Home Assistant to-do lists', () => {
           entity_id: 'todo.shopping_list',
           state: '1',
           attributes: { friendly_name: 'Shopping list' },
-        } as HaState,
+        } as unknown as HaState,
       ],
-      ['light.kitchen', { entity_id: 'light.kitchen', state: 'on', attributes: {} } as HaState],
+      ['light.kitchen', { entity_id: 'light.kitchen', state: 'on', attributes: {} } as unknown as HaState],
     ]);
     const calls: string[] = [];
     const listeners: Array<(id: string, next: HaState | null, prev: HaState | null) => void> = [];
