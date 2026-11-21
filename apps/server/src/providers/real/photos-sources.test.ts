@@ -230,7 +230,7 @@ describe('Immich client', () => {
     ...extra,
   });
   const server = () =>
-    fakeFetch(async (url, init) => {
+    fakeFetch((url, init) => {
       const headers = new Headers(init?.headers);
       if (headers.get('x-api-key') !== 'k') return json({ message: 'Invalid API key' }, 401);
       if (url.pathname === '/api/albums')

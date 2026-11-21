@@ -40,12 +40,48 @@ A destination shows on its days from three hours before its arrive-by time until
 
 ## Photos
 
+The slideshow (Ambient and the Photo layout) mixes photos from every place you connect. Set them up in **Settings, Photos** (`/settings#photos`); each is a card with directions, Test and a plain-words status. Photos are downloaded, turned upright, cropped to the panel's shape (attention-weighted, so faces stay in frame), sized for a 2x screen and stored as JPEG under `DATA_DIR/photos/<source>/`, so the wall never waits on the network and keeps working offline.
+
+### iCloud shared album
+
 1. In the Photos app, make a Shared Album (or use one), open its settings and turn on **Public Website**. Copy the link, `https://www.icloud.com/sharedalbum/#B0aGW...`.
-2. Set `ICLOUD_SHARED_ALBUM_URL` to it.
+2. Paste it on the iCloud card (or set `ICLOUD_SHARED_ALBUM_URL`).
 
-Every hour the server re-reads the album. New photos are downloaded, turned upright, cropped to the panel's shape (attention-weighted, so faces stay in frame), sized for a 2x screen, stored as JPEG under `DATA_DIR/photos`, and given a dominant colour. Videos are skipped; photos removed from the album are deleted. `PHOTO_LIMIT` (default 500) keeps only the newest. The slideshow plays them shuffled, with newly shared photos first.
+Every hour the server re-reads the album. Videos are skipped; photos removed from the album are deleted. `PHOTO_LIMIT` (default 500) keeps only the newest.
 
-On first start with a large album the photos arrive over a few minutes; the slideshow shows what is ready and checks again every minute while it has none.
+### Immich
+
+1. In Immich: your avatar, **Account Settings**, **API Keys**, **New API Key**. Name it Mantel and give it `album.read`, `asset.read`, `asset.view` and `memory.read` (or All).
+2. On the Immich card paste the address the Mantel server can reach (for example `http://192.168.1.20:2283`) and the key, then Test.
+3. Choose what to show: **Favourites** (heart a photo in Immich and it joins the wall within the hour), **Chosen albums** (names separated by commas; Test lists the albums Immich has) or **Everything** (newest first, up to the limit).
+4. **Add Immich's "On this day" memories** (on by default) also brings in photos from today's date in past years from the whole library, re-read each morning.
+
+Mantel uses `POST /api/search/metadata`, `GET /api/albums`, `GET /api/memories` and the `preview` thumbnail (about 1440 px, JPEG). The preview is used rather than the original because iPhone originals are HEIC. Captions use Immich's album, the city and state from EXIF, and the local date taken. Checked against the Immich API reference for v1.140.
+
+### Google Photos
+
+Since March 2025 Google no longer lets apps read a whole Google Photos library; the supported way is the **Picker**. Press **Connect** on the Google Photos card and sign in (Mantel's shared Google sign-in, the same one Google Calendar uses; if the page after sign-in cannot be reached, paste its address into the box that appears). Then on the same page press **Pick photos**, scan the QR code with your phone, pick photos or whole albums in Google Photos and tap **Done**. Mantel downloads them straight away (Google's download links last an hour) and keeps them; pick again any time to add more, or **Remove picked photos** to clear them.
+
+For a household's own Google Cloud app (the client ID and secret under Advanced on the Google Calendar card), turn on the **Photos Picker API** for that project and add the redirect shown under Advanced on the Google Photos card. Mantel's maintainers: the shared client's project needs the Photos Picker API enabled and the `photospicker.mediaitems.readonly` scope on its consent screen.
+
+### A folder on the server
+
+Any folder mounted into the container, such as an Unraid share. Sub-folders are included and each becomes the album name in the caption; the date comes from the photo's EXIF. The folder is watched, so a new photo shows up within a minute, and re-scanned every 15 minutes for shares that cannot be watched. JPEG, PNG, WebP, GIF, TIFF and AVIF are read; iPhone HEIC files are counted and skipped (export them as JPEG, or use Immich or iCloud for those).
+
+- **Unraid:** edit the Mantel container, **Add another Path, Port, Variable**, Config Type **Path**, Container Path `/photos`, Host Path your share (for example `/mnt/user/Photos`), Access Mode **Read Only**. The template already has an optional Photos path.
+- **Docker Compose:** add `- /path/to/photos:/photos:ro` under the service's `volumes`.
+
+Then type `/photos` on the Photo folder card (or set `PHOTO_FOLDER`) and press Test.
+
+### Mixing, On this day and captions
+
+In **Settings, Photos, Slideshow**:
+
+- **How much of each**: Off, Less, Normal or More per place. Normal shares the slideshow by the square root of how many photos each place has, so a 40-photo Google pick still turns up beside a 5,000-photo library; More doubles that share and Less halves it. Every photo of a place is shown once before any repeats.
+- **On this day** (on by default): about one slide in three is a photo taken on today's date (in the home time zone) in an earlier year, captioned "3 years ago today".
+- **Captions** (on by default): a small line in the photo's top corner with the album, place and month taken. Place names come from the source (Immich); Mantel never sends a photo's GPS position to an outside service to look one up.
+
+On first start with a large library the photos arrive over a few minutes; the slideshow shows what is ready and checks again every minute while it has none.
 
 ## Display pieces
 

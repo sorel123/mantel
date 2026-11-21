@@ -121,14 +121,20 @@ export function PhotosSection({
               load();
             }}
             open={false}
-            extra={
-              p.id === 'google-photos' && googleConnected ? (
-                <GooglePicker onSaved={load} />
-              ) : undefined
-            }
           />
         ))}
       </div>
+
+      {googleConnected && (
+        <div className="ph-google" aria-label="Pick from Google Photos" role="region">
+          <h3 className="h3">Pick from Google Photos</h3>
+          <p className="set-hint">
+            Google lets apps show only what you pick. Choose photos or whole albums on your phone;
+            pick again any time to add more.
+          </p>
+          <GooglePicker onSaved={load} />
+        </div>
+      )}
 
       <h3 className="h3">Slideshow</h3>
       <Toggle

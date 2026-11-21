@@ -150,7 +150,7 @@ describe('Settings page', () => {
   it('puts every photo source on the Photos page, with weights and On this day', async () => {
     const { calls } = fakeServer();
     open('photos');
-    const icloud = await screen.findByRole('article', { name: 'Photos' });
+    const icloud = await screen.findByRole('article', { name: 'iCloud shared album' });
     // The last error in plain words, with a Fix link.
     expect(within(icloud).getByRole('alert').textContent).toMatch(/Apple answered 404/);
     for (const name of ['Immich', 'Google Photos', 'Photo folder'])
@@ -174,7 +174,7 @@ describe('Settings page', () => {
     open('integrations');
     await screen.findByRole('article', { name: 'Leave-by times' });
     // Photo sources moved to their own Photos page (v4 S).
-    expect(screen.queryByRole('article', { name: 'Photos' })).toBeNull();
+    expect(screen.queryByRole('article', { name: 'iCloud shared album' })).toBeNull();
     // Calendars and Home Assistant have their own sections; the rest of the manifests are here.
     expect(screen.queryByRole('article', { name: 'Google Calendar' })).toBeNull();
     expect(screen.queryByRole('article', { name: 'Home Assistant' })).toBeNull();

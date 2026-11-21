@@ -96,3 +96,11 @@
 :root[data-motion='reduced'] .ph-pulse {
   animation: none;
 }
+.ph-google {
+  padding: 4px 0 10px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+.ph-google .h3 {
+  margin-top: 14px;
+}

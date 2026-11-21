@@ -131,7 +131,7 @@ describe('captions (v4 S)', () => {
     await act(async () => {});
     const cap = container.querySelector('.ph-caption');
     expect(cap?.classList.contains('otd')).toBe(true);
-    expect(cap?.textContent).toBe('5 years ago today · Birthdays · Detroit, Michigan · 2021');
+    expect(cap?.textContent).toBe('5 years ago today · Birthdays · Detroit, Michigan');
     unmount();
   });
 

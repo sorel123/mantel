@@ -225,7 +225,7 @@ export const pluginManifests: PluginManifest[] = [
   },
   {
     id: 'photos',
-    name: 'Photos',
+    name: 'iCloud shared album',
     description: 'A shared iCloud album plays on the Ambient screen.',
     category: 'photos',
     step: 'extras',

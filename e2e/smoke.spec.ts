@@ -259,6 +259,7 @@ const SECTIONS: Array<[string, string]> = [
   ['homeassistant', 'Home Assistant'],
   ['appearance', 'Appearance'],
   ['layout', 'Layout'],
+  ['photos', 'Photos'],
   ['quips', 'Weather quips'],
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
@@ -290,8 +291,9 @@ test('the settings hub shows every section by hash, and the phone page loads', a
 
   // Integrations render one card per plugin manifest, calendars have a picker from the setup JSON.
   await page.goto('/settings#integrations');
-  await expect(page.getByRole('article', { name: 'Photos' })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Leave-by times' })).toBeVisible();
+  await page.goto('/settings#photos');
+  await expect(page.getByRole('article', { name: 'iCloud shared album' })).toBeVisible();
   await page.goto('/settings#calendars');
   await expect(page.getByRole('table', { name: 'Calendars on the wall' })).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Show Family' })).toBeVisible();
@@ -372,6 +374,46 @@ test('the skin gallery switches skins and makes a custom one', async ({ page }) 
   await page.getByRole('button', { name: 'Use this skin' }).click();
   await page.getByRole('switch', { name: 'Follow the season' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-skin', 'custom');
+  expect(problems).toEqual([]);
+});
+
+test('photo sources: four cards, weights, Google Photos picking, and a captioned Ambient frame', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings#photos');
+  for (const name of ['iCloud shared album', 'Immich', 'Google Photos', 'Photo folder'])
+    await expect(page.getByRole('article', { name })).toBeVisible();
+  await expect(page.getByText(/from this day in past years/)).toBeVisible();
+
+  // Weights and toggles are settings: change one and save.
+  const immich = page.getByRole('group', { name: 'How much of Immich' });
+  // (Both viewports share one mock server, so pick whichever weight is not already saved.)
+  const less = immich.getByRole('button', { name: 'Less' });
+  const pick = (await less.getAttribute('aria-pressed')) === 'true' ? 'More' : 'Less';
+  await immich.getByRole('button', { name: pick }).click();
+  await expect(immich.getByRole('button', { name: pick })).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.set-bar').getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText(/^Saved\./)).toBeVisible();
+
+  // Google Photos: Pick photos shows a QR code, then saves what was picked (mock: 12 photos).
+  const google = page.getByRole('region', { name: 'Pick from Google Photos' });
+  await google.getByRole('button', { name: 'Pick photos' }).click();
+  await expect(
+    google.getByRole('img', { name: 'QR code for the Google Photos picker' }),
+  ).toBeVisible();
+  await expect(google.getByText('Saved 12 photos from Google Photos (mock mode).')).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Ambient shows the photo's caption line.
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Screens' })
+    .getByRole('button', { name: 'Ambient mode' })
+    .click();
+  await expect(page.locator('.ambient .ph-caption').first()).toBeVisible();
+  await expect(page.locator('.ambient .ph-caption').first()).toHaveText(/·/);
   expect(problems).toEqual([]);
 });
 

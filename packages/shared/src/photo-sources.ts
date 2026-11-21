@@ -182,8 +182,6 @@ export function captionText(caption: PhotoCaption, opts: { locale?: string } = {
         }),
       );
     }
-  } else if (caption.takenAt && caption.yearsAgo) {
-    parts.push(caption.takenAt.slice(0, 4));
   }
   return parts.join(' · ');
 }
