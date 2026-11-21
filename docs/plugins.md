@@ -172,7 +172,7 @@ draws itself, as the older plugins do.
 ```ts
 {
   title: 'Trash and recycling tonight',
-  icon: 'trash',                       // from the display's set: trash recycle leaf timer bell check alert calendar star info clock box
+  icon: 'trash',                       // from the display's set: trash recycle leaf timer bell check alert calendar star info clock box (more in plugin-pack.md)
   lines: [
     { icon: 'trash', text: 'Trash', sub: 'Put it out tonight', tone: 'warn' },   // tone: normal | warn | good
     { text: 'Pasta', countdownTo: '2026-11-07T18:05:00-08:00',                   // the display counts down by itself
@@ -183,6 +183,9 @@ draws itself, as the older plugins do.
   progress: 0.4,                       // a bar under the title
   actions: [{ name: 'start', label: '5 min', args: { minutes: 5 } }],            // buttons under the lines
   dial: { action: 'start', label: 'Or set your own', unit: 'min', min: 1, max: 180, step: 1, value: 15 },
+  lead: 'A large line under the title',                                         // v4 G
+  input: { action: 'ask', label: 'Ask the family', submit: 'Ask',               // v4 G: a text box;
+           suggestions: ['Pizza or tacos?'] },                                  // posts { text }
 }
 ```
 
@@ -295,6 +298,13 @@ For buttons, implement `action(name, args)` and put `actions` on lines or blocks
 that needs attention now, `ctx.emit({ type: 'plugin.alert', payload: { ... } })` (see
 `plugins/timers/index.ts`). To test, call `blocks()` and `action()` on the plugin with a hand-made
 context (see `plugins/timers/timers.test.ts`), or the routes on a `MOCK=1` app.
+
+## The plugin pack
+
+Nine more plugins built this way (birthdays, pet care, family poll, sports, school day, house
+status, habits, question of the day, sky) are described in `docs/plugin-pack.md`. Their
+manifests live in `packages/shared/src/fixtures/plugin-pack.ts` and the server folders re-export
+them, so the two copies cannot drift. Settings, Plugins is the gallery for every plugin with a card.
 
 ## Candidates
 

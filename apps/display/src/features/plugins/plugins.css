@@ -346,3 +346,86 @@
   display: flex;
   gap: 8px;
 }
+
+/* ---------- v4 G: a lead line and a text box ---------- */
+.pb-lead {
+  margin: 0;
+  font: 400 calc(26px * var(--text-scale)) / 1.25 var(--display);
+  color: var(--ink);
+  text-wrap: balance;
+  animation: pb-in var(--std) var(--ease);
+}
+.pb-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: none;
+}
+.pb-suggest {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pb-suggest .chip {
+  flex: none;
+  min-height: 40px;
+  cursor: pointer;
+}
+.pb-ask-row {
+  display: flex;
+  gap: 8px;
+}
+.pb-ask-row .input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+}
+.pb-ask-row .btn {
+  flex: none;
+  gap: 8px;
+}
+.pb-lines li {
+  animation: pb-in var(--std) var(--ease);
+}
+@keyframes pb-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-lead,
+  .pb-lines li {
+    animation: none;
+  }
+}
+.pb-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pb-skel .skeleton {
+  display: block;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+/* v4 G: with the plugin pack the dock can hold several chips. Below Surface width every chip but
+   the timers shows its icon alone (the label stays for screen readers), and none takes more than
+   its share. */
+.dock .pchip span {
+  max-width: 10em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1300px) {
+  .dock .pchip:not([data-plugin='timers']) span {
+    display: none;
+  }
+  .dock .pchip:not([data-plugin='timers']) {
+    padding: 0;
+    width: 48px;
+    justify-content: center;
+  }
+}
