@@ -161,7 +161,8 @@ describe('Settings page', () => {
         p.category !== 'calendar' &&
         p.id !== 'homeassistant' &&
         p.id !== 'quips' &&
-        p.id !== 'meals',
+        p.id !== 'meals' &&
+        p.id !== 'digest',
     ))
       expect(screen.getByRole('article', { name: p.name })).toBeTruthy();
 

@@ -187,6 +187,8 @@ export const BootstrapResponse = z.object({
     screens: z.array(ScreenConfig),
     defaultScreen: Id,
     integrations: IntegrationToggles,
+    /** v4 D: show "since you last looked" on the wall and the phone. */
+    sinceStrip: z.boolean().default(true),
   }),
   theme: ThemeMode,
   panel: PanelSize,

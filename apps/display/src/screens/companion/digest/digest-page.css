@@ -1,0 +1,15 @@
+/* v4 D: the companion's digest page and the sun button in its top bar. */
+.ctop-day {
+  margin-left: auto;
+}
+.cdigest {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cdigest-bar {
+  justify-content: flex-start;
+}
+.deep-wrap {
+  display: contents;
+}

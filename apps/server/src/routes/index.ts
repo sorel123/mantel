@@ -91,6 +91,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
         screens: s.screens,
         defaultScreen: s.defaultScreen,
         integrations: s.integrations,
+        sinceStrip: s.digest.sinceStrip,
       },
       theme: s.theme,
       panel: DEFAULT_PANEL,
