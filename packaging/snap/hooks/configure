@@ -10,5 +10,7 @@ if [ -n "$port" ]; then
     echo "port must be between 1024 and 65535" >&2; exit 1
   fi
 fi
+box="$(snapctl get box)"
+case "$box" in ''|true|false) ;; *) echo "box must be true or false" >&2; exit 1 ;; esac
 # Restart only when the server is already running (not during install).
 if snapctl services mantel.mantel | grep -q ' active'; then snapctl restart mantel.mantel; fi

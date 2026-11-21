@@ -20,6 +20,7 @@ import { Dock } from './Dock';
 import { FeatureLayers } from './FeatureLayers';
 import { AWAKE_CHOICES, awakeLabel, useKeepAwake } from './keepAwake';
 import { useLayout } from './layout';
+import { initGlance, useGlance, useGlanceRotation } from './glance';
 import { useMotionPreference } from './motion';
 import { NavProvider } from './nav';
 import { OverlayProvider, SheetHeader, useOverlay } from './overlay';
@@ -38,6 +39,7 @@ const params = new URLSearchParams(location.search);
 const pinned = params.get('mode');
 if (pinned === 'daylight' || pinned === 'dusk') setModeOverride(pinned);
 if (params.get('skin')) setSkinOverride(params.get('skin'));
+initGlance();
 const RELOAD_KEY = 'mantel.screenAtReload';
 /** The screen showing when the page last unloaded, if that was a moment ago (a reload). */
 function screenBeforeReload(): string | null {
@@ -311,6 +313,15 @@ function DisplayInner() {
     [closeAll],
   );
   const nav = useMemo(() => ({ current, go }), [current, go]);
+  // Glance mode: no touchscreen, so the enabled screens take turns.
+  const glance = useGlance();
+  const screenIds = useMemo(() => screens.map((s) => s.id), [screens]);
+  useGlanceRotation({
+    ids: screenIds,
+    current,
+    go: go as (id: string) => void,
+    enabled: glance && mode === 'active',
+  });
   const wakeToToday = () => {
     setCurrent('today');
     wake();

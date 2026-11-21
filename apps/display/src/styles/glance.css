@@ -1,0 +1,8 @@
+/*
+ * Glance mode (`html[data-glance]`, set by app/glance.ts): no touchscreen, so the controls that
+ * only make sense under a finger are hidden. Components that must behave differently use
+ * `useGlance()`. Scoped to the screens so Settings is untouched.
+ */
+html[data-glance] .screens :is(.add, .add-round, .dadd, .lgrip, .laddrow, .hm-arrange-btn) {
+  display: none;
+}

@@ -29,6 +29,11 @@ const Env = z.object({
     .transform((v) => v !== '0' && v !== 'false'),
   /** `owner/name` whose Releases the update check reads. */
   UPDATE_REPO: z.string().default('sorel123/mantel'),
+  /**
+   * Running as a Mantel OS box (the snap sets it there): first-boot setup at `/box`, Wi-Fi and
+   * the setup hotspot through NetworkManager, the screen backlight. `fake` pretends, for development.
+   */
+  MANTEL_BOX: z.enum(['', '0', '1', 'fake']).default(''),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 

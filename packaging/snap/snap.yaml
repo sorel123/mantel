@@ -1,6 +1,7 @@
 # meta/snap.yaml for the Mantel snap. build.sh fills in @VERSION@ and @ARCH@ and packs it.
-# Strict confinement: the server only needs the network. Box features (Wi-Fi, screen dimming,
-# restart) add plugs in later stages; see packaging/snap/README.md.
+# Strict confinement. network and network-bind connect by themselves; on Mantel OS the box
+# features also use network-manager (Wi-Fi and the setup hotspot) and display-control (the
+# backlight), which the image connects on first boot.
 name: mantel
 version: '@VERSION@'
 summary: Family wall display server (calendars, weather, photos, lists, chores)
@@ -25,7 +26,7 @@ apps:
     daemon: simple
     restart-condition: always
     restart-delay: 3s
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, network-manager, display-control]
   # `sudo mantel.health` prints the server's health, for testing and support.
   health:
     command: bin/mantel-health

@@ -15,6 +15,8 @@ import { PluginRegistry } from './plugins/registry.js';
 import { mockProviders } from './providers/mock/index.js';
 import type { ProviderContext, Providers } from './providers/types.js';
 import { registerRoutes } from './routes/index.js';
+import { BoxService } from './box/index.js';
+import { FakeNetwork, NetworkManagerNetwork } from './box/network.js';
 import { DisplayScheduler } from './schedule.js';
 import { SecretStore } from './secrets.js';
 import { SettingsStore } from './settings.js';
@@ -129,6 +131,18 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
       ...(overrides.fetch ? { fetch: overrides.fetch } : {}),
     }),
   };
+  const box =
+    config.MANTEL_BOX === '1' || config.MANTEL_BOX === 'fake'
+      ? new BoxService({
+          db,
+          auth,
+          settings,
+          network: config.MANTEL_BOX === 'fake' ? new FakeNetwork() : new NetworkManagerNetwork(),
+          port: config.PORT,
+          backlightDir: config.MANTEL_BOX === '1' ? '/sys/class/backlight' : undefined,
+        })
+      : null;
+  box?.start();
   const scheduler = new DisplayScheduler(settings, (e) => hub.broadcast(e), ctx.now);
   scheduler.start();
 
@@ -148,6 +162,8 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   // Real mode mounts them through the calendar service so they follow a rebuilt provider.
   if (pluginSet) pluginSet.calendar.mount(api, auth);
   else providers.calendar.mount?.(api, auth);
+
+  box?.mount(api);
 
   if (config.MOCK) {
     // Mock-only helpers so workstreams can demo server pushes: `curl -XPOST .../api/dev/emit -d '{...}'`.
@@ -180,6 +196,7 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
 
   if (config.DISPLAY_DIST) {
     const root = config.DISPLAY_DIST;
+    if (box) app.use('*', box.pages());
     app.use('/*', serveStatic({ root }));
     // Single-page app: unknown paths get index.html.
     app.get('*', serveStatic({ root, path: 'index.html' }));
@@ -192,6 +209,7 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     ready,
     close: () => {
       scheduler.stop();
+      box?.stop();
       void registry?.stop();
       hub.close();
     },

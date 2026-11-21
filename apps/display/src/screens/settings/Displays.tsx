@@ -1,6 +1,7 @@
 import { ApiRequestError, type Device, type ResponseOf, type ScreenConfig } from '@mantel/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { setGlance, useGlance } from '../../app/glance';
 import { SCREEN_LABELS } from './contract';
 import { Collapse, Section, Seg, TextInput } from './controls';
 
@@ -27,6 +28,7 @@ export function Displays({ screens = [] }: { screens?: ScreenConfig[] }) {
   const [code, setCode] = useState<ResponseOf<'pairingCode'> | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [reloaded, setReloaded] = useState<number | null>(null);
+  const glance = useGlance();
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
 
   const refresh = useCallback(() => {
@@ -263,6 +265,26 @@ export function Displays({ screens = [] }: { screens?: ScreenConfig[] }) {
             .join(', ')}
         </p>
       )}
+
+      <div className="set-field">
+        <span className="set-label">
+          Glance mode on this browser
+          <span className="set-hint">
+            For a screen with no touch, such as a TV or monitor: hides the add and edit buttons and
+            steps through the screens on its own. Changes are made from the phone app (open{' '}
+            <code>/app</code>). A click or key press pauses the rotation for two minutes.
+          </span>
+        </span>
+        <Seg
+          label="Glance mode"
+          value={glance ? 'on' : 'off'}
+          options={[
+            ['off', 'Off'],
+            ['on', 'On'],
+          ]}
+          onChange={(v) => setGlance(v === 'on')}
+        />
+      </div>
 
       <div className="set-field">
         <span className="set-label">
