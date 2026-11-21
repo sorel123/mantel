@@ -24,6 +24,7 @@ import {
   slotLabel,
 } from './data';
 import { MealIcon, Svg } from './icons';
+import { RecipePage } from './recipes/RecipePage';
 
 export function SlotView({
   week,
@@ -62,6 +63,48 @@ export function SlotView({
       await planMeal({ date, slot, favouriteId: f.id });
       return `${f.title} for ${label}`;
     }, true);
+
+  // v4 B: a meal that cooks a recipe opens the recipe, with the slot's own buttons on top.
+  if (meal?.recipeId && meal.source === 'mantel' && !picking)
+    return (
+      <RecipePage
+        id={meal.recipeId}
+        onBack={onBack}
+        backLabel="Back to the week"
+        context={{
+          label: label[0]!.toUpperCase() + label.slice(1),
+          actions: (
+            <>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => void run(async () => groceryToast(await mealToGrocery(date, slot)))}
+              >
+                <Svg>{MealIcon.cart}</Svg> Add ingredients to {week.groceryList?.name ?? 'Grocery'}
+              </button>
+              <button type="button" className="btn" onClick={() => setPicking(true)}>
+                Change
+              </button>
+              <button
+                type="button"
+                className="btn quiet icon"
+                aria-label={`Remove ${meal.title} from ${label}`}
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    await clearMeal(date, slot);
+                    return `Cleared ${label}`;
+                  }, true)
+                }
+              >
+                <Svg>{MealIcon.trash}</Svg>
+              </button>
+            </>
+          ),
+        }}
+      />
+    );
 
   return (
     <div className="meal-slot">

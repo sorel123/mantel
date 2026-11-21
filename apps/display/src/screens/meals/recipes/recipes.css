@@ -1,0 +1,599 @@
+/* The recipe box (v4 B). Colours, radii and durations come from tokens only. */
+
+@keyframes recipe-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.recipes,
+.rp,
+.cook {
+  animation: recipe-in var(--std) var(--ease) both;
+}
+
+/* ---- the grid ---- */
+
+.rc-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.rc-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  min-height: 240px;
+  animation: recipe-in var(--std) var(--ease) both;
+}
+.rc-card.skeleton {
+  border-radius: var(--radius-card);
+}
+.rc-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.rc-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity var(--std) var(--ease);
+}
+.rc-photo.in img {
+  opacity: 1;
+}
+.rc-photo-none {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.rc-photo-none svg {
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.rc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px 16px;
+}
+.rc-title {
+  font-family: var(--display);
+  font-size: calc(21px * var(--text-scale));
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rc-meta {
+  display: flex;
+  gap: 14px;
+  color: var(--ink-2);
+  font-size: calc(15px * var(--text-scale));
+}
+.rc-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.rc-meta svg,
+.rp-meta svg,
+.rc-add svg,
+.rp svg,
+.cook svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.rc-stars svg {
+  fill: var(--warn);
+  stroke: var(--warn);
+}
+
+/* ---- adding ---- */
+
+.rc-add {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: recipe-in var(--std) var(--ease) both;
+}
+.rc-add-head,
+.rc-add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rc-add-row .input {
+  flex: 1;
+  min-width: 220px;
+}
+.rc-add-row .muted {
+  margin: 0;
+}
+.rc-add .grow {
+  flex: 1;
+}
+.rc-add-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+.rc-add-text textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--body);
+}
+.rc-reading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  color: var(--ink-2);
+  font-size: calc(18px * var(--text-scale));
+}
+.rc-spinner {
+  display: inline-grid;
+  place-items: center;
+  color: var(--accent);
+  animation: breathe var(--slow) var(--ease) infinite alternate;
+}
+.rc-error {
+  margin: 0;
+  color: var(--warn);
+}
+
+/* ---- a recipe ---- */
+
+.rp {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rp > *,
+.cook > * {
+  flex-shrink: 0;
+}
+.rp .grow,
+.cook .grow,
+.rp-plan .grow {
+  flex: 1;
+}
+.rp-context {
+  font-size: calc(16px * var(--text-scale));
+}
+.rp-skel-hero {
+  height: 220px;
+  border-radius: var(--radius-card);
+}
+.rp-skel-col {
+  height: 360px;
+  border-radius: var(--radius-card);
+}
+.rp-hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 34%) 1fr;
+  gap: 22px;
+  align-items: center;
+}
+.rp-photo {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+}
+.rp-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.rp-title {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: calc(40px * var(--text-scale));
+  line-height: 1.08;
+  margin: 0;
+}
+.rp-meta,
+.rp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rp-meta .chip {
+  gap: 6px;
+}
+.rp-stars {
+  display: flex;
+  gap: 0;
+  margin-left: -10px;
+}
+.rp-star {
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-3);
+  transition: transform var(--fast) var(--ease);
+}
+.rp-star:active {
+  transform: scale(0.88);
+}
+.rp-star svg {
+  width: 30px;
+  height: 30px;
+}
+.rp-star.on {
+  color: var(--warn);
+}
+.rp-star.on svg {
+  fill: var(--warn);
+}
+
+.rp-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
+  align-items: start;
+}
+.rp-ingredients,
+.rp-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rp-col-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+}
+.rp-col-head .h3 {
+  margin: 0;
+}
+.rp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rp-line {
+  width: 100%;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 4px;
+  text-align: left;
+  font-size: calc(21px * var(--text-scale));
+  line-height: 1.35;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  transition:
+    color var(--fast) var(--ease),
+    opacity var(--fast) var(--ease);
+}
+.rp-list li:last-child .rp-line {
+  border-bottom: 0;
+}
+.rp-line.struck {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+.rp-line .cb {
+  flex-shrink: 0;
+}
+.rp-step {
+  align-items: flex-start;
+  padding: 12px 4px;
+}
+.rp-num {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: calc(17px * var(--text-scale));
+  transition: background var(--fast) var(--ease);
+}
+.rp-step.struck .rp-num {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.rp-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rp-stepper-value {
+  min-width: 120px;
+  text-align: center;
+  font-weight: 600;
+}
+.rp-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: calc(18px * var(--text-scale));
+}
+.rp-notes.editing textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--body);
+}
+.rp-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* plan this */
+.rp-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: recipe-in var(--std) var(--ease) both;
+}
+.rp-plan-days {
+  display: flex;
+  gap: 8px;
+}
+.rp-day {
+  flex: 0 0 auto;
+  width: 72px;
+  min-height: 72px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.rp-day b {
+  font-size: calc(24px * var(--text-scale));
+}
+.rp-day.selected {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.rp-day.selected .eyebrow {
+  color: inherit;
+}
+.rp-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---- cook mode ---- */
+
+.cook {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.cook-chip {
+  gap: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.cook-name {
+  font-family: var(--display);
+  font-size: calc(22px * var(--text-scale));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.cook-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.6fr) minmax(0, 1.4fr);
+  gap: 16px;
+}
+.cook-ingredients {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.cook-ingredients .rp-line {
+  font-size: calc(18px * var(--text-scale));
+}
+.cook-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+.cook-progress {
+  display: flex;
+  gap: 6px;
+}
+.cook-progress span {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  transition: background var(--std) var(--ease);
+}
+.cook-progress span.done {
+  background: var(--accent-soft);
+}
+.cook-progress span.now {
+  background: var(--accent);
+}
+.cook-text {
+  flex: 1;
+  margin: 0;
+  font-family: var(--display);
+  font-size: calc(36px * var(--text-scale));
+  line-height: 1.3;
+  overflow-y: auto;
+  animation: recipe-in var(--std) var(--ease) both;
+}
+.cook-timers {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cook-nav {
+  display: flex;
+  gap: 12px;
+}
+.cook-nav .btn {
+  min-width: 180px;
+}
+
+/* the planner shows a recipe in a narrow sheet on small panels */
+@media (max-width: 900px) {
+  .rp-hero,
+  .rp-cols,
+  .cook-body {
+    grid-template-columns: 1fr;
+  }
+  .rp-title {
+    font-size: calc(32px * var(--text-scale));
+  }
+}
+
+/* ---- the phone ---- */
+
+.prc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: recipe-in var(--std) var(--ease) both;
+}
+.prc svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rc-add.compact .seg .btn {
+  flex: 1;
+}
+.rc-add.compact .rc-add-head .seg {
+  flex: 1;
+}
+.prc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prc-skel {
+  height: 84px;
+  border-radius: var(--radius-card);
+}
+.prc-skel.tall {
+  height: 320px;
+}
+.prc-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  text-align: left;
+}
+.prc-thumb {
+  width: 72px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  aspect-ratio: 1;
+}
+.prc-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.prc-text b {
+  font-size: 18px;
+}
+.prc-hero {
+  border-radius: var(--radius-card);
+}
+.prc-recipe .h2,
+.prc-recipe .h3 {
+  margin: 0;
+}
+.prc-recipe .rp-line {
+  font-size: 18px;
+}
+.prc-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.prc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.prc-switch {
+  align-self: stretch;
+  display: flex;
+}
+.prc-switch .btn {
+  flex: 1;
+}
+
+/* cards in the recipe box carry their own padding */
+.rc-add,
+.rp-plan,
+.rp-ingredients,
+.rp-steps,
+.rp-notes,
+.cook-ingredients,
+.cook-step {
+  padding: var(--card-pad);
+}
