@@ -256,6 +256,7 @@ const SECTIONS: Array<[string, string]> = [
   ['people', 'People'],
   ['calendars', 'Calendars'],
   ['integrations', 'Integrations'],
+  ['plugins', 'Plugins'],
   ['homeassistant', 'Home Assistant'],
   ['appearance', 'Appearance'],
   ['layout', 'Layout'],
@@ -723,6 +724,56 @@ test('plugin cards: trash day on Today, kitchen timers from the dock, a timer ba
     .getByRole('button', { name: '+ Kitchen timers' })
     .click();
   await expect(canvas.getByRole('button', { name: /^Kitchen timers,/ })).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test('plugin pack: six cards on Today, a family poll, pet care, and the gallery adds a card', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  const cards = [
+    'plugin:birthdays:0.0.4.3',
+    'plugin:pets:4.0.4.4',
+    'plugin:poll:8.0.4.4',
+    'plugin:sports:0.3.4.3',
+    'plugin:school:4.4.4.2',
+    'plugin:sky:8.4.4.4',
+    'plugin:qotd:0.6.4.2',
+    'plugin:habits:4.6.4.2',
+  ].join(',');
+  await page.goto(`/?mode=daylight&today=custom&cards=${cards}`);
+  for (const id of ['birthdays', 'pets', 'poll', 'sports', 'school', 'sky', 'qotd', 'habits'])
+    await expect(
+      page.locator(`.region[data-region="plugin:${id}"] .plugin-card .pb`),
+    ).toBeVisible();
+  await expect(page.getByText('Mia turns 11')).toBeVisible();
+  await expect(page.getByText('Lions 24, Packers 17')).toBeVisible();
+
+  // Ask a poll from the card, vote for one person, then close it.
+  const poll = page.locator('.region[data-region="plugin:poll"] .plugin-card');
+  await poll.getByRole('textbox', { name: 'Ask the family' }).fill('Pizza or tacos?');
+  await poll.getByRole('button', { name: 'Ask' }).click();
+  await expect(poll.locator('.pb-head b')).toHaveText('Pizza or tacos?');
+  await poll.locator('li', { hasText: /^J/ }).last().getByRole('button', { name: 'Tacos' }).click();
+  await poll.getByRole('button', { name: 'Close now' }).click();
+  await expect(poll.locator('.pb-head b')).toHaveText('Tacos wins');
+
+  // Another question of the day.
+  const qotd = page.locator('.region[data-region="plugin:qotd"] .plugin-card');
+  const first = await qotd.locator('.pb-lead').textContent();
+  await qotd.getByRole('button', { name: 'Another one' }).click();
+  await expect(qotd.locator('.pb-lead')).not.toHaveText(first ?? '');
+
+  // The gallery in Settings: previews, and Add to Today.
+  await page.goto('/settings#plugins');
+  const tile = page.getByRole('article', { name: 'Habits and plants' });
+  await expect(tile.locator('.plg-preview .pb')).toBeVisible();
+  await tile.getByRole('button', { name: 'Add to Today' }).click();
+  await expect(tile.getByRole('button', { name: 'On Today' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Sky' }).locator('.plg-preview')).toContainText(
+    /Sunrise|Sunset/,
+  );
 
   expect(problems).toEqual([]);
 });

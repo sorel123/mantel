@@ -179,6 +179,15 @@ describe('settings-first server (real mode, fresh data dir)', () => {
         'timers',
         'trash',
         'weather',
+        'birthdays',
+        'pets',
+        'poll',
+        'sports',
+        'school',
+        'housestatus',
+        'habits',
+        'qotd',
+        'sky',
       ].sort(),
     );
     const { integrations } = await json(await r('GET', '/integrations', undefined, auth));

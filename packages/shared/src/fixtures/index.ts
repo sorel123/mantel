@@ -34,6 +34,7 @@ export * from './meals.js';
 export * from './people.js';
 export * from './photos.js';
 export * from './plugin-cards.js';
+export * from './plugin-pack.js';
 export * from './settings.js';
 export * from './weather.js';
 export { DEFAULT_PANEL };
