@@ -1,0 +1,32 @@
+# meta/snap.yaml for the Mantel snap. build.sh fills in @VERSION@ and @ARCH@ and packs it.
+# Strict confinement: the server only needs the network. Box features (Wi-Fi, screen dimming,
+# restart) add plugs in later stages; see packaging/snap/README.md.
+name: mantel
+version: '@VERSION@'
+summary: Family wall display server (calendars, weather, photos, lists, chores)
+description: |
+  Mantel turns a screen on the wall into the family's calendar, weather, photo frame, lists,
+  chores and Home Assistant controls. This snap runs the Mantel server and serves the display
+  on port 8787. Open http://<this machine>:8787 from a tablet, phone or the Mantel OS kiosk.
+
+  Settings: `snap set mantel port=8787`. Data lives in /var/snap/mantel/current and is copied
+  before every update, so a reverted update gets its data back too.
+base: core24
+grade: stable
+confinement: strict
+architectures: ['@ARCH@']
+website: https://github.com/sorel123/mantel
+source-code: https://github.com/sorel123/mantel
+issues: https://github.com/sorel123/mantel/issues
+
+apps:
+  mantel:
+    command: bin/mantel-server
+    daemon: simple
+    restart-condition: always
+    restart-delay: 3s
+    plugs: [network, network-bind]
+  # `sudo mantel.health` prints the server's health, for testing and support.
+  health:
+    command: bin/mantel-health
+    plugs: [network]
