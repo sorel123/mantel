@@ -34,15 +34,30 @@ python3 "$here/gadget.py" gadget ids.json
 cp "$here/cloud.conf" gadget/cloud.conf
 snap pack gadget . --filename=pc-mantel.snap >/dev/null
 
-ubuntu-image snap "$here/models/ubuntu-core-24-amd64-dangerous.model" \
-  --output-dir "$work/img" \
-  --snap "$work/pc-mantel.snap" \
-  --snap "pc-kernel=$KERNEL_CHANNEL" \
-  --snap "core24=latest/stable" \
-  --snap "snapd=latest/stable" \
-  --snap "$mantel_snap" \
-  --snap "ubuntu-frame=$FRAME_CHANNEL" \
-  --snap "wpe-webkit-mir-kiosk=$KIOSK_CHANNEL"
+# Snaps the kiosk needs (graphics drivers, bases) are added as ubuntu-image asks for them.
+extra=(${EXTRA_SNAPS:-})
+for attempt in 1 2 3 4 5 6 7 8; do
+  args=()
+  for s in "${extra[@]}"; do args+=(--snap "$s"); done
+  rm -rf img
+  if ubuntu-image snap "$here/models/ubuntu-core-24-amd64-dangerous.model" \
+    --output-dir "$work/img" \
+    --snap "$work/pc-mantel.snap" \
+    --snap "pc-kernel=$KERNEL_CHANNEL" \
+    --snap "core24=latest/stable" \
+    --snap "snapd=latest/stable" \
+    --snap "$mantel_snap" \
+    --snap "ubuntu-frame=$FRAME_CHANNEL" \
+    --snap "wpe-webkit-mir-kiosk=$KIOSK_CHANNEL" \
+    "${args[@]}" 2>&1 | tee build.log; then
+    break
+  fi
+  need="$(grep -oE '(default provider|base) "[a-z0-9-]+"' build.log | head -1 | grep -oE '"[a-z0-9-]+"' | tr -d '"' || true)"
+  if [ -z "$need" ]; then echo "image build failed" >&2; exit 1; fi
+  echo "adding prerequisite snap: $need"
+  extra+=("$need")
+done
+echo "prerequisites added: ${extra[*]:-none}"
 
 ls -la img
 img="$(ls img/*.img | head -1)"
