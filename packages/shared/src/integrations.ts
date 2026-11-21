@@ -39,6 +39,9 @@ export const IntegrationId = z.enum([
   'immich',
   'google-photos',
   'photo-folder',
+  'reminders',
+  'todoist',
+  'ha-todo',
 ]);
 export type IntegrationId = z.infer<typeof IntegrationId>;
 

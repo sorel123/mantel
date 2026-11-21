@@ -23,6 +23,9 @@ import {
   timersManifest,
   trashManifest,
   weatherManifest,
+  remindersManifest,
+  todoistManifest,
+  haTodoManifest,
 } from './index.js';
 
 export const builtInManifests: PluginManifest[] = [
@@ -41,6 +44,9 @@ export const builtInManifests: PluginManifest[] = [
   mealsManifest,
   trashManifest,
   timersManifest,
+  remindersManifest,
+  todoistManifest,
+  haTodoManifest,
 ];
 
 /** The manifests whose plugins run for real in mock mode (they need no outside service). */

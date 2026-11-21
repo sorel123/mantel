@@ -22,6 +22,7 @@ import { registerPushRoutes } from '../plugins/push/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
 import { registerPhotoSourceRoutes } from '../providers/real/photos-routes.js';
+import { registerListSyncRoutes } from './list-sync.js';
 import { createOpenService, registerOpenRoutes, type OpenService } from '../plugins/voice/index.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. Returns the Open Mantel service for MCP. */
@@ -455,6 +456,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
   registerRewardRoutes(handle, deps);
+  registerListSyncRoutes(handle, deps);
   return open;
 }
 

@@ -6,6 +6,7 @@
  * Ownership: calendar (WS2), home + media (WS3), weather + commute + photos (WS4),
  * lists + chores (WS5). Settings and devices belong to the scaffold and WS6.
  */
+import type { ListSyncService } from './real/lists-sync.js';
 import type {
   BodyOf,
   CalendarEvent,
@@ -194,6 +195,8 @@ export interface ListsProvider {
   createRoutine(req: BodyOf<'routineCreate'>): Promise<ResponseOf<'routineCreate'>>;
   patchRoutine(id: string, req: BodyOf<'routinePatch'>): Promise<ResponseOf<'routinePatch'>>;
   deleteRoutine(id: string): Promise<ResponseOf<'routineDelete'>>;
+  /** v4 workstream L: sharing lists with Reminders, Todoist and Home Assistant. */
+  sync?: ListSyncService;
 }
 
 export interface Providers {
