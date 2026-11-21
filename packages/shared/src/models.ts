@@ -11,6 +11,7 @@
 import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
+import { DEFAULT_OPEN_SETTINGS, OpenSettings } from './open.js';
 import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
 import { DEFAULT_DIGEST_SETTINGS, DigestSettings } from './digest.js';
 
@@ -586,6 +587,8 @@ export const Settings = z.object({
   chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
   /** v4 (workstream D): the morning digest, nudges and quiet hours. */
   digest: DigestSettings.default(() => structuredClone(DEFAULT_DIGEST_SETTINGS)),
+  /** v4 O: things said to Mantel by Siri, Alexa, Home Assistant or the API. */
+  open: OpenSettings.default(() => ({ ...DEFAULT_OPEN_SETTINGS })),
 });
 export type Settings = z.infer<typeof Settings>;
 

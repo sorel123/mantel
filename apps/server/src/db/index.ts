@@ -162,6 +162,17 @@ const migrations = [
     grp TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS activity_at ON activity (at_ms)`,
+  // v4 O: API tokens
+  `CREATE TABLE IF NOT EXISTS api_tokens (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    scopes TEXT NOT NULL,
+    prefix TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT,
+    revoked_at TEXT
+  )`,
 ];
 
 /** Columns added after a table shipped. `ALTER TABLE` has no IF NOT EXISTS, so each is tried once. */

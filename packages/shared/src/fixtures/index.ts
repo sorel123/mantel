@@ -18,6 +18,7 @@ import {
   setupState,
 } from './integrations.js';
 import { mealFavourites, mealsWeek } from './meals.js';
+import { openRouteFixtures } from './open.js';
 import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
@@ -33,6 +34,7 @@ export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
 export * from './meals.js';
+export * from './open.js';
 export * from './people.js';
 export * from './photos.js';
 export * from './plugin-cards.js';
@@ -212,6 +214,7 @@ export function routeFixtures(now = new Date()): {
     ...rewardRouteFixtures(now),
     ...digestRouteFixtures(now),
     ...mealFixtures(now),
+    ...openRouteFixtures(now),
   };
 }
 

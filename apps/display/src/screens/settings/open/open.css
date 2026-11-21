@@ -1,0 +1,80 @@
+/* Settings, Siri and assistants (v4 O). */
+.open-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+.open-make {
+  margin: 8px 0 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  animation: open-in var(--std) var(--ease) both;
+}
+.open-secret {
+  margin: 8px 0 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+  animation: open-in var(--std) var(--ease) both;
+}
+.open-secret p {
+  margin: 0 0 8px;
+}
+.open-token {
+  animation: open-in var(--std) var(--ease) both;
+}
+.open-token.revoked {
+  opacity: 0.55;
+}
+.open-skeleton .set-row {
+  min-height: 56px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.open-empty {
+  padding: 14px 0;
+}
+.open-try {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0 6px;
+}
+.open-try .set-input {
+  flex: 1;
+  min-width: 0;
+}
+.open-said {
+  animation: open-in var(--fast) var(--ease) both;
+}
+.open-snippet {
+  margin: 12px 0;
+}
+.open-snippet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.open-snippet pre {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre;
+}
+@keyframes open-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (max-width: 560px) {
+  .open-try {
+    flex-wrap: wrap;
+  }
+  .open-try .set-input {
+    flex-basis: 100%;
+  }
+}
