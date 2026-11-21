@@ -26,6 +26,7 @@ ids="$(printf '{"ubuntu-frame":"%s","wpe-webkit-mir-kiosk":"%s"}' \
   "$(snap_id ubuntu-frame)" "$(snap_id wpe-webkit-mir-kiosk)")"
 echo "snap ids: $ids"
 echo "$ids" > ids.json
+snap info wpe-webkit-mir-kiosk | sed -n '/^channels:/,$p' || true
 
 # Our pc gadget: the store's, with Mantel's defaults and connections added.
 snap download pc --channel="$GADGET_CHANNEL" --basename=pc-store >/dev/null

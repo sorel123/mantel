@@ -34,5 +34,14 @@ frame = ids.get("ubuntu-frame")
 if kiosk and frame:
     connections.append({"plug": f"{kiosk}:wayland", "slot": f"{frame}:wayland"})
 
+# ubuntu-seed holds a copy of every snap in the image (the recovery system). The stock 1.2 GB
+# is sized for a bare Ubuntu Core; the kiosk, its graphics stacks and their bases need more.
+SEED_SIZE = "3500M"
+for volume in gadget.get("volumes", {}).values():
+    for part in volume.get("structure", []):
+        if part.get("name") == "ubuntu-seed" or part.get("role") == "system-seed":
+            print(f"ubuntu-seed: {part.get('size')} -> {SEED_SIZE}")
+            part["size"] = SEED_SIZE
+
 yaml.safe_dump(gadget, open(path, "w"), sort_keys=False)
 print(yaml.safe_dump({"defaults": defaults, "connections": connections}, sort_keys=False))
