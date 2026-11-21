@@ -27,6 +27,10 @@ if kiosk:
 # System settings: install updates in a quiet window at night.
 system = defaults.setdefault("system", {})
 system["refresh"] = {"timer": "03:00-05:00"}
+# No remote login on a family's box (there are no user accounts either).
+system["service"] = {"ssh": {"disable": True}}
+# Restart the box if the system ever hangs (PCs with a hardware watchdog).
+system["watchdog"] = {"runtime-timeout": "60s"}
 
 connections = gadget.setdefault("connections", []) or []
 gadget["connections"] = connections
