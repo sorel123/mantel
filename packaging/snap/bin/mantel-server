@@ -1,0 +1,18 @@
+#!/bin/sh
+# Starts the Mantel server inside the snap. Settings come from `snap set mantel ...`.
+set -e
+port="$(snapctl get port)"
+export PORT="${port:-8787}"
+export HOST=0.0.0.0
+export NODE_ENV=production
+# SNAP_DATA is per revision: snapd copies it before a refresh and keeps the old copy, so a
+# reverted update returns to the data it had.
+export DATA_DIR="$SNAP_DATA"
+export DISPLAY_DIST="$SNAP/app/display"
+# The kiosk on this box opens http://localhost and pairs itself.
+export LOCAL_PAIR=1
+# snapd updates the snap; the GitHub release check is for the downloadable apps.
+export UPDATE_CHECK=0
+export MANTEL_SNAP=1
+cd "$SNAP_DATA"
+exec "$SNAP/node" "$SNAP/app/dist/index.js"

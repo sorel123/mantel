@@ -1,0 +1,14 @@
+#!/bin/sh
+# Runs on install and on every `snap set mantel ...`. Checks the values and restarts the server.
+set -e
+port="$(snapctl get port)"
+if [ -n "$port" ]; then
+  case "$port" in
+    *[!0-9]*) echo "port must be a number" >&2; exit 1 ;;
+  esac
+  if [ "$port" -lt 1024 ] || [ "$port" -gt 65535 ]; then
+    echo "port must be between 1024 and 65535" >&2; exit 1
+  fi
+fi
+# Restart only when the server is already running (not during install).
+if snapctl services mantel.mantel | grep -q ' active'; then snapctl restart mantel.mantel; fi

@@ -1,0 +1,78 @@
+name: Mantel OS
+
+# Builds the Mantel snap (the server packaged for Ubuntu and Mantel OS), installs it on the
+# runner and checks it answers. Runs on pull requests that touch the OS build, on version
+# tags, and by hand (Actions, Mantel OS, Run workflow). See packaging/snap/README.md.
+on:
+  pull_request:
+    paths:
+      - 'packaging/snap/**'
+      - 'packaging/os/**'
+      - 'packaging/build-bundle.mjs'
+      - '.github/workflows/os.yml'
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: os-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  snap:
+    name: Mantel snap (amd64)
+    runs-on: ubuntu-24.04
+    env:
+      MANTEL_GOOGLE_CLIENT_ID: ${{ secrets.MANTEL_GOOGLE_CLIENT_ID }}
+      MANTEL_GOOGLE_CLIENT_SECRET: ${{ secrets.MANTEL_GOOGLE_CLIENT_SECRET }}
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Version
+        id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"
+          else
+            last="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v0.0.0)"
+            v="${last#v}+git$(git rev-list --count "$last"..HEAD 2>/dev/null || echo 0).${GITHUB_SHA::7}"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Assemble the bundle
+        run: node packaging/build-bundle.mjs dist/bundle "${{ steps.v.outputs.version }}"
+      - name: Pack the snap
+        run: packaging/snap/build.sh dist/bundle "${{ steps.v.outputs.version }}" dist/snap
+      - name: Install the snap and check it serves Mantel
+        run: |
+          sudo snap install --dangerous dist/snap/mantel_*.snap
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/api/health && break; sleep 1; done
+          curl -sf http://127.0.0.1:8787/api/health
+          sudo mantel.health
+          curl -sf -X POST "http://127.0.0.1:8787/api/pair/local?name=ci" | grep -q deviceKey
+          curl -sf http://127.0.0.1:8787/ | grep -qi "<html"
+          # Data must land in the per-revision area snapd backs up before each update.
+          sudo ls -la /var/snap/mantel/current/
+          sudo test -f /var/snap/mantel/current/mantel.db
+          # Changing the port restarts the server on the new one.
+          sudo snap set mantel port=8790
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8790/api/health && break; sleep 1; done
+          curl -sf http://127.0.0.1:8790/api/health
+          ! sudo snap set mantel port=80
+          sudo snap logs mantel -n 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mantel-snap-amd64
+          path: dist/snap/*.snap
+          if-no-files-found: error
