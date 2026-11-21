@@ -4,12 +4,12 @@ Any Mantel list can be kept in step with one list somewhere else, both ways: tic
 renames and deletes. Set it up in **Settings › Lists and chores › Share lists with other apps**:
 press **Share this list with…** beside a list, pick a service, pick its list.
 
-| Service | How | Direction | Speed |
-| --- | --- | --- | --- |
-| Apple Reminders | Mantel Reminders helper on a Mac | Both ways | Seconds, while the Mac is awake |
-| Apple Reminders, no Mac | An iPhone Shortcuts automation | Reminders → Mantel only | When the automation runs |
-| Todoist | API token | Both ways | Within a minute |
-| Home Assistant to-do lists | The Home Assistant connection | Both ways | Seconds to two minutes |
+| Service                    | How                              | Direction               | Speed                           |
+| -------------------------- | -------------------------------- | ----------------------- | ------------------------------- |
+| Apple Reminders            | Mantel Reminders helper on a Mac | Both ways               | Seconds, while the Mac is awake |
+| Apple Reminders, no Mac    | An iPhone Shortcuts automation   | Reminders → Mantel only | When the automation runs        |
+| Todoist                    | API token                        | Both ways               | Within a minute                 |
+| Home Assistant to-do lists | The Home Assistant connection    | Both ways               | Seconds to two minutes          |
 
 ## Why not Apple Notes
 
@@ -21,7 +21,7 @@ the Apple route: it syncs over iCloud to every iPhone, iPad and Mac, and shared 
 
 - **Siri** adds to Reminders. Once a list is shared with Reminders, "Hey Siri, add milk to
   Groceries" lands on the wall a few seconds later (the helper is woken by the Reminders change).
-- **Alexa**: Home Assistant's *Alexa Devices* integration (Home Assistant 2026.7 and later) gives
+- **Alexa**: Home Assistant's _Alexa Devices_ integration (Home Assistant 2026.7 and later) gives
   Alexa's shopping and to-do lists as to-do entities. Share a Mantel list with that entity and
   "Alexa, add eggs to my shopping list" reaches the wall too.
 
@@ -31,7 +31,7 @@ Reminders left CalDAV in iOS 13, so only code on an Apple device (EventKit) can 
 is a small menu-bar app; the server keeps all sync state.
 
 1. Download `MantelReminders-mac.zip` from the [latest release](https://github.com/sorel123/mantel/releases/latest)
-   (also built for every pull request that touches `helpers/reminders-mac/`, under the *Package apps*
+   (also built for every pull request that touches `helpers/reminders-mac/`, under the _Package apps_
    run's artifacts) and drag **Mantel Reminders** into Applications.
 2. It isn't notarised by Apple yet, so the first time **right-click it › Open**, then Open again.
 3. Allow access to Reminders. Enter the Mantel address and a pairing code (Settings › Lists and
@@ -44,10 +44,10 @@ are merged when it wakes. macOS 13 or later.
 
 ## Apple Reminders without a Mac (Shortcuts, one way)
 
-In Settings, open *No Mac? Use a Shortcut* and press **Make a key**. Then in Shortcuts:
+In Settings, open _No Mac? Use a Shortcut_ and press **Make a key**. Then in Shortcuts:
 
-1. **Find Reminders** where *List* is your list and *Is Completed* is off.
-2. **Get Details of Reminders**: *Title*.
+1. **Find Reminders** where _List_ is your list and _Is Completed_ is off.
+2. **Get Details of Reminders**: _Title_.
 3. **Get Contents of URL**: `POST https://<your mantel>/api/lists/sync/shortcut`, header
    `x-mantel-device-key: <the key>`, JSON body `list` = the Mantel list's name, `items` = the titles.
 4. **Automation**: run it every hour (or on leaving or arriving home), without asking.
@@ -74,15 +74,15 @@ as an entity's state (its open count) changes, otherwise every two minutes.
 
 What that reaches, checked against home-assistant.io on 2026-11-21:
 
-| Home Assistant integration | To-do entity, add, rename, tick, remove | Notes |
-| --- | --- | --- |
-| Local to-do, Shopping list | Yes | Built in |
-| Google Tasks | Yes | Changes made in Google reach HA on its poll (30 min default) |
-| Todoist | Yes | Or use Mantel's own Todoist link above |
-| AnyList | Yes | Official since 2026.11; unofficial AnyList API, may break |
-| Alexa Devices (Alexa lists) | Yes | Official since 2026.7; replaced the HACS "Alexa todo lists" add-on |
-| Bring! | Has HA actions; to-do entities not confirmed on the pages checked | |
-| Microsoft To Do | No official integration found | A HACS custom integration exists |
+| Home Assistant integration  | To-do entity, add, rename, tick, remove                           | Notes                                                              |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Local to-do, Shopping list  | Yes                                                               | Built in                                                           |
+| Google Tasks                | Yes                                                               | Changes made in Google reach HA on its poll (30 min default)       |
+| Todoist                     | Yes                                                               | Or use Mantel's own Todoist link above                             |
+| AnyList                     | Yes                                                               | Official since 2026.11; unofficial AnyList API, may break          |
+| Alexa Devices (Alexa lists) | Yes                                                               | Official since 2026.7; replaced the HACS "Alexa todo lists" add-on |
+| Bring!                      | Has HA actions; to-do entities not confirmed on the pages checked |                                                                    |
+| Microsoft To Do             | No official integration found                                     | A HACS custom integration exists                                   |
 
 ## How the sync works
 
