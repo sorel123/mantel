@@ -18,6 +18,7 @@ import {
   setupState,
 } from './integrations.js';
 import { mealFavourites, mealsWeek } from './meals.js';
+import { mockRecipes } from './recipes.js';
 import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
@@ -31,6 +32,7 @@ export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
 export * from './meals.js';
+export * from './recipes.js';
 export * from './people.js';
 export * from './photos.js';
 export * from './plugin-cards.js';
@@ -208,6 +210,33 @@ export function routeFixtures(now = new Date()): {
     ...companionRouteFixtures(now),
     ...rewardRouteFixtures(now),
     ...mealFixtures(now),
+    ...recipeFixtures(now),
+  };
+}
+
+/** v4 B: the recipe box's routes. */
+function recipeFixtures(now: Date) {
+  const recipes = mockRecipes(now);
+  const recipe = recipes[0]!;
+  return {
+    recipes: { recipes },
+    recipe: { recipe },
+    recipeCreate: { recipe },
+    recipePatch: { recipe },
+    recipeDelete: { ok: true as const },
+    recipeImport: {
+      recipe,
+      via: 'link' as const,
+      message: 'Read from the recipe on the page.',
+      existing: false,
+    },
+    recipeToGrocery: {
+      listId: 'list-grocery',
+      listName: 'Grocery',
+      added: ['1 lb ground beef', '8 small flour tortillas'],
+      merged: ['2 cups shredded cheddar'],
+      skipped: ['Salsa'],
+    },
   };
 }
 
