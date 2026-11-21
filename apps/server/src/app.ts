@@ -16,6 +16,7 @@ import { mockProviders } from './providers/mock/index.js';
 import type { ProviderContext, Providers } from './providers/types.js';
 import { registerRoutes } from './routes/index.js';
 import { mountMcp } from './plugins/mcp/index.js';
+import { mountAlexa } from './plugins/voice/alexa.js';
 import { BoxService } from './box/index.js';
 import { FakeNetwork, NetworkManagerNetwork } from './box/network.js';
 import { DisplayScheduler } from './schedule.js';
@@ -204,9 +205,11 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
       404,
     ),
   );
-  app.route(API_PREFIX, api);
-  // v4 O: Mantel as an MCP server for Claude and other assistants (token auth).
+  // v4 O: Mantel as an MCP server for Claude and other assistants, and the Alexa skill endpoint
+  // (token auth, outside the contract). Mounted before the `/api` router and its catch-all.
   mountMcp(app, deps, open);
+  mountAlexa(app, deps, open);
+  app.route(API_PREFIX, api);
 
   if (config.DISPLAY_DIST) {
     const root = config.DISPLAY_DIST;

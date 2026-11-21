@@ -322,3 +322,47 @@ describe('MCP auth (real mode)', () => {
     expect((await call(real, 'GET', '/mcp')).status).toBe(405);
   });
 });
+
+describe('Alexa skill endpoint', () => {
+  const alexa = (token: string, request: Record<string, unknown>) =>
+    mock.app.request(`/api/alexa?token=${token}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        version: '1.0',
+        request: { timestamp: new Date().toISOString(), ...request },
+      }),
+    });
+  let token = '';
+  beforeAll(async () => {
+    token = (
+      await call(mock, 'POST', '/open/tokens', { name: 'Alexa', scopes: ['read', 'capture'] })
+    ).json.secret;
+  });
+
+  it('adds what was said and speaks back', async () => {
+    const res = await alexa(token, {
+      type: 'IntentRequest',
+      intent: { name: 'AddIntent', slots: { thing: { value: 'milk and eggs' } } },
+    });
+    const body = (await res.json()) as Json;
+    expect(body.response.outputSpeech.text).toMatch(/^Added milk and eggs to /);
+    expect(body.response.shouldEndSession).toBe(true);
+  });
+
+  it('opens with a question and reads the day', async () => {
+    const launch = (await (await alexa(token, { type: 'LaunchRequest' })).json()) as Json;
+    expect(launch.response.shouldEndSession).toBe(false);
+    const today = (await (
+      await alexa(token, { type: 'IntentRequest', intent: { name: 'TodayIntent' } })
+    ).json()) as Json;
+    expect(today.response.outputSpeech.text).toMatch(/^Today is/);
+  });
+
+  it('refuses a missing token and an old request', async () => {
+    expect((await alexa('mtl_wrong', { type: 'LaunchRequest' })).status).toBe(401);
+    expect(
+      (await alexa(token, { type: 'LaunchRequest', timestamp: '2020-01-01T00:00:00Z' })).status,
+    ).toBe(400);
+  });
+});
