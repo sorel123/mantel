@@ -80,6 +80,21 @@ export function HealthSection({ version, mock }: { version: string; mock: boolea
           </span>
         </span>
       </div>
+      {update?.automatic && (
+        <div className="set-field">
+          <span className="set-label">
+            Updates install by themselves
+            <span className="set-hint">
+              Between {update.automatic.window.replace('–', ' and ')} each night, for Mantel and the
+              system under it. A version that fails its check after installing is undone.
+              {update.automatic.latest && update.automatic.latest !== update.current
+                ? ` Mantel ${update.automatic.latest} is waiting for tonight.`
+                : ''}{' '}
+              Revision {update.automatic.revision}.
+            </span>
+          </span>
+        </div>
+      )}
       {update?.available && update.url && (
         <div className="set-field">
           <span className="set-label">

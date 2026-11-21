@@ -4,10 +4,15 @@ import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { log, setLogLevel } from './log.js';
+import { runSelfCheck } from './selfcheck.js';
 import { VERSION } from './version.js';
 
 const config = loadConfig();
 setLogLevel(config.LOG_LEVEL);
+if (process.argv.includes('--check')) {
+  setLogLevel('warn');
+  process.exit(await runSelfCheck(config));
+}
 const { app, deps, close } = createApp(config);
 
 const server = serve({ fetch: app.fetch, port: config.PORT, hostname: config.HOST }, (info) => {

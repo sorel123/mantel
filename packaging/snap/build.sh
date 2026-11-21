@@ -17,7 +17,9 @@ cp "$here"/bin/* "$prime/bin/"
 cp "$here"/hooks/* "$prime/meta/hooks/"
 sed -e "s/@VERSION@/$version/" -e "s/@ARCH@/$arch/" "$here/snap.yaml" > "$prime/meta/snap.yaml"
 chmod -R a+rX "$prime"
-chmod 755 "$prime"/bin/* "$prime"/meta/hooks/* "$prime/node"
+chmod 755 "$prime"/bin/mantel-server "$prime"/bin/mantel-health "$prime"/meta/hooks/* "$prime/node"
+# A deliberately broken build, to prove a failed update undoes itself (see README).
+if [ "${MANTEL_BREAK_UPDATE_CHECK:-}" = 1 ]; then touch "$prime/break-update-check"; fi
 
 mkdir -p "$out"
 file="$out/mantel_${version}_${arch}.snap"

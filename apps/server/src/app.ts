@@ -128,6 +128,10 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     updates: new UpdateChecker({
       enabled: config.UPDATE_CHECK && !config.MOCK,
       repo: config.UPDATE_REPO,
+      snap:
+        process.env.MANTEL_SNAP === '1' && process.env.SNAP_REVISION && !config.MOCK
+          ? { revision: process.env.SNAP_REVISION, name: process.env.SNAP_INSTANCE_NAME }
+          : null,
       ...(overrides.fetch ? { fetch: overrides.fetch } : {}),
     }),
   };

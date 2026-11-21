@@ -21,9 +21,18 @@ export function isNewer(latest: string, current: string): boolean {
 export class UpdateChecker {
   private cached: { at: number; value: UpdateCheckResponse } | null = null;
 
-  constructor(private readonly opts: { enabled: boolean; repo: string; fetch?: typeof fetch }) {}
+  constructor(
+    private readonly opts: {
+      enabled: boolean;
+      repo: string;
+      fetch?: typeof fetch;
+      /** Installed as a snap (`SNAP_REVISION`): snapd updates it; ask the store what is newest. */
+      snap?: { revision: string; name?: string } | null;
+    },
+  ) {}
 
   async check(): Promise<UpdateCheckResponse> {
+    if (this.opts.snap) return this.checkSnap(this.opts.snap);
     const none: UpdateCheckResponse = {
       current: VERSION,
       checked: false,
@@ -58,6 +67,44 @@ export class UpdateChecker {
     } catch {
       return none;
     }
+  }
+
+  private async checkSnap(snap: { revision: string; name?: string }): Promise<UpdateCheckResponse> {
+    if (this.cached && Date.now() - this.cached.at < TTL_MS) return this.cached.value;
+    let latest: string | null = null;
+    // A revision starting with x is a local install (a test image): the store knows nothing of it.
+    if (!snap.revision.startsWith('x')) {
+      try {
+        const res = await (this.opts.fetch ?? fetch)(
+          `https://api.snapcraft.io/v2/snaps/info/${snap.name ?? 'mantel'}?fields=version`,
+          { headers: { 'Snap-Device-Series': '16' }, signal: AbortSignal.timeout(8000) },
+        );
+        if (res.ok) {
+          const r = (await res.json()) as {
+            'channel-map'?: {
+              channel?: { name?: string; architecture?: string };
+              version?: string;
+            }[];
+          };
+          const arch = process.arch === 'arm64' ? 'arm64' : 'amd64';
+          latest =
+            r['channel-map']?.find(
+              (c) => c.channel?.name === 'stable' && c.channel?.architecture === arch,
+            )?.version ?? null;
+        }
+      } catch {
+        /* offline: show what is installed */
+      }
+    }
+    return this.remember({
+      current: VERSION,
+      checked: latest !== null,
+      latest,
+      available: false,
+      url: null,
+      notes: null,
+      automatic: { revision: snap.revision, window: '03:00–05:00', latest },
+    });
   }
 
   private remember(value: UpdateCheckResponse) {
