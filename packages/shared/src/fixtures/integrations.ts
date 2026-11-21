@@ -11,6 +11,7 @@ import type {
   SetupState,
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
+import { pluginPackManifests } from './plugin-pack.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
 import { haTodoManifest, remindersManifest, todoistManifest } from './list-sync.js';
 import { settings } from './settings.js';
@@ -422,6 +423,7 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  ...pluginPackManifests,
   remindersManifest,
   todoistManifest,
   haTodoManifest,
@@ -497,6 +499,16 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    // v4 G, the plugin pack: these run for real in mock mode with sample data.
+    { ...base('birthdays'), state: 'connected', summary: '4 birthdays, next: Mia in 3 days' },
+    { ...base('pets'), state: 'connected', summary: 'Biscuit and Luna, 5 jobs a day' },
+    { ...base('poll'), state: 'connected', summary: 'Ready: ask from the card or the dock' },
+    { ...base('sports'), state: 'connected', summary: 'Following 3 teams' },
+    { ...base('school'), state: 'connected', summary: 'Weekly menu, A/B days' },
+    { ...base('housestatus'), state: 'connected', summary: 'Picked for you: 4 things' },
+    { ...base('habits'), state: 'connected', summary: '3 habits, 1 due today' },
+    { ...base('qotd'), state: 'connected', summary: '365 questions, kid-friendly' },
+    { ...base('sky'), state: 'connected', summary: 'Sunrise 7:32 AM, sunset 5:08 PM' },
     {
       ...base('reminders'),
       state: 'connected',

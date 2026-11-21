@@ -2,7 +2,13 @@
  * The one component that draws any plugin's blocks: a title, rows (icon, text, a smaller line
  * or a live countdown, buttons), presets and a dial. Used by Today cards, sheets and Ambient.
  */
-import type { ConfigValue, PluginAction, PluginBlocks, PluginDial } from '@mantel/shared';
+import type {
+  ConfigValue,
+  PluginAction,
+  PluginBlocks,
+  PluginDial,
+  PluginInput,
+} from '@mantel/shared';
 import { useState } from 'react';
 import { useNow } from '../../app/Clock';
 import { useOverlay } from '../../app/overlay';
@@ -79,6 +85,7 @@ export function BlocksView({
           <b>{blocks.title}</b>
         </div>
       )}
+      {blocks.lead && <p className="pb-lead">{blocks.lead}</p>}
       {blocks.progress !== undefined && (
         <div className="pb-progress" role="progressbar" aria-valuenow={blocks.progress * 100}>
           <i style={{ width: `${blocks.progress * 100}%` }} />
@@ -122,6 +129,13 @@ export function BlocksView({
           dial={blocks.dial}
           busy={busy === 'dial'}
           onSubmit={(v) => run('dial', blocks.dial!.action, { value: v })}
+        />
+      )}
+      {variant !== 'ambient' && blocks.input && (
+        <Ask
+          input={blocks.input}
+          busy={busy === 'input'}
+          onSubmit={(text) => run('input', blocks.input!.action, { text })}
         />
       )}
       {blocks.footer && variant !== 'ambient' && <p className="pb-foot">{blocks.footer}</p>}
@@ -181,5 +195,63 @@ function Dial({
         {dial.submit} {value} {UNIT[dial.unit]}
       </button>
     </div>
+  );
+}
+
+/** A text box with a button (v4 G: ask a family poll). Suggestions fill the box in one tap. */
+function Ask({
+  input,
+  busy,
+  onSubmit,
+}: {
+  input: PluginInput;
+  busy: boolean;
+  onSubmit: (text: string) => Promise<void>;
+}) {
+  const [text, setText] = useState('');
+  const send = async (value: string) => {
+    if (!value.trim()) return;
+    await onSubmit(value.trim());
+    setText('');
+  };
+  return (
+    <form
+      className="pb-ask"
+      onClick={(e) => e.stopPropagation()}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void send(text);
+      }}
+    >
+      {input.suggestions.length > 0 && (
+        <div className="pb-suggest" role="group" aria-label="Suggestions">
+          {input.suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="chip neutral"
+              disabled={busy}
+              onClick={() => setText(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="pb-ask-row">
+        <input
+          className="input"
+          aria-label={input.label}
+          placeholder={input.placeholder ?? input.label}
+          value={text}
+          enterKeyHint="send"
+          onChange={(e) => setText(e.target.value)}
+        />
+        <button type="submit" className="btn primary" disabled={busy || !text.trim()}>
+          <PluginIcon name="send" />
+          {input.submit}
+        </button>
+      </div>
+    </form>
   );
 }

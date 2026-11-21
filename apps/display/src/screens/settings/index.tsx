@@ -28,6 +28,7 @@ import {
   LayoutSection,
   ListSharingSection,
   MealsSection,
+  PluginsSection,
   Mount,
   OpenSection,
 } from './Optional';
@@ -49,6 +50,19 @@ type Load =
       mock: boolean;
     };
 
+/** v4 G: the plugin pack lives on its own page (Plugins), not in Integrations. */
+const PACK = [
+  'birthdays',
+  'pets',
+  'poll',
+  'sports',
+  'school',
+  'housestatus',
+  'habits',
+  'qotd',
+  'sky',
+];
+
 /** The left nav, in groups. Ids double as URL hashes (`/settings#calendars`). */
 export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: string }> }> = [
   {
@@ -59,6 +73,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
       { id: 'calendars', label: 'Calendars' },
       { id: 'homeassistant', label: 'Home Assistant' },
       { id: 'integrations', label: 'Integrations' },
+      { id: 'plugins', label: 'Plugins' },
     ],
   },
   {
@@ -275,7 +290,20 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals']}
+        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals', ...PACK]}
+      />
+    ),
+    plugins: () => (
+      <Mount
+        Component={PluginsSection}
+        props={{
+          draft,
+          set,
+          plugins: integrations.plugins,
+          statuses: integrations.statuses,
+          onStatus: integrations.onStatus,
+        }}
+        fallback={null}
       />
     ),
     homeassistant: () => (

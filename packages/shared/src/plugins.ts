@@ -82,7 +82,9 @@ export type PluginTone = z.infer<typeof PluginTone>;
 
 /**
  * An icon from the display's bundled set: `trash`, `recycle`, `leaf`, `timer`, `bell`, `check`,
- * `alert`, `calendar`, `star`, `info`, `clock`, `box`. Unknown names draw `info`.
+ * `alert`, `calendar`, `star`, `info`, `clock`, `box`; v4 G adds `cake`, `heart`, `paw`, `vote`,
+ * `trophy`, `school`, `lunch`, `house`, `lock`, `unlock`, `door`, `washer`, `bolt`, `sprout`, `pill`,
+ * `chat`, `sun`, `sunrise`, `sunset`, `moon`, `sparkle`. Unknown names draw `info`.
  */
 export const PluginIcon = z.string().regex(/^[a-z][a-z0-9-]*$/);
 
@@ -124,6 +126,19 @@ export const PluginDial = z.object({
 export type PluginDial = z.infer<typeof PluginDial>;
 
 /**
+ * A one-line text box with a button (v4 G: post a family poll from the wall). Pressing the button
+ * posts `{ text }` to `action`. `suggestions` are one-tap fills drawn as chips above the box.
+ */
+export const PluginInput = z.object({
+  action: z.string().regex(/^[a-z][a-z0-9-]*$/),
+  label: z.string(),
+  placeholder: z.string().optional(),
+  submit: z.string().default('Post'),
+  suggestions: z.array(z.string()).default([]),
+});
+export type PluginInput = z.infer<typeof PluginInput>;
+
+/**
  * What a card, an Ambient line or a sheet shows. The display draws every plugin's blocks with one
  * component, so a plugin never ships screen code.
  */
@@ -139,6 +154,10 @@ export const PluginBlocks = z.object({
   /** Buttons under the lines (the timers' presets). */
   actions: z.array(PluginAction).default([]),
   dial: PluginDial.optional(),
+  /** A text box with a button, on cards and sheets (v4 G). */
+  input: PluginInput.optional(),
+  /** A large line under the title (the question of the day), drawn bigger than a row. */
+  lead: z.string().optional(),
 });
 export type PluginBlocks = z.infer<typeof PluginBlocks>;
 export type PluginBlocksInput = z.input<typeof PluginBlocks>;
