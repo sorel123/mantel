@@ -63,4 +63,8 @@ Tell me what you saw for each, plus a phone photo of anything that looks wrong.
 - No screen dimming or "screen only" role yet (stage 3).
 - The image is test grade: Mantel itself does not update from the store yet (stage 4), and
   there is no disk encryption or secure-boot lock-down yet (stage 5).
+- The automatic test only proves part of the screen. In the test machine Mantel starts and the
+  screen system starts, but that machine has no graphics chip, so the browser cannot draw
+  there. Real PCs have one. If your screen stays plain grey for more than five minutes after
+  the first boot, that is the thing to tell me: there is a second browser to try.
 - There is no way to log in to the box, by design. If something goes wrong, re-flash.
