@@ -22,11 +22,13 @@ import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
 import { calendars, people } from './people.js';
+import { digestRouteFixtures, sampleActivity } from './digest.js';
 import { photos } from './photos.js';
 import { settings } from './settings.js';
 import { commute, weather, weatherForPlace, weatherPlaces, weatherQuip } from './weather.js';
 
 export * from './calendar.js';
+export * from './digest.js';
 export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
@@ -207,6 +209,7 @@ export function routeFixtures(now = new Date()): {
     geocode: { candidates: geocodeCandidates },
     ...companionRouteFixtures(now),
     ...rewardRouteFixtures(now),
+    ...digestRouteFixtures(now),
     ...mealFixtures(now),
   };
 }
@@ -310,5 +313,6 @@ export function wsFixtures(now = new Date()) {
     { type: 'display.wake', payload: { reason: 'presence' } },
     { type: 'display.sleep', payload: { reason: 'schedule' } },
     { type: 'notes.changed', payload: {} },
+    { type: 'activity.added', payload: { entry: sampleActivity(now)[0]! } },
   ] as const;
 }

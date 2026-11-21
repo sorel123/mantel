@@ -20,6 +20,7 @@ import {
   timersManifest,
   trashManifest,
   weatherManifest,
+  digestManifest,
 } from './index.js';
 
 export const builtInManifests: PluginManifest[] = [
@@ -35,10 +36,11 @@ export const builtInManifests: PluginManifest[] = [
   mealsManifest,
   trashManifest,
   timersManifest,
+  digestManifest,
 ];
 
 /** The manifests whose plugins run for real in mock mode (they need no outside service). */
-const LOCAL = new Set<string>([trashManifest.id, timersManifest.id]);
+const LOCAL = new Set<string>([trashManifest.id, timersManifest.id, digestManifest.id]);
 
 export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {
   const mocked = builtInManifests

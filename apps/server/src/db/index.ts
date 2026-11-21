@@ -147,6 +147,21 @@ const migrations = [
     icon TEXT NOT NULL,
     sort INTEGER NOT NULL
   )`,
+  // v4 (workstream D): the activity log
+  `CREATE TABLE IF NOT EXISTS activity (
+    id TEXT PRIMARY KEY,
+    at TEXT NOT NULL,
+    at_ms INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    person_id TEXT,
+    who TEXT,
+    subject TEXT NOT NULL,
+    place TEXT,
+    link_tab TEXT NOT NULL,
+    link_id TEXT,
+    grp TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS activity_at ON activity (at_ms)`,
 ];
 
 /** Columns added after a table shipped. `ALTER TABLE` has no IF NOT EXISTS, so each is tried once. */
@@ -157,6 +172,8 @@ const addedColumns: Array<[table: string, column: string, definition: string]> =
   ['chores', 'time_of_day', "TEXT NOT NULL DEFAULT 'any'"],
   ['chores', 'icon', 'TEXT'],
   ['chores', 'routine_id', 'TEXT'],
+  // v4 (workstream D): missed chores roll over; null is the default for the cadence
+  ['chores', 'rollover', 'INTEGER'],
 ];
 
 export function openDb(dataDir: string): Db {

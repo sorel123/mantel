@@ -21,6 +21,40 @@ type CompletionRow = typeof choreCompletions.$inferSelect;
 /** The ledger entry for one chore tap; taking the tap back deletes it. */
 export const completionRef = (completionId: number) => `completion:${completionId}`;
 const LEDGER_MIGRATED = 'stars.ledger.migrated';
+/** How far back a missed chore is looked for (v4 D rollover). */
+export const ROLLOVER_LOOKBACK_DAYS = 28;
+
+/**
+ * v4 D: the first day of the earliest missed period that is still owed, or undefined. A daily
+ * chore looks back day by day from yesterday, a weekly one week by week from last week; the
+ * walk stops at the first period that was finished, at the day the chore was made, or after
+ * the lookback. Finishing the current period clears it.
+ */
+export function overdueSince(o: {
+  cadence: 'daily' | 'weekly';
+  target: number;
+  createdDay: string;
+  today: string;
+  doneThisPeriod: number;
+  counts: Map<string, number>;
+}): string | undefined {
+  if (o.doneThisPeriod >= o.target) return undefined;
+  const today = fromIsoDate(o.today);
+  const step = o.cadence === 'daily' ? 1 : 7;
+  let start = o.cadence === 'daily' ? today : startOfWeek(today);
+  let earliest: string | undefined;
+  for (let i = 0; i < ROLLOVER_LOOKBACK_DAYS / step; i++) {
+    start = addDays(start, -step);
+    const first = toIsoDate(start);
+    const last = toIsoDate(addDays(start, step - 1));
+    if (last < o.createdDay) break;
+    let n = 0;
+    for (let d = 0; d < step; d++) n += o.counts.get(toIsoDate(addDays(start, d))) ?? 0;
+    if (n >= o.target) break;
+    earliest = first < o.createdDay ? o.createdDay : first;
+  }
+  return earliest;
+}
 
 /**
  * The chore chart. Every tap is a completion row dated in local time; counts, the week grid
@@ -93,11 +127,19 @@ export class ChoreStore {
     return this.db.select().from(choreCompletions).where(gte(choreCompletions.day, since)).all();
   }
 
+  /** Completions far enough back to tell whether a missed chore rolls over. */
+  private history(): CompletionRow[] {
+    const w = this.week();
+    const since = toIsoDate(addDays(fromIsoDate(w.today), -ROLLOVER_LOOKBACK_DAYS));
+    return this.completions(since < w.start ? since : w.start);
+  }
+
   private toChore(
     row: ChoreRow,
     done: CompletionRow[],
     w = this.week(),
     times = this.routineTimes(),
+    history: CompletionRow[] = done,
   ): Chore {
     const mine = done.filter((d) => d.choreId === row.id);
     const routineTime = row.routineId ? times.get(row.routineId) : undefined;
@@ -115,7 +157,31 @@ export class ChoreStore {
       timeOfDay: routineTime ?? row.timeOfDay,
       ...(row.icon ? { icon: row.icon } : {}),
       ...(row.routineId && routineTime ? { routineId: row.routineId } : {}),
+      ...this.rollover(row, history, doneCount, w.today),
     };
+  }
+
+  /** v4 D: the chore's rollover setting and, when it is on, since when it is owed. */
+  private rollover(
+    row: ChoreRow,
+    history: CompletionRow[],
+    doneCount: number,
+    today: string,
+  ): Pick<Chore, 'rollover' | 'overdueSince'> {
+    const on = row.rollover ?? row.cadence === 'weekly';
+    if (!on) return { rollover: false };
+    const counts = new Map<string, number>();
+    for (const c of history)
+      if (c.choreId === row.id) counts.set(c.day, (counts.get(c.day) ?? 0) + 1);
+    const since = overdueSince({
+      cadence: row.cadence,
+      target: row.target,
+      createdDay: toIsoDate(new Date(row.createdAt)),
+      today,
+      doneThisPeriod: doneCount,
+      counts,
+    });
+    return since ? { rollover: true, overdueSince: since } : { rollover: true };
   }
 
   private tallies(active: ChoreRow[], done: CompletionRow[]): StarTally[] {
@@ -142,12 +208,13 @@ export class ChoreStore {
 
   all(): ResponseOf<'chores'> {
     const w = this.week();
-    const done = this.completions(w.start);
+    const history = this.history();
+    const done = history.filter((c) => c.day >= w.start);
     const active = this.active();
     const times = this.routineTimes();
     return {
       weekStart: w.start,
-      chores: active.map((c) => this.toChore(c, done, w, times)),
+      chores: active.map((c) => this.toChore(c, done, w, times, history)),
       stars: this.tallies(active, done),
     };
   }
@@ -171,6 +238,7 @@ export class ChoreStore {
       timeOfDay: req.timeOfDay ?? 'any',
       icon: req.icon ?? null,
       routineId: req.routineId ?? null,
+      rollover: req.rollover ?? null,
     };
     this.checkRoutine(row.routineId);
     this.db.insert(chores).values(row).run();
@@ -195,9 +263,17 @@ export class ChoreStore {
     if (patch.timeOfDay !== undefined) set.timeOfDay = patch.timeOfDay;
     if (patch.icon !== undefined) set.icon = patch.icon;
     if (patch.routineId !== undefined) set.routineId = patch.routineId;
-    this.db.update(chores).set(set).where(eq(chores.id, id)).run();
+    if (patch.rollover !== undefined) set.rollover = patch.rollover;
+    if (Object.keys(set).length) this.db.update(chores).set(set).where(eq(chores.id, id)).run();
     const w = this.week();
-    return this.toChore(this.getRow(id), this.completions(w.start), w);
+    const history = this.history();
+    return this.toChore(
+      this.getRow(id),
+      history.filter((c) => c.day >= w.start),
+      w,
+      undefined,
+      history,
+    );
   }
 
   /** Take every chore out of a routine (the routine is being deleted). */

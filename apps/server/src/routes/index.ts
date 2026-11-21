@@ -19,6 +19,7 @@ import { VERSION } from '../version.js';
 import { registerImportRoutes } from '../plugins/import/index.js';
 import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
+import { registerDigestRoutes } from '../plugins/digest/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
 
@@ -421,7 +422,9 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
 
   /* ---- v3 C: companion (wall notes, Web Push, Magic Import) in plugins/{notes,push,import} ---- */
   const push = registerPushRoutes(handle, deps, todaysEvents);
-  registerNotesRoutes(handle, deps, push);
+  const notes = registerNotesRoutes(handle, deps, push);
+  /* ---- v4 D: digest, nudges and the activity log (plugins/digest, plugins/activity) ---- */
+  registerDigestRoutes(handle, deps, { push, notes, meals });
   registerImportRoutes(handle, deps, meals);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {

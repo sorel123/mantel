@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
 import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
+import { DEFAULT_DIGEST_SETTINGS, DigestSettings } from './digest.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -309,6 +310,11 @@ export const Chore = z.object({
   /** A key into the bundled icon set (`CHORE_ICONS`). */
   icon: ChoreIcon.optional(),
   routineId: Id.optional(),
+  // v4 (workstream D): rollover. Both optional so older payloads parse.
+  /** A missed period carries over instead of vanishing (default on for weekly, off for daily). */
+  rollover: z.boolean().optional(),
+  /** First day of the earliest missed period still owed, when rollover is on. */
+  overdueSince: IsoDate.optional(),
 });
 export type Chore = z.infer<typeof Chore>;
 
@@ -578,6 +584,8 @@ export const Settings = z.object({
   meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
   /** v3 (workstream R): celebrations on the chore chart. */
   chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
+  /** v4 (workstream D): the morning digest, nudges and quiet hours. */
+  digest: DigestSettings.default(() => structuredClone(DEFAULT_DIGEST_SETTINGS)),
 });
 export type Settings = z.infer<typeof Settings>;
 

@@ -66,7 +66,16 @@ export const NoteResponse = z.object({ note: WallNote });
 /* ---------- Web Push ---------- */
 
 /** What a phone can be told about. */
-export const PushEventKind = z.enum(['doorbell', 'chores', 'leaveBy', 'reward', 'note']);
+export const PushEventKind = z.enum([
+  'doorbell',
+  'chores',
+  'leaveBy',
+  'reward',
+  'note',
+  // v4 D
+  'digest',
+  'nudge',
+]);
 export type PushEventKind = z.infer<typeof PushEventKind>;
 export const PUSH_EVENT_LABELS: Record<PushEventKind, { label: string; hint: string }> = {
   doorbell: { label: 'Doorbell', hint: 'Someone rang the doorbell.' },
@@ -74,6 +83,14 @@ export const PUSH_EVENT_LABELS: Record<PushEventKind, { label: string; hint: str
   leaveBy: { label: 'Time to leave', hint: 'Ten minutes before a leave-by time.' },
   reward: { label: 'Rewards', hint: 'A reward was redeemed on the wall.' },
   note: { label: 'Wall notes', hint: 'A new note went up on the wall.' },
+  digest: {
+    label: 'Morning digest',
+    hint: 'Your day in one message, at the time set in Settings.',
+  },
+  nudge: {
+    label: 'Reminders',
+    hint: 'Events coming up, routines still open, dinner not planned.',
+  },
 };
 
 export const PushConfigResponse = z.object({
@@ -101,7 +118,9 @@ export const PushSubscribeRequest = z.object({
   /** From `PushSubscription.toJSON()`. */
   endpoint: z.url(),
   keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
-  events: z.array(PushEventKind).default(['doorbell', 'chores', 'leaveBy', 'reward']),
+  events: z
+    .array(PushEventKind)
+    .default(['doorbell', 'chores', 'leaveBy', 'reward', 'digest', 'nudge']),
   personId: Id.nullable().default(null),
 });
 export const PushPatchRequest = z

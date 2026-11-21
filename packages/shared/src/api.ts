@@ -74,6 +74,7 @@ import {
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
+import { digestRoutes } from './digest.js';
 import {
   HomeConfig,
   HomeConnectionPatch,
@@ -333,6 +334,8 @@ export const CreateChoreRequest = z.object({
   timeOfDay: ChoreTimeOfDay.optional(),
   icon: ChoreIcon.optional(),
   routineId: Id.optional(),
+  /** v4 D: a missed chore carries over ("since Tuesday"). Default: on for weekly, off for daily. */
+  rollover: z.boolean().optional(),
 });
 export const ChoreResponse = z.object({ chore: Chore });
 
@@ -1040,6 +1043,8 @@ export const routes = {
   ...companionRoutes,
   /* ---- v3 M: the meal planner (meals.ts) ---- */
   ...mealRoutes,
+  /* ---- v4 D: digest, nudges, activity (digest.ts) ---- */
+  ...digestRoutes,
 } as const;
 
 export type Routes = typeof routes;

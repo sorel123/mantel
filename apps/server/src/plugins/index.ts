@@ -15,6 +15,7 @@ import { pollenPlugin } from './pollen/index.js';
 import { quipsPlugin } from './quips/index.js';
 import { routesPlugin } from './routes/index.js';
 import { timersPlugin } from './timers/index.js';
+import { digestPlugin } from './digest/plugin.js';
 import { mockTrashConfig, trashPlugin } from './trash/index.js';
 import type { Plugin } from './types.js';
 import { WeatherService } from './weather-service.js';
@@ -67,7 +68,11 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
  * mode too; mock mode gives trash a sample schedule until one is saved.
  */
 export function localPlugins(opts: { mock?: boolean } = {}): Plugin[] {
-  return [trashPlugin(opts.mock ? { fallback: mockTrashConfig } : {}), timersPlugin()];
+  return [
+    trashPlugin(opts.mock ? { fallback: mockTrashConfig } : {}),
+    timersPlugin(),
+    digestPlugin(),
+  ];
 }
 
 /** Every built-in manifest, for the mock registry and for tests. */
@@ -83,3 +88,4 @@ export { manifest as quipsManifest } from './quips/manifest.js';
 export { manifest as mealsManifest } from './meals/manifest.js';
 export { manifest as trashManifest } from './trash/manifest.js';
 export { manifest as timersManifest } from './timers/manifest.js';
+export { manifest as digestManifest } from './digest/manifest.js';

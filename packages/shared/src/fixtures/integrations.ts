@@ -12,6 +12,7 @@ import type {
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
+import { digestManifest } from './digest.js';
 import { settings } from './settings.js';
 
 const field = (
@@ -421,6 +422,7 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  digestManifest,
 ];
 
 export function integrationStatuses(now = new Date()): IntegrationStatus[] {
@@ -493,6 +495,7 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    { ...base('digest'), state: 'connected', summary: 'Morning digest at 7:00 for 4 people' },
   ];
 }
 
