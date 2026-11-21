@@ -1,7 +1,10 @@
-import { routeFixtures } from '@mantel/shared/fixtures';
+import { pluginPackManifests, routeFixtures } from '@mantel/shared/fixtures';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPage } from '.';
+
+/** v4 G: the plugin pack has its own page. */
+const PACK = new Set(pluginPackManifests.map((m) => m.id));
 
 const respond = (status: number, body: unknown) =>
   Promise.resolve(
@@ -146,6 +149,38 @@ describe('Settings page', () => {
     expect(body.location.query).toBe('42.60032240592796, -83.33092662800189');
   });
 
+  it('shows the plugin gallery with previews, and adds a card to Today in one tap', async () => {
+    const { calls } = fakeServer();
+    open('plugins');
+    const pets = await screen.findByRole('article', { name: 'Pet care' });
+    // Every plugin with a card has a tile, the pack and trash day included.
+    for (const m of pluginPackManifests)
+      expect(screen.getByRole('article', { name: m.name })).toBeTruthy();
+    expect(screen.getByRole('article', { name: 'Trash and recycling day' })).toBeTruthy();
+    // The live card is not served here, so the tile shows the sample.
+    await waitFor(() => expect(within(pets).getByText('Biscuit · Dinner')).toBeTruthy());
+    fireEvent.click(within(pets).getByRole('button', { name: 'Add to Today' }));
+    expect(within(pets).getByRole('status').textContent).toMatch(/Added to Today/);
+    expect(within(pets).getByRole('button', { name: 'On Today' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'PUT' && c.path === '/settings')).toBe(true),
+    );
+    const put = calls.find((c) => c.method === 'PUT' && c.path === '/settings')!;
+    const layout = (
+      put.body as { layout: { todayPreset: string; todayCards: Array<{ kind: string }> } }
+    ).layout;
+    expect(layout.todayPreset).toBe('custom');
+    expect(layout.todayCards.some((c) => c.kind === 'plugin:pets')).toBe(true);
+
+    // One tap turns a plugin off.
+    const sky = screen.getByRole('article', { name: 'Sky' });
+    fireEvent.click(within(sky).getByRole('switch', { name: 'Sky on' }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'PUT' && c.path === '/integrations/sky')).toBe(true),
+    );
+  });
+
   it('renders one integration card per plugin manifest, with its state and directions', async () => {
     const { calls } = fakeServer();
     const fx = routeFixtures();
@@ -162,7 +197,8 @@ describe('Settings page', () => {
         p.id !== 'homeassistant' &&
         p.id !== 'quips' &&
         p.id !== 'meals' &&
-        p.id !== 'digest',
+        p.id !== 'digest' &&
+        !PACK.has(p.id),
     ))
       expect(screen.getByRole('article', { name: p.name })).toBeTruthy();
 

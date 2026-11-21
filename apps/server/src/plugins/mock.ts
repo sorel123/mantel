@@ -6,6 +6,8 @@
 import type { PluginManifest } from '@mantel/shared';
 import { integrationStatuses } from '@mantel/shared/fixtures';
 import type { Plugin } from './types.js';
+import type { PackDeps } from './pack/util.js';
+import { packPlugins } from './index.js';
 import {
   localPlugins,
   googleManifest,
@@ -40,15 +42,24 @@ export const builtInManifests: PluginManifest[] = [
   trashManifest,
   timersManifest,
   digestManifest,
+  ...packPlugins().map((p) => p.manifest),
   remindersManifest,
   todoistManifest,
   haTodoManifest,
 ];
 
 /** The manifests whose plugins run for real in mock mode (they need no outside service). */
-const LOCAL = new Set<string>([trashManifest.id, timersManifest.id, digestManifest.id]);
+const LOCAL = new Set<string>([
+  trashManifest.id,
+  timersManifest.id,
+  digestManifest.id,
+  ...packPlugins().map((p) => p.manifest.id),
+]);
 
-export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {
+export function mockPlugins(
+  now: () => Date = () => new Date(),
+  deps: Omit<PackDeps, 'mock' | 'fetch'> = {},
+): Plugin[] {
   const mocked = builtInManifests
     .filter((m) => !LOCAL.has(m.id))
     .map((manifest) => ({
@@ -86,5 +97,5 @@ export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {
           }
         : {}),
     }));
-  return [...mocked, ...localPlugins({ mock: true })];
+  return [...mocked, ...localPlugins({ ...deps, mock: true })];
 }

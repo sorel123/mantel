@@ -47,9 +47,15 @@ function Live({ id, name, title }: { id: string; name: string; title: string }) 
         <PluginIcon name="info" />
         <b>{title}</b>
       </div>
-      <p className="pb-empty">
-        {!loaded ? 'Loading…' : error ? 'Not reachable right now.' : 'Nothing to show.'}
-      </p>
+      {!loaded ? (
+        <div className="pb-skel" aria-label="Loading">
+          <i className="skeleton" />
+          <i className="skeleton" />
+          <i className="skeleton" />
+        </div>
+      ) : (
+        <p className="pb-empty">{error ? 'Not reachable right now.' : 'Nothing to show.'}</p>
+      )}
     </div>
   );
 }

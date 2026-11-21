@@ -1,7 +1,7 @@
 import { PluginBlocks } from '@mantel/shared';
-import { pluginBlocks } from '@mantel/shared/fixtures';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { pluginBlocks, pluginPackSamples } from '@mantel/shared/fixtures';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { OverlayProvider } from '../../app/overlay';
 import { BlocksView, formatCountdown } from './Blocks';
 
@@ -37,5 +37,54 @@ describe('plugin blocks', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.getByRole('slider', { name: 'Or set your own' })).toBeTruthy();
     expect(screen.queryByText('Kitchen timers')).toBeNull();
+  });
+
+  it('draws every plugin-pack sample card', () => {
+    for (const [id, raw] of Object.entries(pluginPackSamples())) {
+      const blocks = PluginBlocks.parse(raw);
+      const { unmount } = render(
+        <OverlayProvider>
+          <BlocksView plugin={id} blocks={blocks} variant="card" />
+        </OverlayProvider>,
+      );
+      expect(screen.getByText(blocks.title)).toBeTruthy();
+      unmount();
+    }
+  });
+
+  it('shows a lead line, and posts the text box with a suggestion', async () => {
+    const fetch = vi.fn(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ ok: true, message: 'Asked: Park or pool?' }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const blocks = PluginBlocks.parse({
+      title: 'Family poll',
+      lead: 'What should we do Saturday?',
+      input: {
+        action: 'ask',
+        label: 'Ask the family',
+        submit: 'Ask',
+        suggestions: ['Park or pool?'],
+      },
+    });
+    render(
+      <OverlayProvider>
+        <BlocksView plugin="poll" blocks={blocks} variant="card" />
+      </OverlayProvider>,
+    );
+    expect(screen.getByText('What should we do Saturday?')).toBeTruthy();
+    const ask = screen.getByRole('button', { name: 'Ask' }) as HTMLButtonElement;
+    expect(ask.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Park or pool?' }));
+    fireEvent.click(ask);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/plugins/poll/actions/ask');
+    expect(JSON.parse(String(init.body))).toEqual({ args: { text: 'Park or pool?' } });
+    vi.unstubAllGlobals();
   });
 });
