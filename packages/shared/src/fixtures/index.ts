@@ -19,6 +19,7 @@ import {
 } from './integrations.js';
 import { mealFavourites, mealsWeek } from './meals.js';
 import { chores, lists, rewardRouteFixtures } from './lists.js';
+import { listSyncRouteFixtures } from './list-sync.js';
 import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
 import { calendars, people } from './people.js';
@@ -30,6 +31,7 @@ export * from './calendar.js';
 export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
+export * from './list-sync.js';
 export * from './meals.js';
 export * from './people.js';
 export * from './photos.js';
@@ -207,6 +209,7 @@ export function routeFixtures(now = new Date()): {
     geocode: { candidates: geocodeCandidates },
     ...companionRouteFixtures(now),
     ...rewardRouteFixtures(now),
+    ...listSyncRouteFixtures(now),
     ...mealFixtures(now),
   };
 }

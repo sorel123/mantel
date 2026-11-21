@@ -73,6 +73,7 @@ import {
 } from './models.js';
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
+import { listSyncRoutes } from './list-sync.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import {
   HomeConfig,
@@ -1040,6 +1041,8 @@ export const routes = {
   ...companionRoutes,
   /* ---- v3 M: the meal planner (meals.ts) ---- */
   ...mealRoutes,
+  /* ---- v4 L: list sharing (list-sync.ts) ---- */
+  ...listSyncRoutes,
 } as const;
 
 export type Routes = typeof routes;

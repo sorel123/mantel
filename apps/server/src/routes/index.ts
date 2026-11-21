@@ -21,6 +21,7 @@ import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
+import { registerListSyncRoutes } from './list-sync.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
 export function registerRoutes(handle: Handle, deps: AppDeps) {
@@ -449,6 +450,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
   registerRewardRoutes(handle, deps);
+  registerListSyncRoutes(handle, deps);
 }
 
 /** The wizard step a plugin belongs to, for marking progress from the server side. */
