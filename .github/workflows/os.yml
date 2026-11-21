@@ -98,18 +98,13 @@ jobs:
           ls -la /dev/kvm || true
       - name: Build the image
         run: sudo packaging/os/build-image.sh snap/mantel_*.snap dist/os
-<<<<<<< HEAD
       - name: Boot it in a VM
         run: sudo packaging/os/vm-test.sh dist/os/mantel-os-pc-amd64.img dist/vm
-=======
-      - name: Boot it in a VM (secure boot and a TPM, so the disk gets encrypted)
-        run: sudo SECURE=1 packaging/os/vm-test.sh dist/os/mantel-os-pc-amd64.img dist/vm
       - name: Show the screen in the log
         if: always()
         run: |
           shots=$(ls dist/vm/screen-*.png 2>/dev/null | tail -1; ls dist/vm/boot-*.png 2>/dev/null | tail -1)
           [ -n "$shots" ] && python3 packaging/os/show-screen.py $shots || echo "no screenshots"
->>>>>>> 2cb04d0 (OS CI: put a small picture of the VM's screen in the log)
       - uses: actions/upload-artifact@v4
         if: always()
         with:
