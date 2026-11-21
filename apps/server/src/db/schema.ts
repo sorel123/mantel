@@ -206,6 +206,39 @@ export const inboxItems = sqliteTable('inbox_items', {
   committedAt: text('committed_at'),
 });
 
+/* ---- v4 workstream L: lists shared with an outside service ---- */
+
+/** A Mantel list linked to one list in Reminders, Todoist or a Home Assistant to-do entity. */
+export const listLinks = sqliteTable('list_links', {
+  listId: text('list_id')
+    .primaryKey()
+    .references(() => lists.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  remoteListId: text('remote_list_id').notNull(),
+  remoteName: text('remote_name').notNull(),
+  linkedAt: text('linked_at').notNull(),
+  lastSyncAt: text('last_sync_at'),
+  lastError: text('last_error'),
+});
+
+/**
+ * One item paired with its copy in the service, and the text and tick both sides last agreed on
+ * (the base a three-way merge compares against). Kept after the item is deleted on either side,
+ * until the delete has been carried across.
+ */
+export const listSyncItems = sqliteTable(
+  'list_sync_items',
+  {
+    listId: text('list_id')
+      .notNull()
+      .references(() => lists.id, { onDelete: 'cascade' }),
+    itemId: text('item_id').notNull(),
+    remoteId: text('remote_id').notNull(),
+    baseText: text('base_text').notNull(),
+    baseDone: integer('base_done', { mode: 'boolean' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.listId, t.itemId] })],
+);
 /** v4 O: API tokens for Siri, Home Assistant, MCP and scripts. Only the SHA-256 is stored. */
 export const apiTokens = sqliteTable('api_tokens', {
   id: text('id').primaryKey(),
