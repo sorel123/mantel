@@ -13,6 +13,7 @@ const modules = import.meta.glob<Record<string, unknown>>(
     './layout/index.tsx',
     './chores/index.tsx',
     './meals/index.tsx',
+    './lists/index.tsx',
     './open/index.tsx',
   ],
   { eager: false },
@@ -37,6 +38,7 @@ export const AppearanceSection = optional('./appearance/index.tsx', 'AppearanceS
 export const LayoutSection = optional('./layout/index.tsx', 'LayoutSection');
 export const MealsSection = optional('./meals/index.tsx', 'MealsSection');
 export const ChoresSection = optional('./chores/index.tsx', 'ChoresSection');
+export const ListSharingSection = optional('./lists/index.tsx', 'ListSharingSection');
 export const OpenSection = optional('./open/index.tsx', 'OpenSection');
 
 export function Mount({

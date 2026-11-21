@@ -1062,6 +1062,34 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   expect(problems).toEqual([]);
 });
 
+test('list sharing: two linked lists with a status, the picker, and stop sharing', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings#lists');
+  const section = page.locator('#list-sharing');
+  await expect(section.getByRole('heading', { name: 'Share lists with other apps' })).toBeVisible();
+  await expect(section.getByText('Why not Apple Notes?')).toBeVisible();
+  await expect(section.getByText('Apple Reminders · Groceries')).toBeVisible();
+  await expect(section.getByText('Todoist · Home')).toBeVisible();
+  // Chores isn't shared: open the picker, pick Home Assistant, choose a to-do list.
+  const chores = section.locator('.ls-row', { hasText: 'Chores' });
+  await chores.getByRole('button', { name: 'Share this list with…' }).click();
+  const picker = section.getByRole('group', { name: 'Share Chores with' });
+  await expect(picker.getByRole('button', { name: /Apple Reminders/ })).toBeVisible();
+  await picker.getByRole('button', { name: /Home Assistant/ }).click();
+  await expect(picker.getByRole('button', { name: /Shopping list/ })).toBeVisible();
+  await picker.getByRole('button', { name: /Shopping list/ }).click();
+  await expect(section.getByText(/now shared with Home Assistant/)).toBeVisible();
+  await expect(chores.getByText('Home Assistant · Shopping list')).toBeVisible();
+  await chores.getByRole('button', { name: 'Stop sharing' }).click();
+  await expect(chores.getByText('Only on Mantel')).toBeVisible();
+  // The Mac helper and the Shortcuts recipe are a tap away.
+  await section.getByRole('button', { name: /Apple Reminders on a Mac/ }).click();
+  await expect(section.getByRole('button', { name: 'Show a pairing code' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 /* ---------- v4 O: tokens, natural add, Siri, Alexa, Home Assistant, Claude ---------- */
 
 test('Siri and assistants: a token is made, used for /api/say and MCP, and revoked', async ({

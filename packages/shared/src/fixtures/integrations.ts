@@ -12,6 +12,7 @@ import type {
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
+import { haTodoManifest, remindersManifest, todoistManifest } from './list-sync.js';
 import { settings } from './settings.js';
 
 const field = (
@@ -421,6 +422,9 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  remindersManifest,
+  todoistManifest,
+  haTodoManifest,
 ];
 
 export function integrationStatuses(now = new Date()): IntegrationStatus[] {
@@ -493,6 +497,25 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    {
+      ...base('reminders'),
+      state: 'connected',
+      summary: "Jay's MacBook checked in just now · 1 list shared",
+      lastOkAt: ok,
+    },
+    {
+      ...base('todoist'),
+      state: 'connected',
+      summary: 'Connected to Todoist · 1 list shared',
+      lastOkAt: ok,
+      hasSecrets: ['token'],
+      sources: { token: 'store' },
+    },
+    {
+      ...base('ha-todo'),
+      state: 'connected',
+      summary: '3 to-do lists in Home Assistant · no lists shared yet',
+    },
   ];
 }
 
