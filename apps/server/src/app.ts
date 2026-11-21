@@ -102,7 +102,13 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   registry = new PluginRegistry(ctx, { db, secrets, settings, sync, env: overrides.env });
   if (config.MOCK) {
     providers = mockProviders(ctx);
-    for (const p of mockPlugins(ctx.now, { empty: config.MOCK_EMPTY })) registry.register(p);
+    const mocked = providers;
+    for (const p of mockPlugins(
+      ctx.now,
+      { calendar: () => mocked.calendar, home: () => mocked.home },
+      { empty: config.MOCK_EMPTY },
+    ))
+      registry.register(p);
   } else {
     pluginSet = createPlugins(ctx, { env: overrides.env, fetch: overrides.fetch });
     providers = pluginSet.providers;

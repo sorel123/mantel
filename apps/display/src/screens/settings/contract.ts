@@ -68,6 +68,7 @@ export type SectionId =
   | 'people'
   | 'calendars'
   | 'integrations'
+  | 'plugins'
   | 'homeassistant'
   | 'appearance'
   | 'quips'

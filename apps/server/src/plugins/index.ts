@@ -23,6 +23,16 @@ import { routesPlugin } from './routes/index.js';
 import { timersPlugin } from './timers/index.js';
 import { mockTrashConfig, trashPlugin } from './trash/index.js';
 import type { Plugin } from './types.js';
+import type { PackDeps } from './pack/util.js';
+import { birthdaysPlugin } from './birthdays/index.js';
+import { habitsPlugin } from './habits/index.js';
+import { houseStatusPlugin } from './housestatus/index.js';
+import { petsPlugin } from './pets/index.js';
+import { pollPlugin } from './poll/index.js';
+import { qotdPlugin } from './qotd/index.js';
+import { schoolPlugin } from './school/index.js';
+import { skyPlugin } from './sky/index.js';
+import { sportsPlugin } from './sports/index.js';
 import { WeatherService } from './weather-service.js';
 import { weatherPlugin } from './weather/index.js';
 
@@ -58,10 +68,14 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
     quipsPlugin(opts.fetch),
     mealsPlugin(),
     mailinPlugin(),
+    ...localPlugins({
+      ...(opts.fetch ? { fetch: opts.fetch } : {}),
+      calendar: () => calendar.live.proxy,
+      home: () => home.live.proxy,
+    }),
     remindersPlugin(lists.sync, reminders),
     todoistPlugin(lists.sync, opts.fetch),
     haTodoPlugin(lists.sync, () => (home.live.current() as RealHome).client ?? null),
-    ...localPlugins(),
   ];
   return {
     plugins,
@@ -77,14 +91,31 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
 }
 
 /**
- * Plugins that need no outside service (trash day, kitchen timers). They run for real in mock
- * mode too; mock mode gives trash a sample schedule until one is saved.
+ * Plugins that run on this server (trash day, kitchen timers, the v4 plugin pack). They run for
+ * real in mock mode too; mock mode gives them sample values until something is saved, and the
+ * pack's network plugins (sports, school links) do not reach out.
  */
-export function localPlugins(opts: { mock?: boolean } = {}): Plugin[] {
+export function localPlugins(opts: PackDeps = {}): Plugin[] {
   return [
     trashPlugin(opts.mock ? { fallback: mockTrashConfig } : {}),
     timersPlugin(),
     inboxPlugin(),
+    ...packPlugins(opts),
+  ];
+}
+
+/** v4 G, the plugin pack. */
+export function packPlugins(deps: PackDeps = {}): Plugin[] {
+  return [
+    birthdaysPlugin(deps),
+    petsPlugin(deps),
+    pollPlugin(deps),
+    sportsPlugin(deps),
+    schoolPlugin(deps),
+    houseStatusPlugin(deps),
+    habitsPlugin(deps),
+    qotdPlugin(deps),
+    skyPlugin(deps),
   ];
 }
 
@@ -102,6 +133,15 @@ export { manifest as mealsManifest } from './meals/manifest.js';
 export { manifest as trashManifest } from './trash/manifest.js';
 export { manifest as timersManifest } from './timers/manifest.js';
 export { inboxManifest, mailinManifest } from '@mantel/shared';
+export { manifest as birthdaysManifest } from './birthdays/manifest.js';
+export { manifest as petsManifest } from './pets/manifest.js';
+export { manifest as pollManifest } from './poll/manifest.js';
+export { manifest as sportsManifest } from './sports/manifest.js';
+export { manifest as schoolManifest } from './school/manifest.js';
+export { manifest as houseStatusManifest } from './housestatus/manifest.js';
+export { manifest as habitsManifest } from './habits/manifest.js';
+export { manifest as qotdManifest } from './qotd/manifest.js';
+export { manifest as skyManifest } from './sky/manifest.js';
 export { manifest as remindersManifest } from './reminders/manifest.js';
 export { manifest as todoistManifest } from './todoist/manifest.js';
 export { manifest as haTodoManifest } from './ha-todo/manifest.js';
