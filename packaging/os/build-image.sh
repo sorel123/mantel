@@ -35,6 +35,10 @@ snap download pc --channel="$GADGET_CHANNEL" --basename=pc-store >/dev/null
 unsquashfs -q -d gadget pc-store.snap
 python3 "$here/gadget.py" gadget ids.json
 cp "$here/cloud.conf" gadget/cloud.conf
+# The system log goes to the serial port too (the VM test reads it; a real PC has no serial
+# port, so nothing shows on its screen).
+ls gadget
+printf '%s' "${CMDLINE_EXTRA:-console=ttyS0,115200n8 systemd.journald.forward_to_console=1}" > gadget/cmdline.extra
 snap pack gadget . --filename=pc-mantel.snap >/dev/null
 
 # Snaps the kiosk needs (graphics drivers, bases) are added as ubuntu-image asks for them.

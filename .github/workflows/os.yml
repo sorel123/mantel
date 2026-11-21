@@ -115,7 +115,7 @@ jobs:
           if-no-files-found: ignore
       - name: Compress the image
         run: |
-          sudo chown -R "$USER" dist/os
+          sudo chown -R "$USER:$USER" dist/os
           xz -T0 -6 dist/os/mantel-os-pc-amd64.img
           ls -la dist/os
       - uses: actions/upload-artifact@v4
