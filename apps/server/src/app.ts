@@ -2,7 +2,7 @@ import { API_PREFIX, WsEvent, toLocalIso, type WsEventInput } from '@mantel/shar
 import { serveStatic } from '@hono/node-server/serve-static';
 import { UpdateChecker } from './update.js';
 import { Hono } from 'hono';
-import { DeviceAuth } from './auth.js';
+import { ApiTokens, DeviceAuth } from './auth.js';
 import type { Config } from './config.js';
 import { makeHandle } from './contract.js';
 import { openDb, type Db } from './db/index.js';
@@ -15,6 +15,7 @@ import { PluginRegistry } from './plugins/registry.js';
 import { mockProviders } from './providers/mock/index.js';
 import type { ProviderContext, Providers } from './providers/types.js';
 import { registerRoutes } from './routes/index.js';
+import { mountMcp } from './plugins/mcp/index.js';
 import { BoxService } from './box/index.js';
 import { FakeNetwork, NetworkManagerNetwork } from './box/network.js';
 import { DisplayScheduler } from './schedule.js';
@@ -28,6 +29,8 @@ export interface AppDeps {
   config: Config;
   db: Db;
   auth: DeviceAuth;
+  /** v4 O: API tokens for Siri, Home Assistant, MCP and scripts. */
+  tokens: ApiTokens;
   hub: WsHub;
   settings: SettingsStore;
   providers: Providers;
@@ -72,6 +75,7 @@ function mockGeocodeFetch(timezone: () => string): typeof fetch {
 export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   const db = openDb(config.DATA_DIR);
   const auth = new DeviceAuth(db, config.MOCK);
+  const tokens = new ApiTokens(db);
   const hub = new WsHub(auth);
   const settings = new SettingsStore(db);
   const secrets = SecretStore.open(db, config.DATA_DIR);
@@ -117,6 +121,7 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     config,
     db,
     auth,
+    tokens,
     hub,
     settings,
     providers,
@@ -161,7 +166,10 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   });
 
   const api = new Hono();
-  registerRoutes(makeHandle(api, { auth, validateResponses: !config.isProd }), deps);
+  const open = registerRoutes(
+    makeHandle(api, { auth, tokens, validateResponses: !config.isProd }),
+    deps,
+  );
   // Non-contract routes a provider needs (WS2: calendar setup page, OAuth and push callbacks).
   // Real mode mounts them through the calendar service so they follow a rebuilt provider.
   if (pluginSet) pluginSet.calendar.mount(api, auth);
@@ -197,6 +205,8 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     ),
   );
   app.route(API_PREFIX, api);
+  // v4 O: Mantel as an MCP server for Claude and other assistants (token auth).
+  mountMcp(app, deps, open);
 
   if (config.DISPLAY_DIST) {
     const root = config.DISPLAY_DIST;
@@ -213,6 +223,7 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
     ready,
     close: () => {
       scheduler.stop();
+      open.stop();
       box?.stop();
       void registry?.stop();
       hub.close();

@@ -1,7 +1,19 @@
-import { DEVICE_KEY_HEADER, routes, type ResponseOf, type RouteName } from '@mantel/shared';
+import {
+  DEVICE_KEY_HEADER,
+  TOKEN_ROUTE_SCOPES,
+  routes,
+  type ResponseOf,
+  type RouteName,
+} from '@mantel/shared';
 import type { Context, Hono } from 'hono';
 import type { z } from 'zod';
-import type { DeviceAuth } from './auth.js';
+import {
+  scopeAllows,
+  tokenFromHeaders,
+  type ApiTokens,
+  type DeviceAuth,
+  type TokenIdentity,
+} from './auth.js';
 import { HttpError } from './errors.js';
 
 type Route<N extends RouteName> = (typeof routes)[N];
@@ -13,10 +25,14 @@ export interface HandlerArgs<N extends RouteName> {
   body: Parsed<Route<N>['body']>;
   params: Record<string, string>;
   deviceId: string | null;
+  /** Set when the request came with an API token (v4 O) instead of a device key. */
+  token: TokenIdentity | null;
 }
 
 export interface ContractOptions {
   auth: DeviceAuth;
+  /** API tokens (v4 O). Without it, only device keys are accepted. */
+  tokens?: ApiTokens;
   /** Check every response against its schema; on outside production so drift fails loudly. */
   validateResponses: boolean;
 }
@@ -35,9 +51,24 @@ export function makeHandle(app: Hono, opts: ContractOptions) {
   ) {
     const def = routes[name];
     app.on(def.method, def.path, async (c) => {
-      const deviceId = opts.auth.verify(c.req.header(DEVICE_KEY_HEADER));
-      if (def.auth && !deviceId)
-        throw new HttpError('unauthorized', 'missing or invalid device key');
+      // An API token, when one is sent, is checked instead of the device key: it may only
+      // reach the routes its scopes allow (`TOKEN_ROUTE_SCOPES`, or anything with `admin`).
+      const secret = opts.tokens ? tokenFromHeaders((h) => c.req.header(h)) : null;
+      let deviceId: string | null = null;
+      let token: TokenIdentity | null = null;
+      if (secret && opts.tokens) {
+        token = opts.tokens.verify(secret);
+        if (!token) throw new HttpError('unauthorized', 'that API token is wrong or was revoked');
+        if (def.auth && !scopeAllows(token.scopes, TOKEN_ROUTE_SCOPES[name] ?? []))
+          throw new HttpError(
+            'forbidden',
+            `the token "${token.name}" cannot do that; give it the scope it needs in Settings, Siri and assistants`,
+          );
+      } else {
+        deviceId = opts.auth.verify(c.req.header(DEVICE_KEY_HEADER));
+        if (def.auth && !deviceId)
+          throw new HttpError('unauthorized', 'missing or invalid device key');
+      }
 
       const query = def.query.safeParse(c.req.query());
       if (!query.success) throw new HttpError('bad_request', `query: ${query.error.message}`);
@@ -62,6 +93,7 @@ export function makeHandle(app: Hono, opts: ContractOptions) {
         body: body.data as HandlerArgs<N>['body'],
         params: c.req.param() as Record<string, string>,
         deviceId,
+        token,
       });
       if (result instanceof Response) return result;
       if (opts.validateResponses && def.response) {

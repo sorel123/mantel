@@ -11,6 +11,7 @@
 import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
+import { DEFAULT_OPEN_SETTINGS, OpenSettings } from './open.js';
 import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
@@ -578,6 +579,8 @@ export const Settings = z.object({
   meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
   /** v3 (workstream R): celebrations on the chore chart. */
   chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
+  /** v4 O: things said to Mantel by Siri, Alexa, Home Assistant or the API. */
+  open: OpenSettings.default(() => ({ ...DEFAULT_OPEN_SETTINGS })),
 });
 export type Settings = z.infer<typeof Settings>;
 
