@@ -1,8 +1,15 @@
 import type { Favourite, MealsWeekResponse, PlannedMeal, PlanSlot } from '../meals.js';
 import { addDays, startOfWeek, toIsoDate } from '../time.js';
+import { FAVOURITE_RECIPES } from './recipes.js';
 
 /** The household's favourite meals in mock mode. */
 export function mealFavourites(now: Date): Favourite[] {
+  return favouriteList(now).map((f) =>
+    FAVOURITE_RECIPES[f.id] ? { ...f, recipeId: FAVOURITE_RECIPES[f.id] } : f,
+  );
+}
+
+function favouriteList(now: Date): Favourite[] {
   const daysAgo = (n: number) => toIsoDate(addDays(now, -n));
   return [
     {
@@ -103,6 +110,7 @@ export function mealsWeek(now: Date): MealsWeekResponse {
       slot: p.slot,
       title: p.title ?? fav?.title ?? '',
       ...(p.favouriteId ? { favouriteId: p.favouriteId } : {}),
+      ...(fav?.recipeId ? { recipeId: fav.recipeId } : {}),
       source: 'mantel',
       ingredients,
       unbought: ingredients.length,

@@ -8,7 +8,7 @@
 import {
   addDays,
   fromIsoDate,
-  ingredientKey,
+  groceryKey,
   MealsPlanRequest,
   PlanSlot,
   slotsShown,
@@ -32,6 +32,7 @@ import { HttpError } from '../../errors.js';
 import { log } from '../../log.js';
 import type { CalendarProvider, ListsProvider } from '../../providers/types.js';
 import type { MealStore, PlanRow } from './store.js';
+import { groceryNames, type RecipesService } from './recipes/service.js';
 
 export interface MealsDeps {
   store: MealStore;
@@ -40,6 +41,8 @@ export interface MealsDeps {
   settings: () => Settings;
   emit: (event: WsEventInput) => void;
   now: () => Date;
+  /** v4 B: the recipe box, for meals that cook a recipe. Set after both are built. */
+  recipes?: RecipesService;
 }
 
 const SLOT_WORD: Record<PlanSlot, string> = {
@@ -51,6 +54,15 @@ const slotOrder: Record<Meal['slot'], number> = { breakfast: 0, lunch: 1, dinner
 
 export class MealsService {
   constructor(private readonly d: MealsDeps) {}
+
+  /** v4 B: the recipe box beside the planner. */
+  get recipes(): RecipesService | undefined {
+    return this.d.recipes;
+  }
+
+  attachRecipes(recipes: RecipesService) {
+    this.d.recipes = recipes;
+  }
 
   /** Off in Settings: the planner routes answer `disabled`, Today shows the calendar only. */
   enabled(): boolean {
@@ -77,7 +89,8 @@ export class MealsService {
     }
   }
 
-  private async groceryList(): Promise<List | null> {
+  /** The list ingredients go to: the one chosen in Settings, else one named Grocery or Shopping. */
+  async groceryList(): Promise<List | null> {
     let all: List[];
     try {
       all = (await this.d.lists.lists()).lists;
@@ -94,9 +107,30 @@ export class MealsService {
     );
   }
 
+  /** The recipe a planned meal cooks: its own, else its favourite's. */
+  private recipeIdOf(row: PlanRow, favs: Map<string, Favourite>): string | undefined {
+    return (
+      row.recipeId ??
+      (row.favouriteId ? favs.get(row.favouriteId)?.recipeId : undefined) ??
+      undefined
+    );
+  }
+
   private ingredientsOf(row: PlanRow, favs: Map<string, Favourite>): string[] {
     if (row.ingredients) return row.ingredients;
-    return (row.favouriteId && favs.get(row.favouriteId)?.ingredients) || [];
+    const fav = row.favouriteId ? favs.get(row.favouriteId) : undefined;
+    if (fav?.ingredients.length) return fav.ingredients;
+    const recipeId = this.recipeIdOf(row, favs);
+    const recipe = recipeId ? this.recipe(recipeId) : null;
+    return recipe ? groceryNames(recipe) : [];
+  }
+
+  private recipe(id: string) {
+    try {
+      return this.d.recipes?.get(id) ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /** The week as the planner draws it, with unbought counts from the grocery list. */
@@ -108,7 +142,7 @@ export class MealsService {
     const days = Array.from({ length: 7 }, (_, i) => toIsoDate(addDays(fromIsoDate(weekStart), i)));
     const planned = meals.map((m) => ({
       ...m,
-      unbought: m.ingredients.filter((i) => status.get(ingredientKey(i)) !== 'done').length,
+      unbought: m.ingredients.filter((i) => status.get(groceryKey(i)) !== 'done').length,
     }));
     return {
       weekStart,
@@ -129,16 +163,20 @@ export class MealsService {
     const to = toIsoDate(addDays(ws, 7));
     const rows = this.d.store.plan(from, to);
     const favs = new Map(this.d.store.favourites().map((f) => [f.id, f]));
-    const out: PlannedMeal[] = rows.map((r) => ({
-      date: r.date,
-      slot: r.slot,
-      title: r.title,
-      ...(r.favouriteId ? { favouriteId: r.favouriteId } : {}),
-      ...(r.eventId ? { eventId: r.eventId } : {}),
-      source: 'mantel' as const,
-      ingredients: this.ingredientsOf(r, favs),
-      unbought: 0,
-    }));
+    const out: PlannedMeal[] = rows.map((r) => {
+      const recipeId = this.recipeIdOf(r, favs);
+      return {
+        date: r.date,
+        slot: r.slot,
+        title: r.title,
+        ...(r.favouriteId ? { favouriteId: r.favouriteId } : {}),
+        ...(recipeId && this.recipe(recipeId) ? { recipeId } : {}),
+        ...(r.eventId ? { eventId: r.eventId } : {}),
+        source: 'mantel' as const,
+        ingredients: this.ingredientsOf(r, favs),
+        unbought: 0,
+      };
+    });
     const taken = new Set(out.map((m) => `${m.date}|${m.slot}`));
     const other: Meal[] = [];
     for (const m of await this.calendarMeals(ws)) {
@@ -187,7 +225,9 @@ export class MealsService {
     const old = this.d.store.get(req.date, req.slot);
     const fav = req.favouriteId ? this.d.store.favourite(req.favouriteId) : null;
     if (req.favouriteId && !fav) throw new HttpError('not_found', 'that favourite was removed');
-    const title = req.title?.trim() || fav?.title || '';
+    const recipe = req.recipeId ? this.recipe(req.recipeId) : null;
+    if (req.recipeId && !recipe) throw new HttpError('not_found', 'That recipe was removed.');
+    const title = req.title?.trim() || fav?.title || recipe?.title.slice(0, 80) || '';
 
     if (!title) {
       if (old) {
@@ -206,10 +246,12 @@ export class MealsService {
       favouriteId: fav?.id ?? null,
       ingredients: typed,
       eventId: old?.eventId ?? null,
+      recipeId: recipe?.id ?? fav?.recipeId ?? null,
     };
     row.eventId = await this.mirror(row, old);
     this.d.store.put(row);
     if (fav) this.d.store.touchFavourite(fav.id, req.date);
+    if (row.recipeId) this.d.recipes?.cooked(row.recipeId, req.date);
     this.changed(req.date);
     const week = await this.week(fromIsoDate(req.date));
     return {
@@ -258,6 +300,16 @@ export class MealsService {
     const { meals } = await this.merged(fromIsoDate(date));
     const meal = meals.find((m) => m.date === date && m.slot === s.data);
     if (!meal) throw new HttpError('not_found', 'nothing is planned for that meal');
+    if (meal.recipeId && this.d.recipes && !this.d.store.get(date, s.data)?.ingredients) {
+      // A recipe's lines carry amounts: add them scaled and merged.
+      const r = await this.d.recipes.toGrocery(meal.recipeId);
+      return {
+        listId: r.listId,
+        listName: r.listName,
+        added: [...r.added, ...r.merged],
+        skipped: r.skipped,
+      };
+    }
     if (meal.ingredients.length === 0)
       throw new HttpError(
         'bad_request',
@@ -285,11 +337,11 @@ export class MealsService {
         'bad_request',
         'There is no list to add to. Create a Grocery list first.',
       );
-    const open = new Set(list.items.filter((i) => !i.done).map((i) => ingredientKey(i.text)));
+    const open = new Set(list.items.filter((i) => !i.done).map((i) => groceryKey(i.text)));
     const added: string[] = [];
     const skipped: string[] = [];
     for (const text of ingredients) {
-      const key = ingredientKey(text);
+      const key = groceryKey(text);
       if (open.has(key)) {
         if (!added.includes(text)) skipped.push(text);
         continue;
@@ -309,7 +361,7 @@ export class MealsService {
     const byKey = new Map<string, UnboughtItem>();
     for (const m of meals)
       for (const ingredient of m.ingredients) {
-        const key = ingredientKey(ingredient);
+        const key = groceryKey(ingredient);
         const st = status.get(key);
         if (st === 'done') continue;
         const item = byKey.get(key) ?? { ingredient, onList: st === 'open', meals: [] };
@@ -380,7 +432,7 @@ export class MealsService {
 function itemStatus(list: List | null): Map<string, 'open' | 'done'> {
   const out = new Map<string, 'open' | 'done'>();
   for (const i of list?.items ?? []) {
-    const k = ingredientKey(i.text);
+    const k = groceryKey(i.text);
     if (!i.done) out.set(k, 'open');
     else if (!out.has(k)) out.set(k, 'done');
   }

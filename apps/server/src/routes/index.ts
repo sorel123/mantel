@@ -302,7 +302,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   handle('countdowns', async () => providers.calendar.countdowns());
   // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
   const meals = createMealsService(deps);
-  registerMealRoutes(handle, meals);
+  registerMealRoutes(handle, meals, deps);
 
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());
