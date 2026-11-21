@@ -1005,6 +1005,8 @@ test.describe('companion app on a phone', () => {
     request,
   }) => {
     const problems = watchConsole(page);
+    // The server is shared across projects and retries, so this run's note gets its own text.
+    const noteText = `Back by six ${Date.now().toString(36)}`;
 
     // Installable: a manifest and a service worker at the root.
     const manifest = await request.get('/manifest.webmanifest');
@@ -1030,10 +1032,10 @@ test.describe('companion app on a phone', () => {
     // A note for the wall.
     await tabs.getByRole('button', { name: 'Note' }).click();
     await expect(page.getByRole('heading', { name: 'Note for the wall' })).toBeVisible();
-    await page.getByRole('textbox', { name: 'Note' }).fill('Back by six');
+    await page.getByRole('textbox', { name: 'Note' }).fill(noteText);
     await page.getByRole('button', { name: 'Put it on the wall' }).click();
     await expect(
-      page.getByRole('region', { name: 'Notes on the wall now' }).getByText('Back by six'),
+      page.getByRole('region', { name: 'Notes on the wall now' }).getByText(noteText),
     ).toBeVisible();
 
     // Magic Import from the Lists tab: the mock reads the fixtures off any photo, and nothing is
