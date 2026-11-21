@@ -143,9 +143,14 @@ export class InboxStore {
   original(id: string): { body: Buffer; mime: string; name: string | null } | null {
     const row = this.db.select().from(inboxItems).where(eq(inboxItems.id, id)).get();
     if (!row) return null;
-    if (row.file) return { body: row.file, mime: row.mime ?? 'application/octet-stream', name: row.name };
+    if (row.file)
+      return { body: row.file, mime: row.mime ?? 'application/octet-stream', name: row.name };
     if (row.text !== null)
-      return { body: Buffer.from(row.text, 'utf8'), mime: 'text/plain; charset=utf-8', name: row.name };
+      return {
+        body: Buffer.from(row.text, 'utf8'),
+        mime: 'text/plain; charset=utf-8',
+        name: row.name,
+      };
     return null;
   }
 
@@ -156,7 +161,12 @@ export class InboxStore {
 
   setRead(
     id: string,
-    r: { status: InboxStatus; summary: string; candidates?: ImportCandidates; error?: string | null },
+    r: {
+      status: InboxStatus;
+      summary: string;
+      candidates?: ImportCandidates;
+      error?: string | null;
+    },
   ) {
     this.db
       .update(inboxItems)

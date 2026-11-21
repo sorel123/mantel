@@ -61,7 +61,11 @@ describe('Forward to Mantel in mock mode', () => {
     const { items, pending } = await settledInbox(mock);
     expect(pending).toBe(2);
     const pdf = items.find((i) => i.original.kind === 'pdf')!;
-    expect(pdf).toMatchObject({ source: 'email', status: 'ready', from: 'office@lincoln-elementary.example' });
+    expect(pdf).toMatchObject({
+      source: 'email',
+      status: 'ready',
+      from: 'office@lincoln-elementary.example',
+    });
     expect(pdf.candidates.events.map((e) => e.title)).toContain('Picture day');
     const photo = items.find((i) => i.original.kind === 'image')!;
     expect(photo.candidates.events[0]!.title).toBe("Maya's birthday party");
@@ -92,7 +96,9 @@ describe('Forward to Mantel in mock mode', () => {
     expect(Date.parse(added.end) - Date.parse(added.start)).toBe(2 * 3_600_000);
     const lists = await json(await call(mock.app, 'GET', '/lists'));
     const grocery = lists.lists.find((l: { id: string }) => l.id === 'list-grocery');
-    expect(grocery.items.map((i: { text: string }) => i.text)).toContain('Birthday present for Maya');
+    expect(grocery.items.map((i: { text: string }) => i.text)).toContain(
+      'Birthday present for Maya',
+    );
     expect((await json(await call(mock.app, 'GET', '/inbox'))).pending).toBe(1);
 
     const undo = await json(await call(mock.app, 'POST', `/inbox/${invite.id}/undo`));
@@ -100,7 +106,9 @@ describe('Forward to Mantel in mock mode', () => {
     expect(undo.item.status).toBe('ready');
     const after = await json(await call(mock.app, 'GET', '/lists'));
     const g2 = after.lists.find((l: { id: string }) => l.id === 'list-grocery');
-    expect(g2.items.map((i: { text: string }) => i.text)).not.toContain('Birthday present for Maya');
+    expect(g2.items.map((i: { text: string }) => i.text)).not.toContain(
+      'Birthday present for Maya',
+    );
     // A second undo is refused.
     expect((await call(mock.app, 'POST', `/inbox/${invite.id}/undo`)).status).toBe(400);
   });
@@ -161,14 +169,20 @@ describe('capture helpers', () => {
   });
 
   it('turns HTML into words', () => {
-    expect(htmlToText('<p>Field trip&nbsp;<b>Friday</b></p><style>x{}</style><div>Bring lunch</div>')).toBe(
-      'Field trip Friday\nBring lunch',
-    );
+    expect(
+      htmlToText('<p>Field trip&nbsp;<b>Friday</b></p><style>x{}</style><div>Bring lunch</div>'),
+    ).toBe('Field trip Friday\nBring lunch');
   });
 
   it('reads a calendar file in the household zone', () => {
     const r = readIcs(ICS, 'America/Detroit', new Date('2026-11-21T12:00:00Z'));
-    expect(r.events[0]).toMatchObject({ title: 'Piano recital', date: '2026-12-05', start: '10:00', end: '11:00', location: 'Town hall' });
+    expect(r.events[0]).toMatchObject({
+      title: 'Piano recital',
+      date: '2026-12-05',
+      start: '10:00',
+      end: '11:00',
+      location: 'Town hall',
+    });
     expect(r.events[1]).toMatchObject({ allDay: true, date: '2026-12-24', endDate: '2026-12-26' });
   });
 
@@ -183,12 +197,25 @@ describe('capture helpers', () => {
 
   it('reads attachments, and a body only when it says something', () => {
     const base = { uid: 1, messageId: 'm', from: 'a@b.c', subject: 's', date: null, html: null };
-    const pdf = { filename: 'n.pdf', contentType: 'application/pdf', content: Buffer.from('%PDF'), inline: false };
-    const logo = { filename: 'logo.png', contentType: 'image/png', content: Buffer.alloc(2000), inline: true };
-    expect(capturesOf({ ...base, text: 'See attached', attachments: [pdf, logo] })).toEqual({ files: [pdf], body: null });
-    expect(capturesOf({ ...base, text: 'Soccer moved to 5pm Saturday', attachments: [] }).body).toBe(
-      'Soccer moved to 5pm Saturday',
-    );
+    const pdf = {
+      filename: 'n.pdf',
+      contentType: 'application/pdf',
+      content: Buffer.from('%PDF'),
+      inline: false,
+    };
+    const logo = {
+      filename: 'logo.png',
+      contentType: 'image/png',
+      content: Buffer.alloc(2000),
+      inline: true,
+    };
+    expect(capturesOf({ ...base, text: 'See attached', attachments: [pdf, logo] })).toEqual({
+      files: [pdf],
+      body: null,
+    });
+    expect(
+      capturesOf({ ...base, text: 'Soccer moved to 5pm Saturday', attachments: [] }).body,
+    ).toBe('Soccer moved to 5pm Saturday');
   });
 });
 
@@ -196,7 +223,10 @@ describe('Forward to Mantel plugin', () => {
   it('Test signs in and reports the newest message without changing anything', async () => {
     const { mailinPlugin, mockMailbox } = await import('../mailin/index.js');
     const p = mailinPlugin({ open: mockMailbox(new Date('2026-11-21T12:00:00Z')) });
-    const ok = await p.test({ provider: 'gmail', address: 'fam.mantel@gmail.com' }, { appPassword: 'x' });
+    const ok = await p.test(
+      { provider: 'gmail', address: 'fam.mantel@gmail.com' },
+      { appPassword: 'x' },
+    );
     expect(ok.ok).toBe(true);
     expect(ok.message).toMatch(/3 messages; the newest is "Big savings this weekend"/);
     const missing = await p.test({ provider: 'other', address: 'a@b.co' }, { appPassword: 'x' });
@@ -206,7 +236,10 @@ describe('Forward to Mantel plugin', () => {
         throw new Error('Invalid credentials (Failure)');
       },
     });
-    const no = await refused.test({ provider: 'icloud', address: 'a@icloud.com' }, { appPassword: 'x' });
+    const no = await refused.test(
+      { provider: 'icloud', address: 'a@icloud.com' },
+      { appPassword: 'x' },
+    );
     expect(no.message).toMatch(/app password/);
   });
 

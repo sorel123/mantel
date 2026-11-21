@@ -16,7 +16,12 @@ export function readIcs(ics: string, timeZone: string, now = new Date()): Import
   let raw;
   try {
     // From yesterday, so an invitation for later today still shows.
-    raw = expandIcs(ics, 'capture', new Date(now.getTime() - 864e5), new Date(now.getTime() + 366 * 864e5));
+    raw = expandIcs(
+      ics,
+      'capture',
+      new Date(now.getTime() - 864e5),
+      new Date(now.getTime() + 366 * 864e5),
+    );
   } catch {
     return { summary: 'That calendar file could not be read.', events: [], items: [], meals: [] };
   }

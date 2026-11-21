@@ -263,6 +263,7 @@ const SECTIONS: Array<[string, string]> = [
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
   ['companion', 'Phone app'],
+  ['capture', 'Capture'],
   ['meals', 'Meals'],
   ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
@@ -993,12 +994,14 @@ test.describe('companion app on a phone', () => {
       mimeType: 'image/png',
       buffer: TINY_PNG,
     });
-    await expect(page.getByRole('heading', { name: 'Check what was found' })).toBeVisible();
+    // v4 K: the photo lands in the inbox and is reviewed with the inbox's review.
+    await expect(page.getByRole('heading', { name: 'flyer.png' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Events found' })).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'Add Science fair' })).toBeChecked();
     await page.getByRole('checkbox', { name: 'Add Glue sticks' }).click();
-    await page.getByRole('button', { name: /^Add \d+ things$/ }).click();
+    await page.getByRole('button', { name: /^Add selected \(\d+\)$/ }).click();
     await expect(page.getByRole('heading', { name: /^Added / })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
     const { lists } = (await (await request.get('/api/lists')).json()) as {
       lists: Array<{ id: string; items: Array<{ text: string }> }>;
     };
@@ -1059,4 +1062,90 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   await expect(page.getByText('The photo is sent to Anthropic')).toBeVisible();
   await request.delete(`/api/push/subscriptions/${subscription.id}`);
   expect(problems).toEqual([]);
+});
+
+/* ---------- v4 K: capture from anywhere ---------- */
+
+test('the inbox: forwarded mail waits on the dock chip, is reviewed, edited, added and undone', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  // The mock mailbox delivered the school newsletter (PDF) and Maya's invite (a photo).
+  await expect
+    .poll(
+      async () => ((await (await request.get('/api/inbox')).json()) as { pending: number }).pending,
+    )
+    .toBeGreaterThanOrEqual(2);
+  await page.goto('/?mode=daylight');
+  await page.getByRole('button', { name: /^Inbox: \d+ things? to check$/ }).click();
+  const inbox = page.getByRole('dialog', { name: 'Inbox' });
+  await expect(inbox.getByRole('heading', { name: /things? to check$/ })).toBeVisible();
+  await inbox.getByRole('button', { name: /Lincoln Lions News/ }).click();
+  await expect(inbox.getByRole('region', { name: 'The original' })).toBeVisible();
+  await inbox.getByRole('button', { name: /Maya's party!/ }).click();
+  const review = inbox.getByRole('article', { name: "Review Maya's party!" });
+  await expect(review.getByRole('img', { name: /maya-party-invite/ })).toBeVisible();
+  await expect(review.getByRole('checkbox', { name: "Add Maya's birthday party" })).toBeChecked();
+  // Edit the time, then add both things.
+  await review.getByRole('textbox', { name: 'Start time' }).fill('15:00');
+  await review.getByRole('button', { name: 'Add all 2' }).click();
+  await expect(page.getByText('Added 1 event and 1 list item.')).toBeVisible();
+  const lists = async () =>
+    (
+      (await (await request.get('/api/lists')).json()) as {
+        lists: Array<{ id: string; items: Array<{ text: string }> }>;
+      }
+    ).lists
+      .find((l) => l.id === 'list-grocery')!
+      .items.map((i) => i.text);
+  expect(await lists()).toContain('Birthday present for Maya');
+  // Undo takes it all back, and the invite is waiting again.
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('Undone. It is back in the inbox.')).toBeVisible();
+  expect(await lists()).not.toContain('Birthday present for Maya');
+  await expect(inbox.getByRole('button', { name: /Maya's party!/ })).toBeVisible();
+  await inbox.getByRole('button', { name: 'Close' }).click();
+
+  // Settings shows how things get in.
+  await page.goto('/settings#capture');
+  await expect(page.getByRole('heading', { name: 'Forward to Mantel' }).first()).toBeVisible();
+  await expect(page.getByRole('textbox', { name: "Jay's email" })).toBeVisible();
+  await page.getByRole('button', { name: /iPhone: the Send to Mantel shortcut/ }).click();
+  await page.getByRole('button', { name: 'Make a key for the shortcut' }).click();
+  await page.getByRole('button', { name: 'Test' }).click();
+  await expect(page.getByText(/^The key works/)).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test.describe('the inbox on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('pasted text is read, a newsletter is reviewed, and the share target is declared', async ({
+    page,
+    request,
+  }) => {
+    const problems = watchConsole(page);
+    const manifest = (await (await request.get('/manifest.webmanifest')).json()) as {
+      share_target: { action: string; method: string };
+    };
+    expect(manifest.share_target).toMatchObject({ action: '/app/share', method: 'POST' });
+
+    await page.goto('/app#inbox');
+    await expect(page.getByRole('heading', { name: 'Inbox', exact: true })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Text to read' }).fill('Dentist Tuesday at 3');
+    await page.getByRole('button', { name: 'Read it' }).click();
+    const review = page.getByRole('article', { name: /^Review Dentist Tuesday at 3/ });
+    await expect(review.getByRole('checkbox', { name: 'Add Dentist' })).toBeChecked();
+    await review.getByRole('button', { name: 'Dismiss' }).click();
+
+    await page.getByRole('button', { name: /Lincoln Lions News/ }).click();
+    const nl = page.getByRole('article', { name: /^Review Lincoln Lions News/ });
+    await expect(nl.getByRole('region', { name: 'Events found' })).toBeVisible();
+    await nl.getByRole('button', { name: 'Show the original' }).click();
+    await expect(nl.getByRole('link', { name: 'Open the PDF' })).toBeVisible();
+    await page.getByRole('button', { name: '‹ Inbox' }).click();
+    await expect(page.getByRole('region', { name: 'Waiting to be checked' })).toBeVisible();
+    expect(problems).toEqual([]);
+  });
 });

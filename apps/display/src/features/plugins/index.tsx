@@ -13,4 +13,10 @@ export { BlocksView, Countdown, formatCountdown } from './Blocks';
 export { PluginChips } from './DockChips';
 export { PluginIcon } from './icons';
 export { PluginCard, usePluginOn } from './PluginCard';
-export { loadPluginManifests, setPluginManifests, todayCardOf, usePluginManifests } from './store';
+export {
+  loadPluginManifests,
+  registerChipHandler,
+  setPluginManifests,
+  todayCardOf,
+  usePluginManifests,
+} from './store';

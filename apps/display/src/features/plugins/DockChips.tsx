@@ -3,7 +3,13 @@ import { SheetHeader, useOverlay } from '../../app/overlay';
 import { BlocksView, Countdown } from './Blocks';
 import { PluginIcon } from './icons';
 import { usePluginOn } from './PluginCard';
-import { dockChipOf, usePluginBlocks, usePluginChip, usePluginManifests } from './store';
+import {
+  dockChipOf,
+  useChipHandler,
+  usePluginBlocks,
+  usePluginChip,
+  usePluginManifests,
+} from './store';
 import './plugins.css';
 
 /** The chips plugins put in the dock, right of the clock (`contributes.dockChip`). */
@@ -23,6 +29,7 @@ function Chip({ manifest }: { manifest: PluginManifest }) {
   const def = dockChipOf(manifest)!;
   const overlay = useOverlay();
   const { value } = usePluginChip(manifest.id, def.data);
+  const handler = useChipHandler(manifest.id);
   const chip = value ?? def.idle ?? null;
   if (!chip) return null;
   const open = def.sheet
@@ -36,7 +43,7 @@ function Chip({ manifest }: { manifest: PluginManifest }) {
           ),
           { label: manifest.name },
         )
-    : undefined;
+    : handler;
   return (
     <button
       type="button"

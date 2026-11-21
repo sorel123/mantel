@@ -23,6 +23,7 @@ import { AdvancedSection, IntegrationCard, IntegrationsSection } from './Integra
 import { ListsSection } from './ListsAdmin';
 import {
   AppearanceSection,
+  CaptureSection,
   ChoresSection,
   HomeSetupSection,
   LayoutSection,
@@ -73,6 +74,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     items: [
       { id: 'lists', label: 'Lists and chores' },
       { id: 'companion', label: 'Phone app' },
+      { id: 'capture', label: 'Capture' },
       { id: 'meals', label: 'Meals' },
       { id: 'chores', label: 'Chores and rewards' },
       { id: 'places', label: 'Leave-by places' },
@@ -354,6 +356,7 @@ export function SettingsPage() {
     ),
     lists: () => <ListsSection people={draft.people} />,
     companion: () => <CompanionSection />,
+    capture: () => <Mount Component={CaptureSection} props={{ draft, set }} fallback={null} />,
     meals: () => (
       <Mount
         Component={MealsSection}

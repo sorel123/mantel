@@ -3,7 +3,12 @@
  * phone's share sheet post to (`/inbox/upload`), and the `inbox` plugin, whose only job on the
  * wall is the dock chip with the count. See docs/capture.md.
  */
-import { DEVICE_KEY_HEADER, inboxManifest, type ImportHint, type InboxSource } from '@mantel/shared';
+import {
+  DEVICE_KEY_HEADER,
+  inboxManifest,
+  type ImportHint,
+  type InboxSource,
+} from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { AppDeps } from '../../app.js';
 import type { DeviceAuth } from '../../auth.js';
@@ -55,7 +60,11 @@ export function registerInboxRoutes(handle: Handle, deps: AppDeps, planner?: Mea
   const { db, hub, settings, providers, registry, config, auth } = deps;
   const tz = () => settings.get().timezone;
   const service = new InboxService({
-    store: new InboxStore(db, () => new Date(), (d) => isoInZone(d, tz())),
+    store: new InboxStore(
+      db,
+      () => new Date(),
+      (d) => isoInZone(d, tz()),
+    ),
     providers,
     ...(planner ? { planner } : {}),
     emit: (e) => hub.broadcast(e),
@@ -143,7 +152,8 @@ export function registerInboxRoutes(handle: Handle, deps: AppDeps, planner?: Mea
         'cache-control': 'private, max-age=86400',
         'x-content-type-options': 'nosniff',
         // A PDF or text shown in a tab must not run anything.
-        'content-security-policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+        'content-security-policy':
+          "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
       },
     });
   });
@@ -215,8 +225,12 @@ export function mountInboxUpload(api: Hono, auth: DeviceAuth, db: Db) {
       created.push(await service.captureFile(f, { source, hint, from, subject: title }));
     // Shared text and links (a page's title and address) make one text capture.
     const words = [...new Set(texts)].join('\n');
-    if (words) created.push(await service.captureText(words, { source, hint, from, subject: title, name: null }));
-    if (!created.length) throw new HttpError('bad_request', 'Nothing was shared. Send a photo, a PDF or some text.');
+    if (words)
+      created.push(
+        await service.captureText(words, { source, hint, from, subject: title, name: null }),
+      );
+    if (!created.length)
+      throw new HttpError('bad_request', 'Nothing was shared. Send a photo, a PDF or some text.');
     const message =
       created.length === 1
         ? 'Sent to Mantel. Check it in the inbox on the wall or the phone app.'
@@ -256,13 +270,13 @@ export function inboxPlugin(): Plugin {
       if (name !== 'chip') return undefined;
       const s = service();
       if (!s) return null;
-      const { items, pending } = s.list();
+      const pending = s.pending();
       if (!pending) return null;
-      const reading = items.some((i) => i.status === 'reading');
+      // Calm on purpose: `warn` pulses, which is for a timer ringing, not mail waiting.
       return {
         text: String(pending),
         icon: 'inbox',
-        tone: reading ? 'normal' : 'warn',
+        tone: 'normal',
         label: `Inbox: ${pending} thing${pending === 1 ? '' : 's'} to check`,
       };
     },

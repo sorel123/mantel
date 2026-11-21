@@ -44,7 +44,10 @@ export function isAllowed(from: string, allowed: string[]): boolean {
 }
 
 /** Gmail and iCloud presets, or the typed server. */
-export function connection(config: IntegrationConfig, secrets: Record<string, string>): MailboxOptions | null {
+export function connection(
+  config: IntegrationConfig,
+  secrets: Record<string, string>,
+): MailboxOptions | null {
   const address = String(config.address ?? '').trim();
   const pass = secrets.appPassword ?? '';
   if (!address || !pass) return null;
@@ -122,7 +125,12 @@ export function mailinPlugin(opts: MailinOptions = {}): Plugin {
 
   async function deliver(inbox: InboxService, m: MailMessage) {
     const { files, body } = capturesOf(m);
-    const meta = { source: 'email' as const, hint: 'auto' as const, from: m.from, subject: m.subject || null };
+    const meta = {
+      source: 'email' as const,
+      hint: 'auto' as const,
+      from: m.from,
+      subject: m.subject || null,
+    };
     let n = 0;
     for (const [i, f] of files.entries()) {
       const key = `mail:${m.messageId}:${i}`;
@@ -230,7 +238,8 @@ export function mailinPlugin(opts: MailinOptions = {}): Plugin {
         const box = await open(conn);
         try {
           const { count, last } = await box.summary();
-          if (!last) return { ok: true, message: `Signed in to ${conn.user}. The mailbox is empty.` };
+          if (!last)
+            return { ok: true, message: `Signed in to ${conn.user}. The mailbox is empty.` };
           const when = last.date ? ` on ${last.date.toLocaleDateString()}` : '';
           return {
             ok: true,
@@ -251,7 +260,8 @@ export function mailinPlugin(opts: MailinOptions = {}): Plugin {
       }
     },
     status() {
-      if (!options) return { state: 'not_set_up', summary: 'Not set up', lastOkAt: null, lastError: null };
+      if (!options)
+        return { state: 'not_set_up', summary: 'Not set up', lastOkAt: null, lastError: null };
       return {
         state: lastError ? 'error' : 'connected',
         summary: summary(),

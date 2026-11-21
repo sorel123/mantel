@@ -25,7 +25,7 @@ import type { MealsService } from '../meals/index.js';
 import { analyseWithClaude, ImportError, type AnalyseContent } from '../import/claude.js';
 import { commitImport, type Created } from '../import/commit.js';
 import { readIcs } from '../import/ics.js';
-import { InboxStore, type NewCapture } from './store.js';
+import type { InboxStore, NewCapture } from './store.js';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 /** The server keeps Undo a little longer than the ten-second toast. */
@@ -72,7 +72,7 @@ export function sniff(f: IncomingFile): { kind: InboxOriginalKind; mime: string 
   const mime = (f.mime ?? '').toLowerCase().split(';')[0]!.trim();
   if (head.startsWith('%PDF') || mime === 'application/pdf' || name.endsWith('.pdf'))
     return { kind: 'pdf', mime: 'application/pdf' };
-  const start = f.bytes.subarray(0, 200).toString('utf8').replace(/^﻿/, '').trimStart();
+  const start = f.bytes.subarray(0, 200).toString('utf8').replace(/^\uFEFF/, '').trimStart();
   if (start.startsWith('BEGIN:VCALENDAR') || mime === 'text/calendar' || name.endsWith('.ics'))
     return { kind: 'ics', mime: 'text/calendar' };
   if (head.startsWith('\x89PNG')) return { kind: 'image', mime: 'image/png' };
@@ -106,7 +106,10 @@ export function htmlToText(html: string): string {
 }
 
 /** Scale a photo for storing and reading: upright, at most 2000 px, JPEG. */
-export async function normalisePhoto(bytes: Buffer, mime: string): Promise<{ bytes: Buffer; mime: string }> {
+export async function normalisePhoto(
+  bytes: Buffer,
+  mime: string,
+): Promise<{ bytes: Buffer; mime: string }> {
   try {
     const out = await sharp(bytes, { failOn: 'none' })
       .rotate()
@@ -180,15 +183,32 @@ export class InboxService {
       return this.captureText(text, { ...meta, name: f.name ?? null });
     }
     if (kind.kind === 'ics')
-      return this.add({ ...meta, kind: 'ics', name: f.name ?? 'invite.ics', mime: kind.mime, file: f.bytes });
+      return this.add({
+        ...meta,
+        kind: 'ics',
+        name: f.name ?? 'invite.ics',
+        mime: kind.mime,
+        file: f.bytes,
+      });
     if (kind.kind === 'pdf')
-      return this.add({ ...meta, kind: 'pdf', name: f.name ?? 'document.pdf', mime: kind.mime, file: f.bytes });
+      return this.add({
+        ...meta,
+        kind: 'pdf',
+        name: f.name ?? 'document.pdf',
+        mime: kind.mime,
+        file: f.bytes,
+      });
     // A photo: stored scaled down, so the review sheet and the reader both get a sensible size.
     let photo: { bytes: Buffer; mime: string };
     try {
       photo = await normalisePhoto(f.bytes, kind.mime);
     } catch (err) {
-      const item = this.d.store.create({ ...meta, kind: 'image', name: f.name ?? null, mime: kind.mime });
+      const item = this.d.store.create({
+        ...meta,
+        kind: 'image',
+        name: f.name ?? null,
+        mime: kind.mime,
+      });
       this.d.store.setRead(item.id, {
         status: 'failed',
         summary: 'Could not open this photo.',
@@ -197,7 +217,13 @@ export class InboxService {
       this.changed();
       return this.d.store.get(item.id)!;
     }
-    return this.add({ ...meta, kind: 'image', name: f.name ?? null, mime: photo.mime, file: photo.bytes });
+    return this.add({
+      ...meta,
+      kind: 'image',
+      name: f.name ?? null,
+      mime: photo.mime,
+      file: photo.bytes,
+    });
   }
 
   private add(c: NewCapture): InboxItem {
@@ -255,7 +281,10 @@ export class InboxService {
     if (!item) throw notFound(`inbox item ${id}`);
     const entry = this.undo.get(id);
     if (!entry || entry.until < this.d.now().getTime())
-      throw new HttpError('bad_request', 'Too late to undo. Change it on the calendar or list instead.');
+      throw new HttpError(
+        'bad_request',
+        'Too late to undo. Change it on the calendar or list instead.',
+      );
     this.undo.delete(id);
     const problems: string[] = [];
     let removed = 0;
@@ -354,10 +383,18 @@ export class InboxService {
       .catch(() => []);
     let content: AnalyseContent;
     if (c.kind === 'image')
-      content = { kind: 'image', dataUrl: `data:${c.mime ?? 'image/jpeg'};base64,${c.file!.toString('base64')}` };
+      content = {
+        kind: 'image',
+        dataUrl: `data:${c.mime ?? 'image/jpeg'};base64,${c.file!.toString('base64')}`,
+      };
     else if (c.kind === 'pdf')
-      content = { kind: 'pdf', base64: c.file!.toString('base64'), ...(c.name ? { name: c.name } : {}) };
-    else content = { kind: 'text', text: c.text ?? '', ...(c.subject ? { subject: c.subject } : {}) };
+      content = {
+        kind: 'pdf',
+        base64: c.file!.toString('base64'),
+        ...(c.name ? { name: c.name } : {}),
+      };
+    else
+      content = { kind: 'text', text: c.text ?? '', ...(c.subject ? { subject: c.subject } : {}) };
     return analyseWithClaude({
       apiKey,
       content,

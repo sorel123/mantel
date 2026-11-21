@@ -442,7 +442,7 @@ export const mailinManifest: PluginManifest = {
   name: 'Forward to Mantel',
   description:
     'A mailbox Mantel checks: forward a school newsletter, an invitation or a booking, and it lands in the inbox.',
-  category: 'tasks',
+  category: 'info',
   step: null,
   connect: 'fields',
   optional: true,
@@ -482,7 +482,10 @@ export const mailinManifest: PluginManifest = {
       type: 'secret',
       required: true,
       placeholder: 'abcd efgh ijkl mnop',
-      getItHere: { label: 'Google app passwords', url: 'https://myaccount.google.com/apppasswords' },
+      getItHere: {
+        label: 'Google app passwords',
+        url: 'https://myaccount.google.com/apppasswords',
+      },
       help: 'Not the normal password: an app password made for Mantel. For iCloud, make it at account.apple.com.',
       env: 'MAILIN_APP_PASSWORD',
     }),
