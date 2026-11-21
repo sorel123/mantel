@@ -71,7 +71,6 @@ jobs:
           # Data must land in the per-revision area snapd backs up before each update.
           sudo ls -la /var/snap/mantel/current/
           sudo test -f /var/snap/mantel/current/mantel.db
-          # Changing the port restarts the server on the new one.
           # Box mode (first-boot setup, Wi-Fi) is off on a normal Ubuntu, on when asked.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/api/box/state)" = 404
           sudo snap set mantel box=true
@@ -80,6 +79,9 @@ jobs:
           curl -sf http://127.0.0.1:8787/api/box/state >/dev/null
           sudo snap set mantel box=false
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8787/ | grep -qi "<html" && break; sleep 1; done
+          # Changing the port restarts the server on the new one. systemd refuses more than five
+          # starts in ten seconds, so give it room first.
+          sleep 11
           sudo snap set mantel port=8790
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8790/api/health && break; sleep 1; done
           curl -sf http://127.0.0.1:8790/api/health

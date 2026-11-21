@@ -4,12 +4,12 @@ import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { log, setLogLevel } from './log.js';
+import { runSelfCheck } from './selfcheck.js';
 import { VERSION } from './version.js';
 
 const config = loadConfig();
 setLogLevel(config.LOG_LEVEL);
 if (process.argv.includes('--check')) {
-  const { runSelfCheck } = await import('./selfcheck.js');
   setLogLevel('warn');
   process.exit(await runSelfCheck(config));
 }
