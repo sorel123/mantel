@@ -58,5 +58,5 @@ kill "$(cat "$out/qemu.pid")" || true
 rm -f "$disk"
 grep -a "mantel: first-boot config ran" "$out/serial.log" || echo "note: first-boot config message not seen on the serial console"
 echo "--- serial console (cloud-init and snapd lines) ---"
-grep -aiE "cloud-init|mantel|wpe|frame|kiosk|wayland|interface|connect|seed|mesa" "$out/serial.log" | grep -v "^\[" | tail -150 || true
+grep -aiE "mantel-diag|cloud-init|mantel|wpe|frame|kiosk|wayland|interface|connect|seed|mesa" "$out/serial.log" | grep -v "^\[" | tail -300 || true
 chmod -R a+rX "$out"
