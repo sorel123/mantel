@@ -158,6 +158,8 @@ jobs:
     # Not on every merge to main: images are for pull requests that touch the OS, tags and by hand.
     if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -168,15 +170,15 @@ jobs:
         run: |
           sudo snap install ubuntu-image --classic
           sudo apt-get update -q
-          sudo apt-get install -y -q squashfs-tools python3-yaml python3-pil qemu-system-x86 ovmf xz-utils
+          sudo apt-get install -y -q squashfs-tools python3-yaml python3-pil qemu-system-x86 ovmf xz-utils swtpm swtpm-tools
           # KVM for the VM test.
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
           ls -la /dev/kvm || true
       - name: Build the image
         run: sudo packaging/os/build-image.sh snap/mantel_*.snap dist/os
-      - name: Boot it in a VM
-        run: sudo packaging/os/vm-test.sh dist/os/mantel-os-pc-amd64.img dist/vm
+      - name: Boot it in a VM (secure boot and a TPM, so the disk gets encrypted)
+        run: sudo SECURE=1 packaging/os/vm-test.sh dist/os/mantel-os-pc-amd64.img dist/vm
       - name: Show the screen in the log
         if: always()
         run: |
@@ -189,6 +191,7 @@ jobs:
           path: |
             dist/vm/*.png
             dist/vm/serial.log
+            dist/vm/disk-layout.txt
           if-no-files-found: ignore
       - name: Compress the image
         run: |
@@ -201,3 +204,11 @@ jobs:
           path: dist/os/mantel-os-pc-amd64.img.xz
           compression-level: 0
           if-no-files-found: error
+      - name: Attach the image to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The Package apps workflow creates the release for this tag; wait for it.
+          for i in $(seq 1 60); do gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break; sleep 15; done
+          gh release upload "$GITHUB_REF_NAME" dist/os/mantel-os-pc-amd64.img.xz --repo "$GITHUB_REPOSITORY" --clobber
