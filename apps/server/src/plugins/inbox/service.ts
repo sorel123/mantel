@@ -72,7 +72,11 @@ export function sniff(f: IncomingFile): { kind: InboxOriginalKind; mime: string 
   const mime = (f.mime ?? '').toLowerCase().split(';')[0]!.trim();
   if (head.startsWith('%PDF') || mime === 'application/pdf' || name.endsWith('.pdf'))
     return { kind: 'pdf', mime: 'application/pdf' };
-  const start = f.bytes.subarray(0, 200).toString('utf8').replace(/^\uFEFF/, '').trimStart();
+  const start = f.bytes
+    .subarray(0, 200)
+    .toString('utf8')
+    .replace(/^\uFEFF/, '')
+    .trimStart();
   if (start.startsWith('BEGIN:VCALENDAR') || mime === 'text/calendar' || name.endsWith('.ics'))
     return { kind: 'ics', mime: 'text/calendar' };
   if (head.startsWith('\x89PNG')) return { kind: 'image', mime: 'image/png' };
