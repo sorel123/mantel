@@ -63,7 +63,9 @@ async def test_sensors_and_calendars(hass: HomeAssistant, mantel_server) -> None
     assert "lists" in grocery.attributes
     assert hass.states.get("sensor.mantel_dinner_tonight") is not None
     assert hass.states.get("sensor.mantel_next_event") is not None
-    assert hass.states.get("sensor.mantel_inbox").state == "0"
+    # The mock mailbox fills the inbox a second after start (workstream K).
+    inbox = hass.states.get("sensor.mantel_inbox")
+    assert inbox is not None and inbox.state.isdigit()
     leo = hass.states.get("sensor.mantel_leo_chores_left")
     assert leo is not None and leo.state.isdigit()
     assert hass.states.get("sensor.mantel_leo_stars") is not None
