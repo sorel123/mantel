@@ -15,3 +15,5 @@ config/home.yaml
 # Playwright
 playwright-report/
 test-results/
+.build/
+helpers/reminders-mac/.swiftpm/
