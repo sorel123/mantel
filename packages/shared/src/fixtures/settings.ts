@@ -1,6 +1,7 @@
 import { DEFAULT_SCREENS, DEFAULT_TODAY_CARDS, type Settings } from '../models.js';
 import { DEFAULT_APPEARANCE } from '../skins.js';
 import { DEFAULT_MEALS_SETTINGS } from '../meals.js';
+import { DEFAULT_OPEN_SETTINGS } from '../open.js';
 import { people } from './people.js';
 
 export function settings(): Settings {
@@ -70,5 +71,6 @@ export function settings(): Settings {
     integrations: { quips: { enabled: false } },
     meals: { ...DEFAULT_MEALS_SETTINGS },
     chores: { celebrationsOff: [], chime: false },
+    open: { ...DEFAULT_OPEN_SETTINGS },
   };
 }
