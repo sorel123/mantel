@@ -12,6 +12,7 @@ import type {
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
+import { inboxManifest, mailinManifest } from '../inbox.js';
 import { settings } from './settings.js';
 
 const field = (
@@ -421,6 +422,8 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  inboxManifest,
+  mailinManifest,
 ];
 
 export function integrationStatuses(now = new Date()): IntegrationStatus[] {
@@ -493,6 +496,14 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    { ...base('inbox'), state: 'connected', summary: '2 things to check' },
+    {
+      ...base('mailin'),
+      state: 'connected',
+      summary: 'ourfamily.mantel@gmail.com, checked a minute ago',
+      lastOkAt: ok,
+      config: { provider: 'gmail', address: 'ourfamily.mantel@gmail.com', allowFrom: '' },
+    },
   ];
 }
 

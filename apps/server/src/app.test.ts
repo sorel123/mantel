@@ -171,6 +171,8 @@ describe('settings-first server (real mode, fresh data dir)', () => {
         'homeassistant',
         'ical',
         'icloud',
+        'inbox',
+        'mailin',
         'meals',
         'photos',
         'pollen',

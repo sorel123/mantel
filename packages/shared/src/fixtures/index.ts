@@ -4,6 +4,7 @@
  * Every value here must parse against its route's response schema (see fixtures.test.ts).
  */
 import { companionRouteFixtures } from '../companion.js';
+import { inboxRouteFixtures } from '../inbox.js';
 import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
 import { MOCK_WEBRTC_ANSWER } from '../home-webrtc.js';
@@ -208,6 +209,7 @@ export function routeFixtures(now = new Date()): {
     ...companionRouteFixtures(now),
     ...rewardRouteFixtures(now),
     ...mealFixtures(now),
+    ...inboxRouteFixtures(now),
   };
 }
 
@@ -310,5 +312,6 @@ export function wsFixtures(now = new Date()) {
     { type: 'display.wake', payload: { reason: 'presence' } },
     { type: 'display.sleep', payload: { reason: 'schedule' } },
     { type: 'notes.changed', payload: {} },
+    { type: 'inbox.changed', payload: { pending: 2 } },
   ] as const;
 }

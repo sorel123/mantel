@@ -35,6 +35,8 @@ export const IntegrationId = z.enum([
   'meals',
   'trash',
   'timers',
+  'inbox',
+  'mailin',
 ]);
 export type IntegrationId = z.infer<typeof IntegrationId>;
 

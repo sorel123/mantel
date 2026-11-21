@@ -17,6 +17,7 @@ import type { HomeBytes } from '../providers/types.js';
 import { dateInZone } from '../providers/real/weather-time.js';
 import { VERSION } from '../version.js';
 import { registerImportRoutes } from '../plugins/import/index.js';
+import { registerInboxRoutes } from '../plugins/inbox/index.js';
 import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
@@ -423,6 +424,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   const push = registerPushRoutes(handle, deps, todaysEvents);
   registerNotesRoutes(handle, deps, push);
   registerImportRoutes(handle, deps, meals);
+  /* ---- v4 K: the capture inbox in plugins/inbox (Forward to Mantel is plugins/mailin) ---- */
+  registerInboxRoutes(handle, deps, meals);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');
