@@ -25,7 +25,18 @@ export function emptyProviders(base: Providers): Providers {
       quip: async () => ({ quip: null }),
       commute: async () => ({ leaveBy: [] }),
     },
-    photos: { ...base.photos, next: async () => ({ photos: [] }) },
+    photos: {
+      ...base.photos,
+      next: async () => ({ photos: [] }),
+      sources: async () =>
+        ((await base.photos.sources?.()) ?? []).map((s) => ({
+          ...s,
+          count: 0,
+          onThisDay: 0,
+          state: 'not_set_up' as const,
+          lastSync: null,
+        })),
+    },
     home: {
       ...base.home,
       state: () => notSetUp('Home Assistant is not connected yet'),

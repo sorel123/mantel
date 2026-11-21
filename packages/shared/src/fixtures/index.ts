@@ -22,7 +22,7 @@ import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
 import { calendars, people } from './people.js';
-import { photos } from './photos.js';
+import { photoCaption, photos, photoSourceRouteFixtures } from './photos.js';
 import { settings } from './settings.js';
 import { commute, weather, weatherForPlace, weatherPlaces, weatherQuip } from './weather.js';
 
@@ -33,6 +33,7 @@ export * from './lists.js';
 export * from './meals.js';
 export * from './people.js';
 export * from './photos.js';
+export * from './photo-manifests.js';
 export * from './plugin-cards.js';
 export * from './settings.js';
 export * from './weather.js';
@@ -99,7 +100,11 @@ export function routeFixtures(now = new Date()): {
     weatherQuip: { quip: weatherQuip(now) },
     commute: commute(now, { force: true }),
     photosNext: {
-      photos: photos(DEFAULT_PANEL).map((p) => ({ ...p, url: `/api/photos/${p.id}` })),
+      photos: photos(DEFAULT_PANEL).map((p, i) => ({
+        ...p,
+        url: `/api/photos/${p.id}`,
+        caption: photoCaption(i, now),
+      })),
     },
     homeState: home,
     homeCall: { ok: true, entity: home.entities[0]! },
@@ -206,6 +211,7 @@ export function routeFixtures(now = new Date()): {
     settingsImport: { ok: true, secretsRestored: ['google', 'homeassistant'] },
     geocode: { candidates: geocodeCandidates },
     ...companionRouteFixtures(now),
+    ...photoSourceRouteFixtures(now),
     ...rewardRouteFixtures(now),
     ...mealFixtures(now),
   };

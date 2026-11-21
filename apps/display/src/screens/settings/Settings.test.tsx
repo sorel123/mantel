@@ -56,6 +56,7 @@ function fakeServer() {
     if (path === '/display/reload') return respond(200, fx.displayReload);
     if (path === '/plugins') return respond(200, fx.plugins);
     if (path === '/integrations') return respond(200, fx.integrations);
+    if (path === '/photo-sources') return respond(200, fx.photoSources);
     if (path.match(/^\/integrations\/[^/]+\/test$/)) return respond(200, fx.integrationTest);
     if (path.startsWith('/integrations/') && method === 'PUT') {
       const id = path.split('/')[2]!;
@@ -146,19 +147,41 @@ describe('Settings page', () => {
     expect(body.location.query).toBe('42.60032240592796, -83.33092662800189');
   });
 
+  it('puts every photo source on the Photos page, with weights and On this day', async () => {
+    const { calls } = fakeServer();
+    open('photos');
+    const icloud = await screen.findByRole('article', { name: 'Photos' });
+    // The last error in plain words, with a Fix link.
+    expect(within(icloud).getByRole('alert').textContent).toMatch(/Apple answered 404/);
+    for (const name of ['Immich', 'Google Photos', 'Photo folder'])
+      expect(screen.getByRole('article', { name })).toBeTruthy();
+    expect(await screen.findByText(/from this day in past years/)).toBeTruthy();
+    const immich = await screen.findByRole('group', { name: 'How much of Immich' });
+    fireEvent.click(within(immich).getByRole('button', { name: 'More' }));
+    expect(within(immich).getByRole('button', { name: 'More' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    fireEvent.click(screen.getByRole('switch', { name: 'Captions' }));
+    expect(screen.getByRole('switch', { name: 'Captions' }).getAttribute('aria-checked')).toBe(
+      'false',
+    );
+    expect(calls.some((c) => c.path === '/photo-sources')).toBe(true);
+  });
+
   it('renders one integration card per plugin manifest, with its state and directions', async () => {
     const { calls } = fakeServer();
     const fx = routeFixtures();
     open('integrations');
-    const photos = await screen.findByRole('article', { name: 'Photos' });
-    // The last error in plain words, with a Fix link.
-    expect(within(photos).getByRole('alert').textContent).toMatch(/Apple answered 404/);
+    await screen.findByRole('article', { name: 'Leave-by times' });
+    // Photo sources moved to their own Photos page (v4 S).
+    expect(screen.queryByRole('article', { name: 'Photos' })).toBeNull();
     // Calendars and Home Assistant have their own sections; the rest of the manifests are here.
     expect(screen.queryByRole('article', { name: 'Google Calendar' })).toBeNull();
     expect(screen.queryByRole('article', { name: 'Home Assistant' })).toBeNull();
     for (const p of fx.plugins.plugins.filter(
       (p) =>
         p.category !== 'calendar' &&
+        p.category !== 'photos' &&
         p.id !== 'homeassistant' &&
         p.id !== 'quips' &&
         p.id !== 'meals',

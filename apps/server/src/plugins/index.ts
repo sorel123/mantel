@@ -11,6 +11,10 @@ import { icalPlugin } from './ical/index.js';
 import { icloudPlugin } from './icloud/index.js';
 import { mealsPlugin } from './meals/index.js';
 import { photosPlugin } from './photos/index.js';
+import { photoFolderPlugin } from './photo-folder/index.js';
+import { immichPlugin } from './immich/index.js';
+import { googlePhotosPlugin } from './google-photos/index.js';
+import { PhotoMixer } from '../providers/real/photos-mixer.js';
 import { pollenPlugin } from './pollen/index.js';
 import { quipsPlugin } from './quips/index.js';
 import { routesPlugin } from './routes/index.js';
@@ -36,12 +40,29 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
   const weather = new WeatherService(opts);
   const home = homeAssistantPlugin(opts);
   const photos = photosPlugin(opts.fetch ? { fetch: opts.fetch } : {});
+  // v4 S: every photo source feeds one mixer, which is what the photo routes talk to.
+  const immich = immichPlugin(opts.fetch ? { fetch: opts.fetch } : {});
+  const googlePhotos = googlePhotosPlugin(opts.fetch ? { fetch: opts.fetch } : {});
+  const photoFolder = photoFolderPlugin();
+  const photoSources = [photos.source, immich.source, googlePhotos.source, photoFolder.source];
+  const mixer = Object.assign(
+    new PhotoMixer({
+      sources: () => photoSources,
+      settings: () => ctx.settings().photos,
+      timezone: () => ctx.settings().timezone,
+      now: ctx.now,
+    }),
+    { picker: googlePhotos.picker },
+  );
   const plugins: Plugin[] = [
     googlePlugin(calendar),
     icalPlugin(calendar, opts.fetch),
     icloudPlugin(calendar, opts.fetch),
     home,
     photos,
+    immich,
+    googlePhotos,
+    photoFolder,
     routesPlugin(weather, opts.fetch),
     pollenPlugin(weather, opts.fetch),
     weatherPlugin(weather, opts.fetch),
@@ -55,7 +76,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
     providers: {
       calendar: calendar.live.proxy,
       weather: weather.live.proxy,
-      photos: photos.live.proxy,
+      photos: mixer,
       home: home.live.proxy,
       lists: realLists(ctx),
     },
@@ -76,6 +97,9 @@ export { manifest as icloudManifest } from './icloud/manifest.js';
 export { manifest as icalManifest } from './ical/manifest.js';
 export { manifest as homeAssistantManifest } from './homeassistant/manifest.js';
 export { manifest as photosManifest } from './photos/manifest.js';
+export { manifest as immichManifest } from './immich/manifest.js';
+export { manifest as googlePhotosManifest } from './google-photos/manifest.js';
+export { manifest as photoFolderManifest } from './photo-folder/manifest.js';
 export { manifest as routesManifest } from './routes/manifest.js';
 export { manifest as pollenManifest } from './pollen/manifest.js';
 export { manifest as weatherManifest } from './weather/manifest.js';

@@ -21,6 +21,7 @@ import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
+import { registerPhotoSourceRoutes } from '../providers/real/photos-routes.js';
 
 /** Every contract route. Each block is owned by the workstream named beside it. */
 export function registerRoutes(handle: Handle, deps: AppDeps) {
@@ -423,6 +424,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   const push = registerPushRoutes(handle, deps, todaysEvents);
   registerNotesRoutes(handle, deps, push);
   registerImportRoutes(handle, deps, meals);
+  registerPhotoSourceRoutes(handle, deps);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');

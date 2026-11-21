@@ -12,6 +12,7 @@ import type {
 } from '../integrations.js';
 import type { PluginManifest } from '../plugins.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
+import { googlePhotosManifest, immichManifest, photoFolderManifest } from './photo-manifests.js';
 import { settings } from './settings.js';
 
 const field = (
@@ -421,6 +422,9 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  immichManifest,
+  googlePhotosManifest,
+  photoFolderManifest,
 ];
 
 export function integrationStatuses(now = new Date()): IntegrationStatus[] {
@@ -493,6 +497,24 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    {
+      ...base('immich'),
+      state: 'connected',
+      summary: '1840 photos ready',
+      lastOkAt: ok,
+      config: { url: 'http://192.168.1.20:2283', mode: 'favorites', memories: true, limit: 2000 },
+      hasSecrets: ['apiKey'],
+      sources: { url: 'store', apiKey: 'store' },
+    },
+    { ...base('google-photos'), state: 'connected', summary: '48 picked photos', lastOkAt: ok },
+    {
+      ...base('photo-folder'),
+      state: 'connected',
+      summary: '612 photos from /photos, 3 HEIC skipped',
+      lastOkAt: ok,
+      config: { path: '/photos', limit: 3000 },
+      sources: { path: 'store' },
+    },
   ];
 }
 

@@ -73,6 +73,7 @@ import {
 } from './models.js';
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
+import { PhotoCaption, photoSourceRoutes } from './photo-sources.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import {
   HomeConfig,
@@ -256,6 +257,8 @@ export const PhotosNextQuery = z.object({ n: z.coerce.number().int().min(1).max(
 export const PhotoRef = Photo.extend({
   /** Server-relative URL of the bytes, sized for the panel: `/api/photos/:id`. */
   url: z.string(),
+  /** v4 S: album, date and place for the caption line; absent when nothing is known. */
+  caption: PhotoCaption.optional(),
 });
 export type PhotoRef = z.infer<typeof PhotoRef>;
 export const PhotosNextResponse = z.object({ photos: z.array(PhotoRef) });
@@ -1040,6 +1043,8 @@ export const routes = {
   ...companionRoutes,
   /* ---- v3 M: the meal planner (meals.ts) ---- */
   ...mealRoutes,
+  /* ---- v4 S: photo sources and the slideshow mix (photo-sources.ts) ---- */
+  ...photoSourceRoutes,
 } as const;
 
 export type Routes = typeof routes;

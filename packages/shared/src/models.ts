@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
 import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
+import { DEFAULT_PHOTO_SETTINGS, PhotoSettings } from './photo-sources.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -578,6 +579,8 @@ export const Settings = z.object({
   meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
   /** v3 (workstream R): celebrations on the chore chart. */
   chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
+  /** v4 S: the slideshow's captions, "On this day" and per-source weights. */
+  photos: PhotoSettings.default(() => ({ ...DEFAULT_PHOTO_SETTINGS, weights: {} })),
 });
 export type Settings = z.infer<typeof Settings>;
 

@@ -107,3 +107,44 @@ describe('PhotoSlideshow', () => {
     expect(list).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('captions (v4 S)', () => {
+  const captioned = (caption: PhotoRef['caption']) =>
+    new PhotoFeed({
+      list: async () => [{ ...ref('a'), caption }],
+      bytes: async () => new Blob(['a']),
+      decode: async () => undefined,
+    });
+
+  it('draws the caption the server sent, and the On this day form', async () => {
+    const { container, unmount } = render(
+      <PhotoSlideshow
+        feed={captioned({
+          source: 'Immich',
+          album: 'Birthdays',
+          place: 'Detroit, Michigan',
+          takenAt: '2021-07-04',
+          yearsAgo: 5,
+        })}
+      />,
+    );
+    await act(async () => {});
+    const cap = container.querySelector('.ph-caption');
+    expect(cap?.classList.contains('otd')).toBe(true);
+    expect(cap?.textContent).toBe('5 years ago today · Birthdays · Detroit, Michigan · 2021');
+    unmount();
+  });
+
+  it('draws nothing without a caption, or when captions are off', async () => {
+    const plain = render(<PhotoSlideshow feed={captioned(undefined)} />);
+    await act(async () => {});
+    expect(plain.container.querySelector('.ph-caption')).toBeNull();
+    plain.unmount();
+    const off = render(
+      <PhotoSlideshow captions={false} feed={captioned({ source: 'iCloud', album: 'Family' })} />,
+    );
+    await act(async () => {});
+    expect(off.container.querySelector('.ph-caption')).toBeNull();
+    off.unmount();
+  });
+});

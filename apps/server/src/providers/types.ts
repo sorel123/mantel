@@ -10,6 +10,9 @@ import type {
   BodyOf,
   CalendarEvent,
   EditScope,
+  GooglePickSession,
+  GooglePickStatus,
+  PhotoSourceInfo,
   HomeConfig,
   HomeConnectionStatus,
   HomeDiscovery,
@@ -96,6 +99,19 @@ export interface PhotoProvider {
   next(n: number): Promise<ResponseOf<'photosNext'>>;
   /** null when the id is unknown. */
   bytes(id: string): Promise<PhotoBytes | null>;
+  /** v4 S: every photo source with its count and state (the mixer answers; older providers don't). */
+  sources?(): Promise<PhotoSourceInfo[]>;
+  /** v4 S: Google Photos picking, when the Google Photos plugin is built. */
+  picker?: GooglePhotoPicker;
+}
+
+/** v4 S: the Google Photos picker flow behind `/api/photo-sources/google/*`. */
+export interface GooglePhotoPicker {
+  start(): Promise<GooglePickSession>;
+  status(id: string): Promise<GooglePickStatus>;
+  clear(): Promise<number>;
+  /** Google's redirect landed on this server (loopback sign-in). Throws an HttpError on a bad code. */
+  callback(url: string): Promise<void>;
 }
 
 /** Image bytes or a live stream (MJPEG) for camera and artwork routes. */

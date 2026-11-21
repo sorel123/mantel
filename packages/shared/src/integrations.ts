@@ -35,6 +35,10 @@ export const IntegrationId = z.enum([
   'meals',
   'trash',
   'timers',
+  // v4 S: more photo sources and Microsoft calendars
+  'immich',
+  'google-photos',
+  'photo-folder',
 ]);
 export type IntegrationId = z.infer<typeof IntegrationId>;
 

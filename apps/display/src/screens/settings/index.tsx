@@ -27,6 +27,7 @@ import {
   HomeSetupSection,
   LayoutSection,
   MealsSection,
+  PhotosSection,
   Mount,
 } from './Optional';
 import { ScreensSection } from './Screens';
@@ -64,6 +65,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     items: [
       { id: 'appearance', label: 'Appearance' },
       { id: 'layout', label: 'Layout' },
+      { id: 'photos', label: 'Photos' },
       { id: 'quips', label: 'Weather quips' },
       { id: 'screens', label: 'Screens and dock' },
     ],
@@ -272,7 +274,19 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals']}
+        exclude={[
+          'google',
+          'icloud',
+          'ical',
+          'homeassistant',
+          'quips',
+          'meals',
+          // v4 S: the photo sources live on the Photos page
+          'photos',
+          'immich',
+          'google-photos',
+          'photo-folder',
+        ]}
       />
     ),
     homeassistant: () => (
@@ -362,6 +376,19 @@ export function SettingsPage() {
       />
     ),
     chores: () => <Mount Component={ChoresSection} props={{ draft, set }} fallback={null} />,
+    photos: () => (
+      <Mount
+        Component={PhotosSection}
+        props={{
+          draft,
+          set,
+          plugins: integrations.plugins,
+          statuses: integrations.statuses,
+          onStatus: integrations.onStatus,
+        }}
+        fallback={null}
+      />
+    ),
     places: () => (
       <Destinations
         value={draft.destinations}

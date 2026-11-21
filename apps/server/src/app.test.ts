@@ -168,7 +168,10 @@ describe('settings-first server (real mode, fresh data dir)', () => {
     expect(plugins.map((p: { id: string }) => p.id).sort()).toEqual(
       [
         'google',
+        'google-photos',
         'homeassistant',
+        'immich',
+        'photo-folder',
         'ical',
         'icloud',
         'meals',
