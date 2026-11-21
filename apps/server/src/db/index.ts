@@ -162,6 +162,24 @@ const migrations = [
     grp TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS activity_at ON activity (at_ms)`,
+  // v4 (workstream L): lists shared with Reminders, Todoist or Home Assistant
+  `CREATE TABLE IF NOT EXISTS list_links (
+    list_id TEXT PRIMARY KEY REFERENCES lists(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL,
+    remote_list_id TEXT NOT NULL,
+    remote_name TEXT NOT NULL,
+    linked_at TEXT NOT NULL,
+    last_sync_at TEXT,
+    last_error TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS list_sync_items (
+    list_id TEXT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    item_id TEXT NOT NULL,
+    remote_id TEXT NOT NULL,
+    base_text TEXT NOT NULL,
+    base_done INTEGER NOT NULL,
+    PRIMARY KEY (list_id, item_id)
+  )`,
   // v4 O: API tokens
   `CREATE TABLE IF NOT EXISTS api_tokens (
     id TEXT PRIMARY KEY,

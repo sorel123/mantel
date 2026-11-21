@@ -1,0 +1,162 @@
+/* v4 L: "Share this list with…" (Settings › Lists and chores). */
+.ls-explain {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.ls-explain p {
+  margin: 0;
+}
+.ls-rows {
+  display: grid;
+}
+.ls-row {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  display: grid;
+  gap: 12px;
+}
+.ls-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: var(--tap);
+}
+.ls-name {
+  font-weight: 700;
+  font-size: 17px;
+}
+.ls-link {
+  color: var(--ink-2);
+}
+.ls-arrows {
+  color: var(--accent);
+  font-weight: 700;
+}
+.ls-skel {
+  height: var(--tap);
+  margin: 8px 0;
+}
+.ls-picker {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  animation: ls-in var(--std) var(--ease) both;
+}
+@keyframes ls-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+:root[data-motion='reduced'] .ls-picker {
+  animation: none;
+}
+.ls-services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.ls-service {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-height: 76px;
+  padding: 12px 34px 12px 14px;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.ls-service:active {
+  transform: scale(0.98);
+}
+.ls-service[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+.ls-service-name {
+  font-weight: 700;
+}
+.ls-service-blurb {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ls-dot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.ls-dot.on {
+  background: var(--good);
+}
+.ls-setup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ls-setup p {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+.ls-remote {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.ls-remote-btn {
+  display: grid;
+  gap: 2px;
+  min-height: var(--tap);
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.ls-remote-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.ls-remote-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.ls-remote-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ls-help {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.ls-steps {
+  display: grid;
+  gap: 12px;
+  margin: 8px 0;
+  padding-left: 22px;
+  line-height: 1.45;
+}

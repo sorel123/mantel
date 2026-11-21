@@ -187,6 +187,28 @@ export class ListStore {
     this.changed(row.listId);
   }
 
+  /* ---- sync hooks (v4 L): what `ListSyncService` reads ---- */
+
+  /** Every item of one list, ticked ones included (until `prune` drops them), in list order. */
+  itemsForSync(listId: string): Array<ListItem & { updatedAt: string }> {
+    return this.db
+      .select()
+      .from(listItems)
+      .where(eq(listItems.listId, listId))
+      .orderBy(asc(listItems.sort))
+      .all()
+      .map((row) => ({ ...toItem(row), updatedAt: row.updatedAt }));
+  }
+
+  /** The list with this id, or else the first whose name matches in any case. */
+  findList(idOrName: string): { id: string; name: string } | null {
+    const rows = this.db.select({ id: lists.id, name: lists.name }).from(lists).all();
+    const key = idOrName.trim().toLowerCase();
+    return (
+      rows.find((r) => r.id === idOrName) ?? rows.find((r) => r.name.toLowerCase() === key) ?? null
+    );
+  }
+
   /** Drop items completed more than a month ago. Run on start. */
   prune() {
     const cutoff = new Date(this.now());

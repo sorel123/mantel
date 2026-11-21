@@ -1,13 +1,14 @@
 name: Package apps
 
 # Builds the downloadable apps: a Windows installer and Mac/Linux archives, each with its own
-# Node and the right native binaries. Runs on pull requests that touch packaging (so it is
+# Node and the right native binaries, and the Mantel Reminders helper for Mac. Runs on pull requests that touch packaging (so it is
 # proven before merge) and on version tags, which also publish a GitHub Release.
 on:
   pull_request:
     paths:
       - 'packaging/**'
       - 'deploy/kiosk/**'
+      - 'helpers/reminders-mac/**'
       - '.github/workflows/package.yml'
   push:
     tags: ['v*']
@@ -125,10 +126,32 @@ jobs:
             dist/*-setup.exe
           if-no-files-found: error
 
+  reminders-mac:
+    name: Reminders helper (Mac)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: helpers/reminders-mac
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Test the sync core
+        run: swift test
+      - name: Build the app
+        run: |
+          v="$(node -p "require('../../apps/server/package.json').version" 2>/dev/null || echo 1.0.0)"
+          App/build-app.sh "$v" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mantel-reminders-mac
+          path: helpers/reminders-mac/dist/MantelReminders-mac.zip
+          if-no-files-found: error
+
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
-    needs: bundle
+    needs: [bundle, reminders-mac]
     runs-on: ubuntu-latest
     permissions:
       contents: write

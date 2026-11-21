@@ -73,6 +73,7 @@ import {
 } from './models.js';
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
+import { listSyncRoutes } from './list-sync.js';
 import { openRoutes } from './open.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import { digestRoutes } from './digest.js';
@@ -1048,6 +1049,8 @@ export const routes = {
   ...mealRoutes,
   /* ---- v4 D: digest, nudges, activity (digest.ts) ---- */
   ...digestRoutes,
+  /* ---- v4 L: list sharing (list-sync.ts) ---- */
+  ...listSyncRoutes,
   /* ---- v4 O: tokens, natural add, Home Assistant state (open.ts) ---- */
   ...openRoutes,
 } as const;

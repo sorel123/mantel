@@ -5,6 +5,7 @@ import { DEFAULT_CHORE_SETTINGS } from '@mantel/shared';
 import { ChoreStore } from './lists-chores.js';
 import { RewardStore } from './lists-rewards.js';
 import { ListStore } from './lists-store.js';
+import { ListSyncService } from './lists-sync.js';
 
 /**
  * Lists and chores from the built-in SQLite store. Apple Reminders can't be reached over
@@ -15,8 +16,17 @@ import { ListStore } from './lists-store.js';
 export function storeLists(
   ctx: ProviderContext,
   db: Db = ctx.db,
-): ListsProvider & { store: ListStore; choreStore: ChoreStore; rewardStore: RewardStore } {
+): ListsProvider & {
+  store: ListStore;
+  choreStore: ChoreStore;
+  rewardStore: RewardStore;
+  sync: ListSyncService;
+} {
   const store = new ListStore(db, ctx.now);
+  const sync = new ListSyncService(db, store, {
+    now: ctx.now,
+    onSynced: () => ctx.markSynced('lists'),
+  }).start();
   const choreStore = new ChoreStore(db, ctx.now);
   const rewardStore = new RewardStore(db, ctx.now);
   store.onChange((listId) => ctx.emit({ type: 'list.changed', payload: { listId } }));
@@ -34,6 +44,7 @@ export function storeLists(
 
   return {
     store,
+    sync,
     choreStore,
     rewardStore,
     async lists() {
@@ -151,7 +162,7 @@ export function storeLists(
 }
 
 /** Real mode: the household database, with the default lists on a fresh install. */
-export function realLists(ctx: ProviderContext): ListsProvider {
+export function realLists(ctx: ProviderContext): ReturnType<typeof storeLists> {
   const lists = storeLists(ctx);
   lists.store.seedDefaults();
   lists.store.prune();

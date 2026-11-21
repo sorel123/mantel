@@ -27,6 +27,7 @@ import {
   DigestSection,
   HomeSetupSection,
   LayoutSection,
+  ListSharingSection,
   MealsSection,
   Mount,
   OpenSection,
@@ -356,7 +357,12 @@ export function SettingsPage() {
         onStatus={integrations.onStatus}
       />
     ),
-    lists: () => <ListsSection people={draft.people} />,
+    lists: () => (
+      <>
+        <ListsSection people={draft.people} />
+        <Mount Component={ListSharingSection} fallback={null} />
+      </>
+    ),
     companion: () => <CompanionSection />,
     open: () => <Mount Component={OpenSection} props={{ draft, set }} fallback={null} />,
     meals: () => (
