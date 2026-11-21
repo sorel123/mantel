@@ -35,10 +35,13 @@ export interface Since {
 }
 
 /**
- * Loads what changed since the mark. The first time a device ever asks, it starts from now
- * (nothing to catch up on), so a new display does not open with a month of history.
+ * Loads what changed since the mark, each time `active` turns on (the Today screen shows, the
+ * phone app opens or comes back). The first time a device ever asks, it starts from now, so a
+ * new display does not open with a month of history; with nothing new, looking moves the mark.
+ * Changes that arrive while the strip is up join it; while nothing is showing they wait for
+ * the next look, so the wall never pops a strip over what someone is doing right now.
  */
-export function useSince(place: string, enabled = true): Since {
+export function useSince(place: string, enabled = true, active = true, refreshKey = 0): Since {
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const serverNow = useRef<string | null>(null);
@@ -51,7 +54,7 @@ export function useSince(place: string, enabled = true): Since {
         query: mark ? { since: mark, limit: 60 } : { limit: 1 },
       });
       serverNow.current = r.now;
-      if (!mark) {
+      if (!mark || r.entries.length === 0) {
         writeMark(place, r.now);
         setEntries([]);
       } else setEntries(r.entries);
@@ -63,17 +66,25 @@ export function useSince(place: string, enabled = true): Since {
   }, [place, enabled]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (active) void load();
+  }, [load, active, refreshKey]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && active) void load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [load, active]);
 
   const onAdded = useCallback(
     ({ entry }: { entry: ActivityEntry }) => {
       if (!enabled) return;
-      const mark = readMark(place);
-      if (mark && Date.parse(entry.at) <= Date.parse(mark)) return;
-      setEntries((list) => (list.some((e) => e.id === entry.id) ? list : [entry, ...list]));
+      setEntries((list) =>
+        list.length === 0 || list.some((e) => e.id === entry.id) ? list : [entry, ...list],
+      );
     },
-    [place, enabled],
+    [enabled],
   );
   useServerEvent('activity.added', onAdded);
 

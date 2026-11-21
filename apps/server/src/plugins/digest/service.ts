@@ -50,6 +50,11 @@ export interface DigestServiceOptions {
   registry: Pick<PluginRegistry, 'manifests' | 'blocks' | 'resolve'> | null;
   mock: boolean;
   fetch?: typeof fetch;
+  /**
+   * The household's zone; defaults to `settings.timezone`. Mock mode passes the machine's own,
+   * because the fixtures are generated in it.
+   */
+  timeZone?: () => string;
   /** Claude, for the optional one-line summary (tests pass a fake). */
   summarise?: (digest: Digest, apiKey: string) => Promise<string | null>;
 }
@@ -71,7 +76,7 @@ export class DigestService {
     return this.o.settings().digest ?? DEFAULT_DIGEST_SETTINGS;
   }
   private tz() {
-    return this.o.settings().timezone;
+    return this.o.timeZone?.() ?? this.o.settings().timezone;
   }
 
   /* ---------- building ---------- */
@@ -79,7 +84,7 @@ export class DigestService {
   async build(kind: DigestKind, personId: string | null): Promise<Digest> {
     const s = this.o.settings();
     const now = this.o.now();
-    const tz = s.timezone;
+    const tz = this.tz();
     const person = personId ? (s.people.find((p) => p.id === personId) ?? null) : null;
     const include = person
       ? digestPerson(s.digest, person.id).include
@@ -242,7 +247,7 @@ export class DigestService {
     const s = this.o.settings();
     const d = s.digest ?? DEFAULT_DIGEST_SETTINGS;
     const now = this.o.now();
-    const tz = s.timezone;
+    const tz = this.tz();
     const today = dateInZone(now, tz);
     const parts = zoned(now, tz);
     const minutes = parts.hour * 60 + parts.minute;
@@ -380,7 +385,7 @@ export class DigestService {
   /** When each person's next morning and evening digests go. */
   status() {
     const s = this.o.settings();
-    const tz = s.timezone;
+    const tz = this.tz();
     const now = this.o.now();
     const today = dateInZone(now, tz);
     const next = (time: (date: string, weekday: number) => string | null) => {
@@ -416,7 +421,7 @@ export class DigestService {
     if (name !== 'card' && name !== 'ambient') return undefined;
     const s = this.o.settings();
     const now = this.o.now();
-    const tz = s.timezone;
+    const tz = this.tz();
     if (name === 'ambient') {
       const parts = zoned(now, tz);
       const minutes = parts.hour * 60 + parts.minute;

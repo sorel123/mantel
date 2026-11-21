@@ -84,10 +84,10 @@ export function DigestView({ digest, people }: { digest: Digest; people: Person[
                   <span className="dg-title">
                     <b>{e.title}</b>
                     {e.location && <small>{e.location}</small>}
+                    {e.leaveBy && (
+                      <span className="pill dg-leave tnum">Leave {clockOf(e.leaveBy)}</span>
+                    )}
                   </span>
-                  {e.leaveBy && (
-                    <span className="pill dg-leave tnum">Leave {clockOf(e.leaveBy)}</span>
-                  )}
                 </a>
               </li>
             ))}

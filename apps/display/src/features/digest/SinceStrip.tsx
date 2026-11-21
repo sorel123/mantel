@@ -23,7 +23,7 @@ const ICON: Record<SinceLine['kind'], string> = {
 export const SINCE_AUTO_CLEAR_MS = 45_000;
 
 /**
- * The strip: a row of changes, each a button that jumps to the thing, and a Got it. It clears
+ * The strip: a row of changes, each a button that jumps to the thing, and a Done. It clears
  * itself after it has been on screen for a while, or when a line is tapped.
  */
 export function SinceStrip({
@@ -98,7 +98,7 @@ export function SinceStrip({
             </AnimatePresence>
           </ul>
           <button type="button" className="btn since-ok" onClick={clear}>
-            Got it
+            Done
           </button>
         </motion.aside>
       )}

@@ -1060,3 +1060,56 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   await request.delete(`/api/push/subscriptions/${subscription.id}`);
   expect(problems).toEqual([]);
 });
+
+test('digest: the wall card, "since you last looked", a test digest from Settings that opens on the phone', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+
+  // The digest card on a custom Today layout, drawn from the plugin's blocks.
+  await page.goto('/?mode=daylight&today=custom&cards=plugin:digest:0.0.4.8,agenda:4.0.8.8');
+  const card = page.locator('.region[data-region="plugin:digest"] .plugin-card');
+  await expect(card).toBeVisible();
+  await expect(card.getByText(/^Dinner/)).toBeVisible();
+
+  // The first look on Today sets this display's mark; changes from elsewhere show next time.
+  await page.goto('/?mode=daylight');
+  await expect(page.getByRole('button', { name: 'Today' }).first()).toBeVisible();
+  await page.waitForTimeout(500);
+  const run = Date.now().toString(36);
+  for (const text of [`Smoke milk ${run}`, `Smoke eggs ${run}`])
+    await request.post('/api/lists/list-grocery/items', { data: { text } });
+  // The log compares the list after a short settle; wait until both adds are in it.
+  await expect
+    .poll(async () => {
+      const { entries } = await (await request.get('/api/activity')).json();
+      return entries.filter((e: { subject: string }) => e.subject.endsWith(` ${run}`)).length;
+    })
+    .toBe(2);
+  await page.goto('/?mode=daylight');
+  const strip = page.getByTestId('since-strip');
+  await expect(strip.getByText(/2 things added to Grocery/)).toBeVisible();
+  await strip.getByRole('button', { name: /added to Grocery/ }).click();
+  await expect(page.getByTestId('since-strip')).toBeHidden();
+
+  // Settings: the section, and a test digest that lands in the mock outbox and shows here.
+  await page.goto('/settings#digest');
+  await expect(page.getByRole('heading', { name: 'Digest and reminders' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send me a test digest' }).click();
+  await expect(page.getByText(/Sent to 1 phone/)).toBeVisible();
+  await expect(page.getByTestId('digest-preview')).toBeVisible();
+  const { messages } = await (await request.get('/api/push/outbox')).json();
+  const sent = messages.at(-1);
+  expect(sent.kind).toBe('digest');
+  expect(sent.url).toMatch(/^\/app#digest\//);
+
+  // The notification opens the digest page on the phone.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(sent.url);
+  await expect(page.getByTestId('digest')).toBeVisible();
+  await page.getByRole('button', { name: 'Tomorrow' }).click();
+  await expect(page.getByRole('heading', { name: /^Tomorrow, / })).toBeVisible();
+
+  expect(problems).toEqual([]);
+});

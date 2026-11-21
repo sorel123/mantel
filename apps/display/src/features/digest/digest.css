@@ -230,9 +230,12 @@
   color: var(--ink-2);
   font-size: calc(14px * var(--text-scale));
 }
-.dg-leave,
 .dg-since {
   flex: none;
+}
+.dg-leave {
+  align-self: flex-start;
+  margin-top: 4px;
 }
 .dg-since {
   --pc: var(--warn);

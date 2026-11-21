@@ -24,7 +24,9 @@ export function registerDigestRoutes(
   o: { push: PushService; notes: NoteStore; meals: DigestServiceOptions['meals'] },
 ) {
   const { db, auth, hub, settings, config, providers, registry } = deps;
-  const tz = () => settings.get().timezone;
+  // Mock fixtures are made in the machine's zone, so mock mode reads the day in that zone.
+  const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = () => (config.MOCK ? localZone : settings.get().timezone);
 
   const digest = new DigestService({
     db,
@@ -35,6 +37,7 @@ export function registerDigestRoutes(
     push: o.push,
     registry,
     mock: config.MOCK,
+    timeZone: tz,
   });
   attachDigestService(db, digest);
 

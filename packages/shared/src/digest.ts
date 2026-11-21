@@ -390,7 +390,8 @@ export type Digest = z.infer<typeof Digest>;
 
 /** The text of a digest notification: the headline, then the first event. */
 export function digestPushBody(d: Digest): string {
-  const parts = [d.summary ?? d.headline];
+  const first = d.summary ?? d.headline;
+  const parts = [/[.!?]$/.test(first) ? first : `${first}.`];
   const next = d.events.find((e) => !e.allDay);
   if (next && !d.summary) parts.push(`First up: ${next.title}.`);
   if (d.weather?.warning) parts.push(d.weather.warning);
