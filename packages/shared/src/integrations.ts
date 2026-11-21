@@ -45,6 +45,9 @@ export const IntegrationId = z.enum([
   'habits',
   'qotd',
   'sky',
+  'reminders',
+  'todoist',
+  'ha-todo',
 ]);
 export type IntegrationId = z.infer<typeof IntegrationId>;
 

@@ -4,6 +4,10 @@
  */
 import type { ProviderContext, Providers } from '../providers/types.js';
 import { realLists } from '../providers/real/lists.js';
+import type { RealHome } from '../providers/real/home.js';
+import { haTodoPlugin } from './ha-todo/index.js';
+import { RemindersBridge, remindersPlugin } from './reminders/index.js';
+import { todoistPlugin } from './todoist/index.js';
 import { CalendarService } from './calendar-service.js';
 import { googlePlugin } from './google/index.js';
 import { homeAssistantPlugin } from './homeassistant/index.js';
@@ -46,6 +50,10 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
   const weather = new WeatherService(opts);
   const home = homeAssistantPlugin(opts);
   const photos = photosPlugin(opts.fetch ? { fetch: opts.fetch } : {});
+  // v4 L: lists shared with Reminders (Mac helper), Todoist and Home Assistant to-do lists.
+  const lists = realLists(ctx);
+  const reminders = new RemindersBridge(ctx.db, lists.store, lists.sync, ctx.now);
+  lists.sync.reminders = reminders;
   const plugins: Plugin[] = [
     googlePlugin(calendar),
     icalPlugin(calendar, opts.fetch),
@@ -62,6 +70,9 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
       calendar: () => calendar.live.proxy,
       home: () => home.live.proxy,
     }),
+    remindersPlugin(lists.sync, reminders),
+    todoistPlugin(lists.sync, opts.fetch),
+    haTodoPlugin(lists.sync, () => (home.live.current() as RealHome).client ?? null),
   ];
   return {
     plugins,
@@ -71,7 +82,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
       weather: weather.live.proxy,
       photos: photos.live.proxy,
       home: home.live.proxy,
-      lists: realLists(ctx),
+      lists,
     },
   };
 }
@@ -126,3 +137,6 @@ export { manifest as houseStatusManifest } from './housestatus/manifest.js';
 export { manifest as habitsManifest } from './habits/manifest.js';
 export { manifest as qotdManifest } from './qotd/manifest.js';
 export { manifest as skyManifest } from './sky/manifest.js';
+export { manifest as remindersManifest } from './reminders/manifest.js';
+export { manifest as todoistManifest } from './todoist/manifest.js';
+export { manifest as haTodoManifest } from './ha-todo/manifest.js';
