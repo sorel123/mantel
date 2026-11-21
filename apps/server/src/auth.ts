@@ -7,7 +7,15 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { MOCK_DEVICE_KEY, MOCK_PAIRING_CODE } from '@mantel/shared/fixtures';
-import { DeviceOverrides, type Device } from '@mantel/shared';
+import {
+  DeviceOverrides,
+  TOKEN_HEADER,
+  TOKEN_PREFIX,
+  TokenScope,
+  type ApiToken,
+  type Device,
+} from '@mantel/shared';
+import { z } from 'zod';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { kvGet, kvSet, schema, type Db } from './db/index.js';
 import { log } from './log.js';
@@ -242,5 +250,123 @@ export class DeviceAuth {
       .run();
     if (result.changes > 0) log.info(`Revoked device ${deviceId}`);
     return result.changes > 0;
+  }
+}
+
+/* ---- v4 O: API tokens ---- */
+
+/** A request authenticated by an API token rather than a device key. */
+export interface TokenIdentity {
+  id: string;
+  name: string;
+  scopes: TokenScope[];
+}
+
+/** Last-used times are written at most this often per token, so a busy poller stays cheap. */
+const TOKEN_TOUCH_MS = 60_000;
+
+const parseScopes = (json: string): TokenScope[] => {
+  try {
+    const parsed = z.array(TokenScope).safeParse(JSON.parse(json));
+    return parsed.success ? parsed.data : [];
+  } catch {
+    return [];
+  }
+};
+
+/** The token in `Authorization: Bearer mtl_...` or `x-mantel-token`, if any. */
+export function tokenFromHeaders(get: (name: string) => string | undefined): string | null {
+  const bearer = /^Bearer\s+(\S+)$/i.exec(get('authorization') ?? '')?.[1];
+  const raw = bearer ?? get(TOKEN_HEADER) ?? null;
+  return raw && raw.startsWith(TOKEN_PREFIX) ? raw : null;
+}
+
+/** True when a token with `have` may use something that accepts any of `need`. `admin` passes all. */
+export const scopeAllows = (have: readonly TokenScope[], need: readonly TokenScope[]) =>
+  have.includes('admin') || need.some((s) => have.includes(s));
+
+/**
+ * Named API tokens with scopes (Siri, Home Assistant, Claude, scripts). The secret is shown once
+ * when the token is made; only its SHA-256 is kept, with the first characters to tell tokens
+ * apart. Revoking one stops it at once.
+ */
+export class ApiTokens {
+  private readonly touched = new Map<string, number>();
+
+  constructor(private readonly db: Db) {}
+
+  create(name: string, scopes: TokenScope[]): { token: ApiToken; secret: string } {
+    const id = randomUUID();
+    const secret = `${TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`;
+    const unique = [...new Set(scopes)];
+    const row = {
+      id,
+      name,
+      scopes: JSON.stringify(unique),
+      prefix: secret.slice(0, TOKEN_PREFIX.length + 4),
+      tokenHash: hash(secret),
+      createdAt: new Date().toISOString(),
+    };
+    this.db.insert(schema.apiTokens).values(row).run();
+    log.info(`API token "${name}" created (${unique.join(', ')})`);
+    return { token: this.get(id)!, secret };
+  }
+
+  private toToken(r: typeof schema.apiTokens.$inferSelect): ApiToken {
+    return {
+      id: r.id,
+      name: r.name,
+      scopes: parseScopes(r.scopes),
+      prefix: r.prefix,
+      createdAt: r.createdAt,
+      lastUsedAt: r.lastUsedAt,
+      revokedAt: r.revokedAt,
+    };
+  }
+
+  get(id: string): ApiToken | null {
+    const r = this.db.select().from(schema.apiTokens).where(eq(schema.apiTokens.id, id)).get();
+    return r ? this.toToken(r) : null;
+  }
+
+  /** Every token, newest first, revoked ones included. */
+  list(): ApiToken[] {
+    return this.db
+      .select()
+      .from(schema.apiTokens)
+      .orderBy(desc(schema.apiTokens.createdAt))
+      .all()
+      .map((r) => this.toToken(r));
+  }
+
+  revoke(id: string): boolean {
+    const result = this.db
+      .update(schema.apiTokens)
+      .set({ revokedAt: new Date().toISOString() })
+      .where(and(eq(schema.apiTokens.id, id), isNull(schema.apiTokens.revokedAt)))
+      .run();
+    if (result.changes > 0) log.info(`Revoked API token ${id}`);
+    return result.changes > 0;
+  }
+
+  /** The token's identity when the secret is live, else null. Records when it was last used. */
+  verify(secret: string | null | undefined): TokenIdentity | null {
+    if (!secret || !secret.startsWith(TOKEN_PREFIX)) return null;
+    const row = this.db
+      .select()
+      .from(schema.apiTokens)
+      .where(and(eq(schema.apiTokens.tokenHash, hash(secret)), isNull(schema.apiTokens.revokedAt)))
+      .get();
+    if (!row) return null;
+    const now = Date.now();
+    if (now - (this.touched.get(row.id) ?? 0) > TOKEN_TOUCH_MS) {
+      this.touched.set(row.id, now);
+      this.db
+        .update(schema.apiTokens)
+        .set({ lastUsedAt: new Date(now).toISOString() })
+        .where(eq(schema.apiTokens.id, row.id))
+        .run();
+    }
+    return { id: row.id, name: row.name, scopes: parseScopes(row.scopes) };
   }
 }

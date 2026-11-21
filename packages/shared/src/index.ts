@@ -16,3 +16,4 @@ export * from './meals.js';
 export * from './people-filter.js';
 export * from './rewards.js';
 export * from './list-sync.js';
+export * from './open.js';

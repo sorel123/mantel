@@ -165,6 +165,17 @@ const migrations = [
     base_done INTEGER NOT NULL,
     PRIMARY KEY (list_id, item_id)
   )`,
+  // v4 O: API tokens
+  `CREATE TABLE IF NOT EXISTS api_tokens (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    scopes TEXT NOT NULL,
+    prefix TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT,
+    revoked_at TEXT
+  )`,
 ];
 
 /** Columns added after a table shipped. `ALTER TABLE` has no IF NOT EXISTS, so each is tried once. */
