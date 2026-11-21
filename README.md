@@ -153,6 +153,8 @@ The chore chart counts completions per day. Each tap earns the chore's stars, a 
 
 **Phones:** open `http://<server>:8787/app` on a phone (the old `/add` still works), pair it once with the admin PIN, and add it to the home screen. The companion app has tabs for Lists, Calendar, Meals, Chores and a Note for the wall, can take notifications (doorbell, chores, leave-by, rewards; needs https or the installer's localhost on iOS), and reads a photo of a flyer or a list with Magic Import, which needs the Claude key from Weather quips. [`docs/companion.md`](docs/companion.md) has the details.
 
+**Siri, Alexa, Home Assistant and Claude:** Settings › Siri and assistants makes API tokens with scopes and hands out ready-filled guides: Siri Shortcuts that say "milk and eggs" or "dentist Tuesday at 3" to `POST /api/say` and read the day from `/api/today.txt`, a private Alexa skill ("Alexa, ask Mantel to add milk"), the Home Assistant integration in `custom_components/mantel/` (HACS), and an MCP endpoint at `/mcp` for Claude. [`docs/open.md`](docs/open.md) has the details.
+
 The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`; tapping it opens the Lists screen. The person chips in the dock (`screens/today/personFilter.tsx`) apply here too: with one person chosen, other people's list items, chore cards and star chips dim while unowned items stay bright.
 
 ## Pairing a display

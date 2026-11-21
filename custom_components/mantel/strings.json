@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Mantel",
+        "description": "Make a token in Mantel under Settings, Siri and assistants, New token for Home Assistant.",
+        "data": {
+          "url": "Mantel address",
+          "token": "Token"
+        },
+        "data_description": {
+          "url": "The address you open Mantel at, like http://192.168.1.20:8787",
+          "token": "Starts with mtl_"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach Mantel at that address.",
+      "invalid_auth": "Mantel refused that token. Make a new one and paste it again."
+    },
+    "abort": {
+      "already_configured": "This Mantel is already set up."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "dinner": { "name": "Dinner tonight" },
+      "next_event": { "name": "Next event" },
+      "next_event_time": { "name": "Next event time" },
+      "grocery": { "name": "Grocery list" },
+      "inbox": { "name": "Inbox" },
+      "chores_open": { "name": "{person} chores left" },
+      "stars": { "name": "{person} stars" }
+    }
+  },
+  "services": {
+    "say": {
+      "name": "Say",
+      "description": "Add anything in plain words: 'milk and eggs', 'dentist Tuesday at 3', 'tacos Thursday', 'note: back at 5'.",
+      "fields": { "text": { "name": "Text", "description": "What to add." } }
+    },
+    "add_item": {
+      "name": "Add item",
+      "description": "Add an item to a Mantel list.",
+      "fields": {
+        "item": { "name": "Item", "description": "The thing to add." },
+        "list": {
+          "name": "List",
+          "description": "The list's name. The grocery list when left empty."
+        }
+      }
+    },
+    "post_note": {
+      "name": "Post note",
+      "description": "Put a note on the wall.",
+      "fields": { "text": { "name": "Text", "description": "The note." } }
+    }
+  }
+}
