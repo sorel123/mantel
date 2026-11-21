@@ -1,0 +1,22 @@
+# Sourced by bin/mantel-server and the hooks: the environment the Mantel server runs with.
+# Settings come from `snap set mantel ...`.
+port="$(snapctl get port)"
+export PORT="${port:-8787}"
+export HOST=0.0.0.0
+export NODE_ENV=production
+# SNAP_DATA is per revision: snapd copies it before a refresh and keeps the old copy, so a
+# reverted update returns to the data it had.
+export DATA_DIR="$SNAP_DATA"
+export DISPLAY_DIST="$SNAP/app/display"
+# The kiosk on this box opens http://localhost and pairs itself.
+export LOCAL_PAIR=1
+# snapd updates the snap; the GitHub release check is for the downloadable apps.
+export UPDATE_CHECK=0
+export MANTEL_SNAP=1
+# On Mantel OS (Ubuntu Core) the server is also the box: first-boot setup at /box, Wi-Fi,
+# the setup hotspot and the backlight. (The host's os-release: a snap's own /etc/os-release
+# is its base's, which says ubuntu-core everywhere.) `snap set mantel box=false` turns that off.
+box="$(snapctl get box)"
+if [ "$box" = "true" ] || { [ -z "$box" ] && grep -qs '^ID=ubuntu-core' /var/lib/snapd/hostfs/usr/lib/os-release; }; then
+  export MANTEL_BOX=1
+fi

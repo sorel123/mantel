@@ -8,6 +8,11 @@ import { VERSION } from './version.js';
 
 const config = loadConfig();
 setLogLevel(config.LOG_LEVEL);
+if (process.argv.includes('--check')) {
+  const { runSelfCheck } = await import('./selfcheck.js');
+  setLogLevel('warn');
+  process.exit(await runSelfCheck(config));
+}
 const { app, deps, close } = createApp(config);
 
 const server = serve({ fetch: app.fetch, port: config.PORT, hostname: config.HOST }, (info) => {

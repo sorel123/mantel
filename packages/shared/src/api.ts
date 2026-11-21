@@ -155,6 +155,17 @@ export const UpdateCheckResponse = z.object({
   /** The release page to download from. */
   url: z.string().nullable(),
   notes: z.string().nullable(),
+  /**
+   * Set when Mantel came from the Snap Store (Mantel OS, Ubuntu): it updates itself, so there
+   * is nothing to download. `latest` is the newest stable version in the store, when known.
+   */
+  automatic: z
+    .object({
+      revision: z.string(),
+      window: z.string(),
+      latest: z.string().nullable(),
+    })
+    .optional(),
 });
 export type UpdateCheckResponse = z.infer<typeof UpdateCheckResponse>;
 

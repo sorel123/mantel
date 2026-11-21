@@ -1,0 +1,12 @@
+#!/bin/sh
+# Runs after every update, before the new version's server starts. It starts the new Mantel
+# in-process against the data snapd copied for it and checks it answers. If it does not, this
+# hook fails and snapd undoes the update: the previous version comes back with its data.
+set -e
+. "$SNAP/bin/mantel-env"
+cd "$SNAP_DATA"
+if [ -e "$SNAP/break-update-check" ]; then
+  echo "mantel: this build is marked to fail its update check (rollback test)" >&2
+  exit 1
+fi
+exec "$SNAP/node" "$SNAP/app/dist/index.js" --check
