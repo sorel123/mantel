@@ -57,3 +57,6 @@ for i in 1 2 3 4; do sleep 30; shot "screen-$i"; done
 kill "$(cat "$out/qemu.pid")" || true
 rm -f "$disk"
 grep -a "mantel: first-boot config ran" "$out/serial.log" || echo "note: first-boot config message not seen on the serial console"
+echo "--- serial console (cloud-init and snapd lines) ---"
+grep -aiE "cloud-init|mantel|snapd|seed" "$out/serial.log" | tail -40 || true
+chmod -R a+rX "$out"

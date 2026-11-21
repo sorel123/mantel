@@ -19,7 +19,9 @@ cd "$work"
 KERNEL_CHANNEL="${KERNEL_CHANNEL:-24/stable}"
 GADGET_CHANNEL="${GADGET_CHANNEL:-24/stable}"
 FRAME_CHANNEL="${FRAME_CHANNEL:-24/stable}"
-KIOSK_CHANNEL="${KIOSK_CHANNEL:-latest/stable}"
+# The kiosk's 24 track is the current WebKit on core24 (shares Frame's graphics stack); its
+# latest/stable is WebKit 2.38 from 2023 on core20.
+KIOSK_CHANNEL="${KIOSK_CHANNEL:-24/edge}"
 
 snap_id() { snap info "$1" | awk '/^snap-id:/ {print $2}'; }
 ids="$(printf '{"ubuntu-frame":"%s","wpe-webkit-mir-kiosk":"%s"}' \
