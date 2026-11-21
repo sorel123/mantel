@@ -37,6 +37,12 @@ export function HelpSection({ publicUrl }: { publicUrl?: string }) {
         </div>
       </div>
 
+      <p className="set-hint">
+        A screen with no touch (a TV or monitor)? Add <code>?glance=1</code> to its address, or use
+        Glance mode under Displays. It steps through the screens, and changes are made from the
+        phone app.
+      </p>
+
       <Collapse
         title="iPad in kiosk mode"
         hint="Guided Access keeps it in Mantel. About 10 minutes."
