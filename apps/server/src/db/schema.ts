@@ -205,3 +205,16 @@ export const inboxItems = sqliteTable('inbox_items', {
   createdAt: text('created_at').notNull(),
   committedAt: text('committed_at'),
 });
+
+/** v4 O: API tokens for Siri, Home Assistant, MCP and scripts. Only the SHA-256 is stored. */
+export const apiTokens = sqliteTable('api_tokens', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  /** JSON array of `TokenScope`. */
+  scopes: text('scopes').notNull(),
+  prefix: text('prefix').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  createdAt: text('created_at').notNull(),
+  lastUsedAt: text('last_used_at'),
+  revokedAt: text('revoked_at'),
+});

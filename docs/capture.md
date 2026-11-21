@@ -65,6 +65,12 @@ Image** (JPEG) before step 2 fixes it.
 `url`, `title`, `hint`) or a raw body, the key in the header or a `key` field, and answers one
 sentence the Shortcut can show (`accept: application/json` for JSON).
 
+It also takes an API token from Settings › Open Mantel (`Authorization: Bearer mtl_…`) when the
+token has the **Capture** scope, so a script or a Shortcut can use a named token instead of a
+display key. Tokens with Capture can also call `GET /inbox`, `GET /inbox/status` and
+`POST /inbox`; reviewing and committing stay with paired displays. The settings page makes a
+display key for the Shortcut because it can be made and tested in one tap without the admin PIN.
+
 ## Reading
 
 - **Calendar files** (`.ics`, including invitations) are read directly: no key, no model call.
@@ -76,7 +82,7 @@ sentence the Shortcut can show (`accept: application/json` for JSON).
 
 ## API
 
-All under `/api`, with the device key.
+All under `/api`, with the device key (or a Capture token for the three routes above).
 
 | Route                      | Purpose                                                     |
 | -------------------------- | ----------------------------------------------------------- |

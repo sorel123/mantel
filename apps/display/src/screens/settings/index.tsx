@@ -29,6 +29,7 @@ import {
   LayoutSection,
   MealsSection,
   Mount,
+  OpenSection,
 } from './Optional';
 import { ScreensSection } from './Screens';
 import { QuipsSection } from './Quips';
@@ -75,6 +76,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
       { id: 'lists', label: 'Lists and chores' },
       { id: 'companion', label: 'Phone app' },
       { id: 'capture', label: 'Capture' },
+      { id: 'open', label: 'Siri and assistants' },
       { id: 'meals', label: 'Meals' },
       { id: 'chores', label: 'Chores and rewards' },
       { id: 'places', label: 'Leave-by places' },
@@ -357,6 +359,7 @@ export function SettingsPage() {
     lists: () => <ListsSection people={draft.people} />,
     companion: () => <CompanionSection />,
     capture: () => <Mount Component={CaptureSection} props={{ draft, set }} fallback={null} />,
+    open: () => <Mount Component={OpenSection} props={{ draft, set }} fallback={null} />,
     meals: () => (
       <Mount
         Component={MealsSection}

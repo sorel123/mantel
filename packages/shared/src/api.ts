@@ -74,6 +74,7 @@ import {
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
 import { inboxRoutes } from './inbox.js';
+import { openRoutes } from './open.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
 import {
   HomeConfig,
@@ -1042,6 +1043,8 @@ export const routes = {
   /* ---- v3 M: the meal planner (meals.ts) ---- */
   ...mealRoutes,
   ...inboxRoutes,
+  /* ---- v4 O: tokens, natural add, Home Assistant state (open.ts) ---- */
+  ...openRoutes,
 } as const;
 
 export type Routes = typeof routes;

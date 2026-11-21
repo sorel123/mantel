@@ -150,6 +150,23 @@ describe('Forward to Mantel in mock mode', () => {
     expect([200, 401]).toContain(refused.status);
   });
 
+  it('takes an API token with the capture scope, and refuses one without it', async () => {
+    const good = mock.deps.tokens.create('iPhone Shortcut', ['capture']).secret;
+    const ok = await mock.app.request('/api/inbox/upload', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${good}`, 'content-type': 'text/plain' },
+      body: 'Book club Thursday at 7',
+    });
+    expect(ok.status).toBe(200);
+    const readOnly = mock.deps.tokens.create('Dashboard', ['read']).secret;
+    const no = await mock.app.request('/api/inbox/upload', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${readOnly}`, 'content-type': 'text/plain' },
+      body: 'Book club Thursday at 7',
+    });
+    expect(no.status).toBe(403);
+  });
+
   it('a fresh install has nothing set up and an empty inbox', async () => {
     await new Promise((r) => setTimeout(r, 1500));
     const res = await json(await call(empty.app, 'GET', '/inbox'));

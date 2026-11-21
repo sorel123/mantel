@@ -5,13 +5,14 @@
  */
 import {
   DEVICE_KEY_HEADER,
+  TOKEN_PREFIX,
   inboxManifest,
   type ImportHint,
   type InboxSource,
 } from '@mantel/shared';
 import type { Hono } from 'hono';
 import type { AppDeps } from '../../app.js';
-import type { DeviceAuth } from '../../auth.js';
+import { scopeAllows, tokenFromHeaders, type ApiTokens, type DeviceAuth } from '../../auth.js';
 import type { Handle } from '../../contract.js';
 import type { Db } from '../../db/index.js';
 import { HttpError, notFound } from '../../errors.js';
@@ -176,7 +177,11 @@ const HINTS = new Set(['auto', 'events', 'list', 'meals']);
  * `key` field for tools that cannot set headers. Answers one sentence for the Shortcut to show
  * (JSON when asked with `accept: application/json`).
  */
-export function mountInboxUpload(api: Hono, auth: DeviceAuth, db: Db) {
+/**
+ * `POST /api/inbox/upload`: what the iPhone Shortcut and scripts send. It takes a display key (the
+ * Shortcut key made in Settings › Capture) or an API token with the `capture` scope (v4 O).
+ */
+export function mountInboxUpload(api: Hono, auth: DeviceAuth, db: Db, tokens?: ApiTokens) {
   api.post('/inbox/upload', async (c) => {
     const service = inboxFor(db);
     if (!service) throw new HttpError('not_implemented', 'The inbox is not ready yet.');
@@ -212,13 +217,21 @@ export function mountInboxUpload(api: Hono, auth: DeviceAuth, db: Db) {
           name: c.req.header('x-file-name') ?? null,
         });
     }
-    const deviceId = auth.verify(key);
-    if (!deviceId)
+    const header = (n: string) => c.req.header(n);
+    const tokenSecret = tokenFromHeaders(header) ?? (key?.startsWith(TOKEN_PREFIX) ? key : null);
+    const token = tokenSecret ? (tokens?.verify(tokenSecret) ?? null) : null;
+    if (token && !scopeAllows(token.scopes, ['capture']))
+      throw new HttpError(
+        'forbidden',
+        `The token "${token.name}" cannot send to the inbox; give it Capture in Settings.`,
+      );
+    const deviceId = token ? null : auth.verify(key);
+    if (!token && !deviceId)
       throw new HttpError(
         'unauthorized',
         'Mantel did not recognise the key. Copy it again from Settings › Capture.',
       );
-    const from = auth.list(deviceId).find((d) => d.current)?.name ?? null;
+    const from = token ? token.name : (auth.list(deviceId!).find((d) => d.current)?.name ?? null);
     const source: InboxSource = 'share';
     const created = [];
     for (const f of files)
