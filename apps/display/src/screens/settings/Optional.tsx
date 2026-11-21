@@ -14,6 +14,7 @@ const modules = import.meta.glob<Record<string, unknown>>(
     './chores/index.tsx',
     './meals/index.tsx',
     './plugins/index.tsx',
+    './open/index.tsx',
   ],
   { eager: false },
 );
@@ -38,6 +39,7 @@ export const LayoutSection = optional('./layout/index.tsx', 'LayoutSection');
 export const MealsSection = optional('./meals/index.tsx', 'MealsSection');
 export const ChoresSection = optional('./chores/index.tsx', 'ChoresSection');
 export const PluginsSection = optional('./plugins/index.tsx', 'PluginsSection');
+export const OpenSection = optional('./open/index.tsx', 'OpenSection');
 
 export function Mount({
   Component,
