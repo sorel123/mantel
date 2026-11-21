@@ -73,12 +73,15 @@ sleep 3
 # Report how the box laid out its disk: ubuntu-data and ubuntu-save are crypto_LUKS when
 # Ubuntu Core encrypted them.
 loop="$(losetup -fP --show "$disk")"
-lsblk -o NAME,SIZE,FSTYPE,LABEL,PARTLABEL "$loop" | tee "$out/disk-layout.txt"
+sleep 2
+# lsblk needs udev to know filesystems; blkid probes each partition itself.
+{ lsblk -o NAME,SIZE "$loop"; for p in "$loop"p*; do blkid -p "$p" || echo "$p: (nothing found)"; done; } \
+  | tee "$out/disk-layout.txt"
 losetup -d "$loop"
 rm -f "$disk"
 grep -a "mantel: first-boot config ran" "$out/serial.log" || echo "note: first-boot config message not seen on the serial console"
 echo "--- serial console (cloud-init and snapd lines) ---"
-grep -aiE "mantel-diag|cloud-init|mantel|wpe|frame|kiosk|wayland|interface|connect|seed|mesa" "$out/serial.log" | grep -v "^\[" | tail -300 || true
+grep -aiE "mantel-diag|encrypt|secboot|tpm|cloud-init|mantel|wpe|frame|kiosk|wayland|interface|connect|seed|mesa" "$out/serial.log" | grep -v "^\[" | tail -300 || true
 chmod -R a+rX "$out"
 if [ "${SECURE:-0}" = 1 ]; then
   if grep -q crypto_LUKS "$out/disk-layout.txt"; then echo "data partition is encrypted"
