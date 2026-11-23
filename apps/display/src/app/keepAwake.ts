@@ -20,6 +20,9 @@ function read(): AwakeUntil {
   }
 }
 
+/** Every `useKeepAwake()` on the page hears a change (cook mode holds; the dock shows it). */
+const listeners = new Set<(v: AwakeUntil) => void>();
+
 function write(v: AwakeUntil) {
   try {
     if (v === null) localStorage.removeItem(KEY);
@@ -27,30 +30,27 @@ function write(v: AwakeUntil) {
   } catch {
     // Private mode or blocked storage: the hold still works until the page reloads.
   }
+  for (const l of listeners) l(v);
 }
 
 export function useKeepAwake() {
   const [until, setUntil] = useState<AwakeUntil>(read);
   useEffect(() => {
+    listeners.add(setUntil);
+    return () => {
+      listeners.delete(setUntil);
+    };
+  }, []);
+  useEffect(() => {
     if (until === null || until === Infinity) return;
-    const t = setTimeout(
-      () => {
-        write(null);
-        setUntil(null);
-      },
-      Math.max(0, until - Date.now()),
-    );
+    const t = setTimeout(() => write(null), Math.max(0, until - Date.now()));
     return () => clearTimeout(t);
   }, [until]);
   const hold = useCallback((minutes: number | null) => {
     const v = minutes === null ? Infinity : Date.now() + minutes * 60_000;
     write(v);
-    setUntil(v);
   }, []);
-  const release = useCallback(() => {
-    write(null);
-    setUntil(null);
-  }, []);
+  const release = useCallback(() => write(null), []);
   return { until, held: until !== null, hold, release };
 }
 

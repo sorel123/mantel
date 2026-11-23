@@ -879,6 +879,100 @@ test('the meal planner plans a dinner from a favourite and sends its ingredients
   expect(problems).toEqual([]);
 });
 
+test('the recipe box imports a link, plans it for Thursday dinner and sends it to the grocery list', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/?mode=daylight');
+  await page.getByRole('button', { name: 'Open the meal planner' }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'Meal planner' });
+  await sheet.getByRole('button', { name: 'Recipes' }).click();
+
+  // The grid: eight mock recipes with photos, search and tags.
+  const grid = sheet.getByLabel('Recipe box');
+  await expect(grid.getByRole('button', { name: 'Open Weeknight beef tacos' })).toBeVisible();
+  expect(await grid.getByRole('button', { name: /^Open / }).count()).toBeGreaterThanOrEqual(8);
+  await sheet.getByRole('searchbox', { name: 'Search recipes' }).fill('cheddar');
+  await expect(grid.getByRole('button', { name: /^Open / })).toHaveCount(1);
+  await sheet.getByRole('searchbox', { name: 'Search recipes' }).fill('');
+
+  // Paste a link: mock mode reads the saved page through the real JSON-LD reader.
+  await sheet.getByRole('button', { name: 'Add a recipe' }).click();
+  await sheet
+    .getByRole('textbox', { name: 'Recipe link' })
+    .fill('https://recipes.example/sections');
+  await sheet.getByRole('button', { name: 'Add', exact: true }).click();
+  const recipe = sheet.getByLabel('Brown Butter Chocolate Chip Cookies', { exact: true });
+  await expect(
+    recipe.getByRole('heading', { name: 'Brown Butter Chocolate Chip Cookies' }),
+  ).toBeVisible();
+  await expect(
+    recipe.getByRole('button', { name: /1 cup \(226g\) unsalted butter/ }),
+  ).toBeVisible();
+
+  // The servings stepper rescales: 24 to 25 is not tidy, 24 to 48 via the server is; check one step.
+  await recipe.getByRole('button', { name: 'More servings' }).click();
+  await expect(recipe.getByText('25 servings')).toBeVisible();
+  await recipe.getByRole('button', { name: 'Fewer servings' }).click();
+
+  // Tap to strike an ingredient.
+  const butter = recipe.getByRole('button', { name: /unsalted butter/ });
+  await butter.click();
+  await expect(butter).toHaveAttribute('aria-pressed', 'true');
+
+  // Plan this: Thursday dinner.
+  await recipe.getByRole('button', { name: 'Plan this' }).click();
+  await recipe
+    .getByRole('button', { name: /^Thursday \d+$/ })
+    .first()
+    .click();
+  await recipe.getByRole('group', { name: 'Meal' }).getByRole('button', { name: 'Dinner' }).click();
+  await recipe.getByRole('button', { name: 'Plan for Thursday dinner' }).click();
+  await expect(
+    page.getByText('Brown Butter Chocolate Chip Cookies for Thursday dinner'),
+  ).toBeVisible();
+
+  // Its ingredients go to the grocery list, with amounts.
+  await recipe.getByRole('button', { name: 'Add ingredients to the grocery list' }).click();
+  await expect(
+    page.getByText(/^Added \d+ to Grocery|already there|topped up|^Everything is already/).first(),
+  ).toBeVisible();
+  const lists = await (await request.get('/api/lists')).json();
+  const grocery = lists.lists.find((l: { name: string }) => l.name === 'Grocery');
+  expect(grocery.items.map((i: { text: string }) => i.text).join('|')).toMatch(/dark chocolate/);
+
+  // Cook mode: one step at a time, a timer for a step that names a time, the screen kept on.
+  await recipe.getByRole('button', { name: 'Start cooking' }).click();
+  const cook = sheet.getByLabel('Cooking Brown Butter Chocolate Chip Cookies');
+  await expect(cook.getByText('Step 1 of 5')).toBeVisible();
+  await expect(cook.getByRole('button', { name: 'Set a timer for 7 min' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('mantel.keepAwake'))).not.toBeNull();
+  await cook.getByRole('button', { name: 'Next step' }).click();
+  await expect(cook.getByText('Step 2 of 5')).toBeVisible();
+  await cook.getByRole('button', { name: 'Done cooking' }).click();
+  await expect(cook).toBeHidden();
+
+  // The planner's Thursday dinner opens the recipe.
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Open the meal planner' }).first().click();
+  // (The planned Thursday may fall in next week: page there when it does.)
+  const week = await (await request.get('/api/meals/week')).json();
+  const onThursday = (w: {
+    days: string[];
+    meals: Array<{ date: string; slot: string; recipeId?: string }>;
+  }) => w.meals.find((m) => m.date === w.days[3] && m.slot === 'dinner' && m.recipeId);
+  if (!onThursday(week)) await sheet.getByRole('button', { name: 'Next week' }).click();
+  await sheet
+    .getByRole('button', { name: 'Thursday dinner: Brown Butter Chocolate Chip Cookies' })
+    .click();
+  await expect(
+    sheet.getByRole('heading', { name: 'Brown Butter Chocolate Chip Cookies' }),
+  ).toBeVisible();
+  await expect(sheet.getByText('Thursday dinner', { exact: true })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test('people and touch: person filter, guest mode, live swipe, a weekly event with a place', async ({
   page,
 }) => {
@@ -1025,6 +1119,14 @@ test.describe('companion app on a phone', () => {
     await expect(page).toHaveURL(/#calendar$/);
     await tabs.getByRole('button', { name: 'Meals' }).click();
     await expect(page.getByRole('heading', { name: 'Meals' })).toBeVisible();
+    // v4 B: recipes under Meals, with a paste box for a link found on the phone.
+    await page.getByRole('button', { name: 'Recipes', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: 'Recipe link' })).toBeVisible();
+    await page.getByRole('button', { name: /Weeknight beef tacos/ }).click();
+    await expect(page.getByRole('heading', { name: 'Weeknight beef tacos' })).toBeVisible();
+    await page.getByRole('button', { name: '+ Grocery' }).click();
+    await page.getByRole('button', { name: '‹ All recipes' }).click();
+    await page.getByRole('button', { name: 'This week' }).click();
     await tabs.getByRole('button', { name: 'Chores' }).click();
     await expect(page.getByRole('heading', { name: 'Chores' })).toBeVisible();
 
