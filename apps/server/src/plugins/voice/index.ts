@@ -10,6 +10,7 @@ import { scopeAllows, type TokenIdentity } from '../../auth.js';
 import type { Handle } from '../../contract.js';
 import { HttpError, notFound } from '../../errors.js';
 import { VERSION } from '../../version.js';
+import { inboxFor } from '../inbox/index.js';
 import type { MealsService } from '../meals/index.js';
 import type { NoteStore } from '../notes/index.js';
 import type { PushService } from '../push/service.js';
@@ -38,9 +39,10 @@ export function createOpenService(
   deps: AppDeps,
   extra: { meals?: MealsService; notes: NoteStore; push: PushService },
 ): OpenService {
-  const { providers, settings, registry, hub, config } = deps;
+  const { providers, settings, registry, hub, config, db } = deps;
   const service = new OpenService({
     providers,
+    inboxCount: () => inboxFor(db)?.store.pending() ?? 0,
     ...(extra.meals ? { meals: extra.meals } : {}),
     settings: () => settings.get(),
     claudeKey: () => registry.resolve('quips').secrets.claudeApiKey ?? '',

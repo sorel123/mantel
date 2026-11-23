@@ -4,6 +4,7 @@
  * Every value here must parse against its route's response schema (see fixtures.test.ts).
  */
 import { companionRouteFixtures } from '../companion.js';
+import { inboxRouteFixtures } from '../inbox.js';
 import { DEFAULT_PANEL, type JsonRouteName, type ResponseOf } from '../api.js';
 import { addDays, startOfDay, toLocalIso } from '../time.js';
 import { MOCK_WEBRTC_ANSWER } from '../home-webrtc.js';
@@ -18,6 +19,7 @@ import {
   setupState,
 } from './integrations.js';
 import { mealFavourites, mealsWeek } from './meals.js';
+import { mockRecipes } from './recipes.js';
 import { openRouteFixtures } from './open.js';
 import { chores, lists, rewardRouteFixtures } from './lists.js';
 import { listSyncRouteFixtures } from './list-sync.js';
@@ -25,15 +27,18 @@ import { PluginBlocks, PluginChip } from '../plugins.js';
 import { pluginBlocks, pluginChips } from './plugin-cards.js';
 import { calendars, people } from './people.js';
 import { photoCaption, photos, photoSourceRouteFixtures } from './photos.js';
+import { digestRouteFixtures, sampleActivity } from './digest.js';
 import { settings } from './settings.js';
 import { commute, weather, weatherForPlace, weatherPlaces, weatherQuip } from './weather.js';
 
 export * from './calendar.js';
+export * from './digest.js';
 export * from './home.js';
 export * from './integrations.js';
 export * from './lists.js';
 export * from './list-sync.js';
 export * from './meals.js';
+export * from './recipes.js';
 export * from './open.js';
 export * from './people.js';
 export * from './photos.js';
@@ -87,6 +92,7 @@ export function routeFixtures(now = new Date()): {
         screens: s.screens,
         defaultScreen: s.defaultScreen,
         integrations: s.integrations,
+        sinceStrip: s.digest.sinceStrip,
       },
       theme: s.theme,
       panel: DEFAULT_PANEL,
@@ -218,9 +224,38 @@ export function routeFixtures(now = new Date()): {
     ...companionRouteFixtures(now),
     ...photoSourceRouteFixtures(now),
     ...rewardRouteFixtures(now),
+    ...digestRouteFixtures(now),
     ...listSyncRouteFixtures(now),
     ...mealFixtures(now),
+    ...inboxRouteFixtures(now),
     ...openRouteFixtures(now),
+    ...recipeFixtures(now),
+  };
+}
+
+/** v4 B: the recipe box's routes. */
+function recipeFixtures(now: Date) {
+  const recipes = mockRecipes(now);
+  const recipe = recipes[0]!;
+  return {
+    recipes: { recipes },
+    recipe: { recipe },
+    recipeCreate: { recipe },
+    recipePatch: { recipe },
+    recipeDelete: { ok: true as const },
+    recipeImport: {
+      recipe,
+      via: 'link' as const,
+      message: 'Read from the recipe on the page.',
+      existing: false,
+    },
+    recipeToGrocery: {
+      listId: 'list-grocery',
+      listName: 'Grocery',
+      added: ['1 lb ground beef', '8 small flour tortillas'],
+      merged: ['2 cups shredded cheddar'],
+      skipped: ['Salsa'],
+    },
   };
 }
 
@@ -323,5 +358,7 @@ export function wsFixtures(now = new Date()) {
     { type: 'display.wake', payload: { reason: 'presence' } },
     { type: 'display.sleep', payload: { reason: 'schedule' } },
     { type: 'notes.changed', payload: {} },
+    { type: 'inbox.changed', payload: { pending: 2 } },
+    { type: 'activity.added', payload: { entry: sampleActivity(now)[0]! } },
   ] as const;
 }

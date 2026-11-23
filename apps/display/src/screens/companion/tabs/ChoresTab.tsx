@@ -2,7 +2,8 @@
  * Chores from the phone: pick a person, tick their chores for today, see this week's stars.
  * Setting chores up lives under "Set up chores" (the same form the old /add page had).
  */
-import type { Chore, Person } from '@mantel/shared';
+import { parseDeepLink, toIsoDate, type Chore, type Person } from '@mantel/shared';
+import { sinceLabel } from '../../../features/digest';
 import { useState } from 'react';
 import { Avatar } from '../../lists/Avatar';
 import { Star } from '../../lists/ChoreChart';
@@ -14,7 +15,11 @@ export function ChoresTab({ people }: { people: Person[] }) {
   const withChores = people.filter((p) => chart?.chores.some((c) => c.personId === p.id));
   const [who, setWho] = useState<string | undefined>();
   const [manage, setManage] = useState(false);
-  const person = withChores.find((p) => p.id === who) ?? withChores[0];
+  // v4 D: a notification for a chore opens that chore's person.
+  const deep = parseDeepLink(location.hash);
+  const deepChore =
+    deep?.tab === 'chores' ? chart?.chores.find((c) => c.id === deep.id) : undefined;
+  const person = withChores.find((p) => p.id === (who ?? deepChore?.personId)) ?? withChores[0];
 
   if (!chart)
     return (
@@ -81,7 +86,7 @@ export function ChoresTab({ people }: { people: Person[] }) {
 function ChoreTick({ chore, onTap }: { chore: Chore; onTap: () => void }) {
   const done = isComplete(chore);
   return (
-    <li className="aitem">
+    <li className="aitem" data-deep={chore.id}>
       <button
         type="button"
         className={`litem${done ? ' done' : ''}`}
@@ -101,6 +106,14 @@ function ChoreTick({ chore, onTap }: { chore: Chore; onTap: () => void }) {
               {' '}
               {Math.min(chore.doneCount, chore.target)}/{chore.target}
             </small>
+          )}
+          {chore.overdueSince && !done && (
+            <>
+              {' '}
+              <span className="pill dg-since">
+                {sinceLabel(chore.overdueSince, toIsoDate(new Date()))}
+              </span>
+            </>
           )}
         </span>
         <span className="cstars tnum" aria-label={`${chore.stars} stars`}>

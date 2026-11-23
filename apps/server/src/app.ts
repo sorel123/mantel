@@ -10,11 +10,13 @@ import { HttpError } from './errors.js';
 import { log } from './log.js';
 import { createGeocoder, type Geocoder } from './geocode.js';
 import { createPlugins, type PluginSet } from './plugins/index.js';
+import { writerFor } from './plugins/activity/writer.js';
 import { mockPlugins } from './plugins/mock.js';
 import { PluginRegistry } from './plugins/registry.js';
 import { mockProviders } from './providers/mock/index.js';
 import type { ProviderContext, Providers } from './providers/types.js';
 import { registerRoutes } from './routes/index.js';
+import { mountInboxUpload } from './plugins/inbox/index.js';
 import { mountMcp } from './plugins/mcp/index.js';
 import { mountAlexa } from './plugins/voice/alexa.js';
 import { BoxService } from './box/index.js';
@@ -102,10 +104,11 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   if (config.MOCK) {
     providers = mockProviders(ctx);
     const mocked = providers;
-    for (const p of mockPlugins(ctx.now, {
-      calendar: () => mocked.calendar,
-      home: () => mocked.home,
-    }))
+    for (const p of mockPlugins(
+      ctx.now,
+      { calendar: () => mocked.calendar, home: () => mocked.home },
+      { empty: config.MOCK_EMPTY },
+    ))
       registry.register(p);
   } else {
     pluginSet = createPlugins(ctx, { env: overrides.env, fetch: overrides.fetch });
@@ -172,6 +175,8 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   });
 
   const api = new Hono();
+  // v4 D: remember which device wrote last, so the activity log can say who changed what.
+  api.use('*', writerFor(auth).middleware);
   const open = registerRoutes(
     makeHandle(api, { auth, tokens, validateResponses: !config.isProd }),
     deps,
@@ -182,6 +187,8 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   else providers.calendar.mount?.(api, auth);
 
   box?.mount(api);
+  // v4 K: the form upload the iPhone Shortcut and the phone's share sheet post to.
+  mountInboxUpload(api, auth, db, tokens);
 
   if (config.MOCK) {
     // Mock-only helpers so workstreams can demo server pushes: `curl -XPOST .../api/dev/emit -d '{...}'`.

@@ -170,3 +170,31 @@ export async function runPluginAction(
     if (key.startsWith(`blocks:${id}/`) || key.startsWith(`chip:${id}/`)) refetch.get(key)?.();
   return res.message;
 }
+
+/* ---------- chips that open a feature's own view (v4 K: the inbox) ---------- */
+
+const chipHandlers = new Map<string, () => void>();
+const chipListeners = new Set<() => void>();
+
+/**
+ * A feature can take over what tapping a plugin's dock chip does, for a chip with no `sheet` (the
+ * inbox opens its review, which blocks cannot draw). Returns the unregister function.
+ */
+export function registerChipHandler(pluginId: string, open: () => void): () => void {
+  chipHandlers.set(pluginId, open);
+  chipListeners.forEach((l) => l());
+  return () => {
+    if (chipHandlers.get(pluginId) === open) chipHandlers.delete(pluginId);
+    chipListeners.forEach((l) => l());
+  };
+}
+
+export function useChipHandler(pluginId: string): (() => void) | undefined {
+  return useSyncExternalStore(
+    (l) => {
+      chipListeners.add(l);
+      return () => chipListeners.delete(l);
+    },
+    () => chipHandlers.get(pluginId),
+  );
+}

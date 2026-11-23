@@ -412,18 +412,18 @@
 }
 
 /* v4 G: with the plugin pack the dock can hold several chips. Below Surface width every chip but
-   the timers shows its icon alone (the label stays for screen readers), and none takes more than
-   its share. */
+   the timers and the inbox count (v4 K, a number already) shows its icon alone (the label stays
+   for screen readers), and none takes more than its share. */
 .dock .pchip span {
   max-width: 10em;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-@media (max-width: 1300px) {
-  .dock .pchip:not([data-plugin='timers']) span {
+@media (max-width: 1500px) {
+  .dock .pchip:not([data-plugin='timers'], [data-plugin='inbox']) span {
     display: none;
   }
-  .dock .pchip:not([data-plugin='timers']) {
+  .dock .pchip:not([data-plugin='timers'], [data-plugin='inbox']) {
     padding: 0;
     width: 48px;
     justify-content: center;

@@ -130,6 +130,10 @@ export const TOKEN_ROUTE_SCOPES: Record<string, TokenScope[]> = {
   choreDone: ['chores'],
   choreUndo: ['chores'],
   noteCreate: ['capture'],
+  // Workstream K: the capture inbox (the iPhone Shortcut and scripts send to it).
+  inbox: ['read', 'capture'],
+  inboxStatus: ['read', 'capture'],
+  inboxCreate: ['capture'],
   // This workstream's own routes.
   say: ['capture', 'lists', 'calendar', 'meals'],
   openState: ['read'],

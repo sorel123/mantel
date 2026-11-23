@@ -157,6 +157,10 @@ The chore chart counts completions per day. Each tap earns the chore's stars, a 
 
 The Today screen's grocery card is `GroceryPeek` from `src/screens/lists`; tapping it opens the Lists screen. The person chips in the dock (`screens/today/personFilter.tsx`) apply here too: with one person chosen, other people's list items, chore cards and star chips dim while unowned items stay bright.
 
+## Capture (v4 K)
+
+Forwarded email, the phone's share sheet, the iPhone "Send to Mantel" Shortcut, photos and pasted text all land in one inbox: the original beside the events, list items and meals read from it, each editable, added only when someone says yes, with Undo. The wall shows a count chip in the dock; the phone app has an Inbox tab. Set up in Settings › Capture; details in [`docs/capture.md`](docs/capture.md).
+
 ## Pairing a display
 
 Outside mock mode the display shows a pairing screen. The server prints a 6-digit code to its log on start (it rotates every 15 minutes); enter it on the tablet and the display stores a device key. In mock mode no key is needed and `000000` also pairs.

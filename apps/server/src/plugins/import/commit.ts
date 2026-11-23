@@ -35,15 +35,24 @@ export function eventTimes(e: ImportEvent, timeZone: string) {
 
 const SLOT_WORD = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', other: 'Meal' };
 
+/** What a commit wrote, so the inbox can take it back (Undo). */
+export interface Created {
+  eventIds: string[];
+  itemIds: string[];
+  /** Planned meals, with what was planned in that slot before (null: nothing). */
+  meals: Array<{ date: string; slot: 'breakfast' | 'lunch' | 'dinner'; before: string | null }>;
+}
+
 export async function commitImport(
   req: Commit | ImportCommitRequest,
   providers: Pick<Providers, 'calendar' | 'lists'>,
   timeZone: string,
-  planner?: Pick<MealsService, 'enabled' | 'plan'>,
+  planner?: Pick<MealsService, 'enabled' | 'plan'> & Partial<Pick<MealsService, 'week'>>,
 ) {
   const body = CommitSchema.parse(req);
   const problems: string[] = [];
   const events: CalendarEvent[] = [];
+  const created: Created = { eventIds: [], itemIds: [], meals: [] };
 
   for (const e of body.events) {
     try {
@@ -62,6 +71,7 @@ export async function commitImport(
         }
       }
       events.push(saved);
+      created.eventIds.push(saved.id);
     } catch (err) {
       problems.push(`Could not add ${e.title}: ${why(err)}`);
     }
@@ -79,7 +89,8 @@ export async function commitImport(
           list = (await providers.lists.createList({ name: i.listName })).list;
           lists = [...lists, list];
         }
-        await providers.lists.addItem(list.id, { text: i.text });
+        const added = await providers.lists.addItem(list.id, { text: i.text });
+        created.itemIds.push(added.item.id);
         items++;
       } catch (err) {
         problems.push(`Could not add ${i.text}: ${why(err)}`);
@@ -99,7 +110,13 @@ export async function commitImport(
         continue;
       }
       try {
+        const before = planner.week
+          ? ((await planner.week(new Date(`${m.date}T12:00:00`)).catch(() => null))?.meals.find(
+              (x) => x.date === m.date && x.slot === m.slot && x.source === 'mantel',
+            )?.title ?? null)
+          : null;
         await planner.plan({ date: m.date, slot: m.slot, title: m.title.slice(0, 80) });
+        created.meals.push({ date: m.date, slot: m.slot, before });
         meals++;
       } catch (err) {
         problems.push(`Could not plan ${m.title}: ${why(err)}`);
@@ -116,13 +133,14 @@ export async function commitImport(
     } else {
       for (const m of forCalendar) {
         try {
-          await providers.calendar.quickAdd({
+          const { event } = await providers.calendar.quickAdd({
             title: `${SLOT_WORD[m.slot]}: ${m.title}`,
             start: wallIso(m.date, '00:00', timeZone),
             end: wallIso(shiftDate(m.date, 1), '00:00', timeZone),
             allDay: true,
             calendarId: mealsCal.id,
           });
+          created.eventIds.push(event.id);
           meals++;
         } catch (err) {
           problems.push(`Could not add ${m.title}: ${why(err)}`);
@@ -131,5 +149,5 @@ export async function commitImport(
     }
   }
 
-  return { events, items, meals, problems };
+  return { events, items, meals, problems, created };
 }

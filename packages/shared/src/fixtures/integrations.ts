@@ -14,6 +14,8 @@ import type { PluginManifest } from '../plugins.js';
 import { pluginPackManifests } from './plugin-pack.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
 import { googlePhotosManifest, immichManifest, photoFolderManifest } from './photo-manifests.js';
+import { inboxManifest, mailinManifest } from '../inbox.js';
+import { digestManifest } from './digest.js';
 import { haTodoManifest, remindersManifest, todoistManifest } from './list-sync.js';
 import { settings } from './settings.js';
 
@@ -408,7 +410,7 @@ export const pluginManifests: PluginManifest[] = [
     id: 'meals',
     name: 'Meal planner',
     description:
-      'Plan the week on the wall from your favourite meals and send the ingredients to the grocery list. Built in.',
+      'Plan the week on the wall from your favourite meals and a recipe box filled from any recipe link, and send the ingredients to the grocery list. Built in.',
     category: 'tasks',
     step: null,
     connect: 'none',
@@ -418,6 +420,7 @@ export const pluginManifests: PluginManifest[] = [
       'Nothing to connect: the plan and favourites live on this server.',
       'Tap Tonight or the meals card on Today to open the planner.',
       'A calendar named Meals is still read: its entries fill any slot the planner leaves empty.',
+      'Recipes in the planner: paste a link from any recipe site. Photos, pasted text and pages without recipe data are read by Claude with the key under Weather quips.',
     ],
     fields: [],
     contributes: { events: ['calendar.changed', 'list.changed'] },
@@ -427,6 +430,9 @@ export const pluginManifests: PluginManifest[] = [
   immichManifest,
   googlePhotosManifest,
   photoFolderManifest,
+  inboxManifest,
+  mailinManifest,
+  digestManifest,
   ...pluginPackManifests,
   remindersManifest,
   todoistManifest,
@@ -503,6 +509,15 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    { ...base('inbox'), state: 'connected', summary: '2 things to check' },
+    {
+      ...base('mailin'),
+      state: 'connected',
+      summary: 'ourfamily.mantel@gmail.com, checked a minute ago',
+      lastOkAt: ok,
+      config: { provider: 'gmail', address: 'ourfamily.mantel@gmail.com', allowFrom: '' },
+    },
+    { ...base('digest'), state: 'connected', summary: 'Morning digest at 7:00 for 4 people' },
     // v4 G, the plugin pack: these run for real in mock mode with sample data.
     { ...base('birthdays'), state: 'connected', summary: '4 birthdays, next: Mia in 3 days' },
     { ...base('pets'), state: 'connected', summary: 'Biscuit and Luna, 5 jobs a day' },

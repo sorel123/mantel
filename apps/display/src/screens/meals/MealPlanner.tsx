@@ -28,10 +28,18 @@ import {
   weekToGrocery,
 } from './data';
 import { MealIcon, Svg } from './icons';
+import { RecipeIcon } from './recipes/icons';
+import { RecipePage } from './recipes/RecipePage';
+import { RecipesView } from './recipes/RecipesView';
 import './meals.css';
 
 export type PlannerView =
-  { kind: 'week' } | { kind: 'slot'; date: string; slot: PlanSlot } | { kind: 'favourites' };
+  | { kind: 'week' }
+  | { kind: 'slot'; date: string; slot: PlanSlot }
+  | { kind: 'favourites' }
+  /** v4 B: the recipe box, and one recipe. */
+  | { kind: 'recipes' }
+  | { kind: 'recipe'; id: string };
 
 /** `Nov 2 to 8`, or `Oct 27 to Nov 2` across months. */
 function weekRange(days: string[]) {
@@ -98,6 +106,17 @@ export function MealPlannerBody({
     );
   else if (view.kind === 'favourites')
     body = <FavouritesView favourites={favourites} onBack={back} />;
+  else if (view.kind === 'recipes')
+    body = <RecipesView onBack={back} onOpen={(id) => setView({ kind: 'recipe', id })} />;
+  else if (view.kind === 'recipe')
+    body = (
+      <RecipePage
+        key={view.id}
+        id={view.id}
+        onBack={() => setView(initial.kind === 'recipe' ? { kind: 'week' } : { kind: 'recipes' })}
+        backLabel={initial.kind === 'recipe' ? 'Back to the week' : 'Back to recipes'}
+      />
+    );
   else
     body = (
       <>
@@ -129,6 +148,9 @@ export function MealPlannerBody({
             </button>
           </div>
           <span className="grow" />
+          <button type="button" className="btn" onClick={() => setView({ kind: 'recipes' })}>
+            <Svg>{RecipeIcon.book}</Svg> Recipes
+          </button>
           <button type="button" className="btn" onClick={() => setView({ kind: 'favourites' })}>
             <Svg>{MealIcon.heart}</Svg> Favourites
           </button>
@@ -157,9 +179,9 @@ export function MealPlannerBody({
   return (
     <div className="meal-planner">
       <SheetHeader
-        title="Meals"
+        title={view.kind === 'recipes' || view.kind === 'recipe' ? 'Recipes' : 'Meals'}
         subtitle={
-          week.status === 'ready'
+          week.status === 'ready' && view.kind !== 'recipes' && view.kind !== 'recipe'
             ? `${week.data.weekStart === thisWeek ? 'This week' : 'Week of'} · ${weekRange(week.data.days)}`
             : undefined
         }

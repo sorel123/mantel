@@ -14,6 +14,8 @@ const modules = import.meta.glob<Record<string, unknown>>(
     './chores/index.tsx',
     './meals/index.tsx',
     './photos/index.tsx',
+    './capture/index.tsx',
+    './digest/index.tsx',
     './plugins/index.tsx',
     './lists/index.tsx',
     './open/index.tsx',
@@ -41,6 +43,8 @@ export const LayoutSection = optional('./layout/index.tsx', 'LayoutSection');
 export const MealsSection = optional('./meals/index.tsx', 'MealsSection');
 export const ChoresSection = optional('./chores/index.tsx', 'ChoresSection');
 export const PhotosSection = optional('./photos/index.tsx', 'PhotosSection');
+export const CaptureSection = optional('./capture/index.tsx', 'CaptureSection');
+export const DigestSection = optional('./digest/index.tsx', 'DigestSection');
 export const PluginsSection = optional('./plugins/index.tsx', 'PluginsSection');
 export const ListSharingSection = optional('./lists/index.tsx', 'ListSharingSection');
 export const OpenSection = optional('./open/index.tsx', 'OpenSection');

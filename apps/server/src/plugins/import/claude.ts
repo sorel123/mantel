@@ -16,10 +16,18 @@ import {
 
 export const IMPORT_MODEL = 'claude-sonnet-5-5';
 
+/** What to read: a photo, a PDF or plain text (an email body, a shared note). */
+export type AnalyseContent =
+  | { kind: 'image'; dataUrl: string }
+  | { kind: 'pdf'; base64: string; name?: string }
+  | { kind: 'text'; text: string; subject?: string };
+
 export interface AnalyseInput {
   apiKey: string;
-  /** `data:image/jpeg;base64,...` */
-  image: string;
+  /** `data:image/jpeg;base64,...` (Magic Import). Ignored when `content` is given. */
+  image?: string;
+  /** v4 K: a PDF or text instead of a photo. */
+  content?: AnalyseContent;
   hint: ImportHint;
   /** Today in the household's zone, `YYYY-MM-DD`, and the weekday name. */
   today: string;
@@ -117,10 +125,11 @@ const HINTS: Record<ImportHint, string> = {
   meals: 'The person expects a meal plan or menu for the coming days.',
 };
 
-export function systemPrompt(input: Omit<AnalyseInput, 'apiKey' | 'image'>): string {
+export function systemPrompt(input: Omit<AnalyseInput, 'apiKey' | 'image' | 'content'>): string {
   return [
-    'You read photos for a family wall calendar: school flyers, team schedules, party invitations, handwritten lists, menus, appointment cards.',
-    'Turn what is in the photo into calendar events, list items and meals. Everything you return is shown to the family to check before it is saved.',
+    'You read photos, PDFs and messages for a family wall calendar: school flyers and newsletters, team schedules, party invitations, appointment emails, handwritten lists, menus.',
+    'Turn what is in it into calendar events, list items and meals. Everything you return is shown to the family to check before it is saved. "The photo" below means whatever you were given.',
+    'Ignore email signatures, footers, unsubscribe text and forwarded-message headers.',
     `Today is ${input.weekday} ${input.today} (time zone ${input.timeZone}). Resolve dates without a year to the next time they occur on or after today; "Friday" means the next Friday.`,
     'Only use what the photo says. Never invent a date, time or place. Skip a date you cannot read rather than guess.',
     'An event with no time is all day. Keep titles short (under 60 characters) and in plain words, the way a parent would write them on a calendar.',
@@ -195,10 +204,52 @@ export function cleanCandidates(raw: Raw, people: Person[], lists: List[]): Impo
 /** Why the photo could not be read, as a sentence for the person. */
 export class ImportError extends Error {}
 
+type Part =
+  | {
+      type: 'image';
+      source: {
+        type: 'base64';
+        media_type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+        data: string;
+      };
+    }
+  | { type: 'document'; source: { type: 'base64'; media_type: 'application/pdf'; data: string } }
+  | { type: 'text'; text: string };
+
+/** The user turn for each kind of capture. */
+export function contentParts(content: AnalyseContent): Part[] {
+  if (content.kind === 'image') {
+    const match = /^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/.exec(content.dataUrl);
+    if (!match) throw new ImportError('Send a JPEG or PNG photo.');
+    const mediaType = match[1] as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+    return [
+      { type: 'image', source: { type: 'base64', media_type: mediaType, data: match[2]! } },
+      { type: 'text', text: 'What should go on the family calendar and lists from this photo?' },
+    ];
+  }
+  if (content.kind === 'pdf')
+    return [
+      {
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: content.base64 },
+      },
+      {
+        type: 'text',
+        text: `What should go on the family calendar and lists from this PDF${content.name ? ` (${content.name})` : ''}?`,
+      },
+    ];
+  const text = content.text.trim().slice(0, 20_000);
+  if (!text) throw new ImportError('There was no text to read.');
+  return [
+    {
+      type: 'text',
+      text: `What should go on the family calendar and lists from this message?\n\n${content.subject ? `Subject: ${content.subject}\n\n` : ''}${text}`,
+    },
+  ];
+}
+
 export async function analyseWithClaude(input: AnalyseInput): Promise<ImportAnalyseResponse> {
-  const match = /^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/.exec(input.image);
-  if (!match) throw new ImportError('Send a JPEG or PNG photo.');
-  const mediaType = match[1] as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+  const parts = contentParts(input.content ?? { kind: 'image', dataUrl: input.image ?? '' });
   const client =
     input.client ??
     new Anthropic({ apiKey: input.apiKey, maxRetries: 1, timeout: 90_000, fetch: input.fetch });
@@ -215,13 +266,7 @@ export async function analyseWithClaude(input: AnalyseInput): Promise<ImportAnal
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: match[2]! } },
-            {
-              type: 'text',
-              text: 'What should go on the family calendar and lists from this photo?',
-            },
-          ],
+          content: parts,
         },
       ],
     });
@@ -231,7 +276,11 @@ export async function analyseWithClaude(input: AnalyseInput): Promise<ImportAnal
     if (err instanceof Anthropic.RateLimitError)
       throw new ImportError('Claude is busy right now. Try again in a minute.');
     if (err instanceof Anthropic.BadRequestError)
-      throw new ImportError('Claude could not read that photo. Try a clearer, closer shot.');
+      throw new ImportError(
+        input.content?.kind === 'pdf'
+          ? 'Claude could not read that PDF. It may be too long (100 pages at most) or locked.'
+          : 'Claude could not read that photo. Try a clearer, closer shot.',
+      );
     if (err instanceof Anthropic.APIError)
       throw new ImportError(
         `Claude answered with an error (${err.status ?? 'no status'}). Try again.`,
