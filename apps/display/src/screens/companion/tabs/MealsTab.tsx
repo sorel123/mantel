@@ -12,6 +12,7 @@ import { groceryToast, mealToGrocery } from '../../meals/data';
 import { slotWord, useMealPlan } from '../../today/Agenda';
 import { relativeDay } from '../../today/calendar';
 import { MagicImport } from '../MagicImport';
+import { PhoneRecipes } from '../../meals/recipes/PhoneRecipes';
 
 export function MealsTab() {
   const now = useNow(60_000);
@@ -20,6 +21,10 @@ export function MealsTab() {
   const { lists, add } = useLists();
   const [flash, setFlash] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  // v4 B: the recipe box, with a paste box for a link found on the phone.
+  const [view, setView] = useState<'week' | 'recipes'>(() =>
+    location.hash === '#recipes' ? 'recipes' : 'week',
+  );
   const grocery = lists ? groceryList(lists) : undefined;
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i));
 
@@ -49,6 +54,38 @@ export function MealsTab() {
       </section>
     );
 
+  const switcher = (
+    <div className="seg prc-switch" role="group" aria-label="Meals or recipes">
+      <button
+        type="button"
+        className="btn"
+        aria-pressed={view === 'week'}
+        onClick={() => setView('week')}
+      >
+        This week
+      </button>
+      <button
+        type="button"
+        className="btn"
+        aria-pressed={view === 'recipes'}
+        onClick={() => setView('recipes')}
+      >
+        Recipes
+      </button>
+    </div>
+  );
+
+  if (view === 'recipes')
+    return (
+      <>
+        <header className="ahead arow">
+          <h1 className="h1">Meals</h1>
+        </header>
+        {switcher}
+        <PhoneRecipes />
+      </>
+    );
+
   return (
     <>
       <header className="ahead arow">
@@ -57,6 +94,7 @@ export function MealsTab() {
           Photo of a menu
         </button>
       </header>
+      {switcher}
       <div className="aflash" role="status">
         {flash}
       </div>

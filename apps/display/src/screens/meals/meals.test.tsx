@@ -38,9 +38,17 @@ function stubServer(overrides: Record<string, unknown> = {}) {
                   ? fx.mealFavourites
                   : path === '/meals/plan'
                     ? { meal: null }
-                    : path.endsWith('/to-grocery')
-                      ? fx.mealToGrocery
-                      : {};
+                    : path === '/recipes/rec-tacos/to-grocery'
+                      ? fx.recipeToGrocery
+                      : path.endsWith('/to-grocery')
+                        ? fx.mealToGrocery
+                        : path === '/recipes'
+                          ? fx.recipes
+                          : path.startsWith('/recipes/')
+                            ? fx.recipe
+                            : path.startsWith('/plugins/')
+                              ? { ok: true, message: 'Timer started.' }
+                              : {};
       return new Response(JSON.stringify(reply), {
         headers: { 'content-type': 'application/json' },
       });
@@ -228,5 +236,73 @@ describe('helpers', () => {
     expect(groceryToast({ listName: 'Grocery', added: ['Eggs'], skipped: [] })).toBe(
       'Added 1 item to Grocery',
     );
+  });
+});
+
+describe('the recipe box', () => {
+  it('shows the grid, opens a recipe, rescales it and sends it to the grocery list', async () => {
+    stubServer();
+    const sheet = await openPlanner();
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Recipes' }));
+    const grid = await within(sheet).findByLabelText('Recipe box');
+    expect(within(grid).getAllByRole('button', { name: /^Open / })).toHaveLength(8);
+    fireEvent.change(within(sheet).getByRole('searchbox', { name: 'Search recipes' }), {
+      target: { value: 'cheddar' },
+    });
+    expect(within(grid).getAllByRole('button', { name: /^Open / })).toHaveLength(1);
+    fireEvent.click(within(grid).getByRole('button', { name: 'Open Weeknight beef tacos' }));
+    expect(
+      await within(sheet).findByRole('heading', { name: 'Weeknight beef tacos' }),
+    ).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: /^1 lb ground beef$/ })).toBeTruthy();
+    // 4 servings to 8 doubles the amounts.
+    for (let i = 0; i < 4; i++)
+      fireEvent.click(within(sheet).getByRole('button', { name: 'More servings' }));
+    expect(within(sheet).getByRole('button', { name: /^2 lbs? ground beef$/ })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: /^1 cup tomato sauce$/ })).toBeTruthy();
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: 'Add ingredients to the grocery list' }),
+    );
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === '/recipes/rec-tacos/to-grocery')?.body).toEqual({
+        servings: 8,
+      }),
+    );
+    expect(
+      await screen.findByText('Added 2 to Grocery, 1 topped up, 1 already there'),
+    ).toBeTruthy();
+  });
+
+  it('cook mode pages through the steps, offers timers and keeps the screen on', async () => {
+    stubServer();
+    localStorage.removeItem('mantel.keepAwake');
+    const sheet = await openPlanner();
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Recipes' }));
+    fireEvent.click(
+      await within(sheet).findByRole('button', { name: 'Open Weeknight beef tacos' }),
+    );
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Start cooking' }));
+    expect(await within(sheet).findByText('Step 1 of 6')).toBeTruthy();
+    expect(localStorage.getItem('mantel.keepAwake')).not.toBeNull();
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Set a timer for 4 min' }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === '/plugins/timers/actions/start')?.body).toMatchObject({
+        args: { seconds: 240 },
+      }),
+    );
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Next step' }));
+    expect(within(sheet).getByText('Step 2 of 6')).toBeTruthy();
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Done cooking' }));
+    await waitFor(() => expect(localStorage.getItem('mantel.keepAwake')).toBeNull());
+  });
+
+  it('a planned meal that cooks a recipe opens it', async () => {
+    stubServer();
+    const sheet = await openPlanner();
+    fireEvent.click(await within(sheet).findByRole('button', { name: 'Monday dinner: Tacos' }));
+    expect(
+      await within(sheet).findByRole('heading', { name: 'Weeknight beef tacos' }),
+    ).toBeTruthy();
+    expect(within(sheet).getByText('Monday dinner')).toBeTruthy();
   });
 });
