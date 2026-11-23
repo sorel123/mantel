@@ -3,7 +3,10 @@
  * from the home screen. Bottom tabs: Lists, Calendar, Meals, Chores, Note. The tab lives in the
  * URL hash so a notification can open the right one. A phone pairs once with the admin PIN.
  */
+import { deepLinkUrl, parseDeepLink } from '@mantel/shared';
 import { useEffect, useState } from 'react';
+import { SinceStrip, useSince } from '../../features/digest';
+import { DigestPage, useDeepFocus } from './digest';
 import { OverlayProvider } from '../../app/overlay';
 import { Pairing } from '../../app/Pairing';
 import { useBootstrap, useBootstrapState } from '../../lib/bootstrap';
@@ -19,7 +22,7 @@ import '../lists/lists.css';
 import '../today/calendar.css';
 import './companion.css';
 
-export type Tab = 'lists' | 'calendar' | 'meals' | 'chores' | 'note';
+export type Tab = 'lists' | 'calendar' | 'meals' | 'chores' | 'note' | 'digest';
 const TABS: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
   {
     id: 'lists',
@@ -43,27 +46,31 @@ const TABS: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
   },
   { id: 'note', label: 'Note', icon: <path d="M5 4h14v11l-5 5H5zM14 20v-5h5M8 9h8M8 13h5" /> },
 ];
-const TAB_IDS = new Set<string>(TABS.map((t) => t.id));
+// v4 D: the digest page has no tab-bar button; the sun at the top and notifications open it.
+const TAB_IDS = new Set<string>([...TABS.map((t) => t.id), 'digest']);
 
-function tabFromHash(): Tab {
-  const id = location.hash.replace(/^#/, '');
-  return (TAB_IDS.has(id) ? id : 'lists') as Tab;
+/** The tab and, for a deep link (`#chores/chore-1`), the item to open on it. */
+function fromHash(): { tab: Tab; id?: string } {
+  const link = parseDeepLink(location.hash);
+  if (!link || !TAB_IDS.has(link.tab)) return { tab: 'lists' };
+  return { tab: link.tab as Tab, ...(link.id ? { id: link.id } : {}) };
 }
 
-export function useTab(): [Tab, (t: Tab) => void] {
-  const [tab, setTab] = useState<Tab>(tabFromHash);
+export function useTab(): [Tab, (t: Tab) => void, string | undefined] {
+  const [at, setAt] = useState(fromHash);
   useEffect(() => {
-    const onHash = () => setTab(tabFromHash());
+    const onHash = () => setAt(fromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   return [
-    tab,
+    at.tab,
     (t) => {
       if (location.hash !== `#${t}`) history.replaceState(null, '', `#${t}`);
-      setTab(t);
+      setAt({ tab: t });
       window.scrollTo({ top: 0 });
     },
+    at.id,
   ];
 }
 
@@ -108,7 +115,11 @@ export function CompanionApp() {
 
 function Ready() {
   const boot = useBootstrap();
-  const [tab, go] = useTab();
+  const [tab, go, deepId] = useTab();
+  useDeepFocus(tab === 'digest' ? undefined : deepId);
+  const sinceOn =
+    boot.settings.sinceStrip !== false && boot.settings.integrations.digest?.enabled !== false;
+  const since = useSince('phone', sinceOn);
   const [settings, setSettings] = useState(false);
   const [hint, setHint] = useState(
     () => !isStandalone() && localStorage.getItem(INSTALL_HINT_KEY) !== 'seen',
@@ -125,6 +136,17 @@ function Ready() {
     <main className="addpage companion">
       <header className="ctop">
         <span className="eyebrow">Mantel</span>
+        <button
+          type="button"
+          className="ax ctop-day"
+          aria-label="Your day"
+          aria-current={tab === 'digest' ? 'page' : undefined}
+          onClick={() => go('digest')}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" />
+          </svg>
+        </button>
         <button
           type="button"
           className="ax"
@@ -151,7 +173,20 @@ function Ready() {
         </aside>
       )}
 
-      <div className="ctab" key={tab}>
+      {sinceOn && tab !== 'digest' && (
+        <SinceStrip
+          since={since}
+          people={boot.people}
+          variant="phone"
+          autoClearMs={60_000}
+          onOpen={(link) => {
+            location.hash = deepLinkUrl(link).slice('/app'.length);
+          }}
+        />
+      )}
+
+      <div className="ctab" key={`${tab}:${deepId ?? ''}`}>
+        {tab === 'digest' && <DigestPage id={deepId} people={boot.people} />}
         {tab === 'lists' && <AddItems people={boot.people} />}
         {tab === 'calendar' && <CalendarTab />}
         {tab === 'meals' && <MealsTab />}

@@ -225,6 +225,8 @@ export const ChorePatchRequest = z
     timeOfDay: ChoreTimeOfDay,
     icon: ChoreIcon.nullable(),
     routineId: Id.nullable(),
+    /** v4 D: carry a missed chore over; null goes back to the default for its cadence. */
+    rollover: z.boolean().nullable(),
   })
   .partial()
   .refine((r) => Object.keys(r).length > 0, { message: 'nothing to change' });

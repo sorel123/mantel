@@ -39,6 +39,7 @@ export const IntegrationId = z.enum([
   'immich',
   'google-photos',
   'photo-folder',
+  'digest',
   // v4 G: the plugin pack
   'birthdays',
   'pets',

@@ -24,6 +24,7 @@ import { ListsSection } from './ListsAdmin';
 import {
   AppearanceSection,
   ChoresSection,
+  DigestSection,
   HomeSetupSection,
   LayoutSection,
   ListSharingSection,
@@ -95,6 +96,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
       { id: 'open', label: 'Siri and assistants' },
       { id: 'meals', label: 'Meals' },
       { id: 'chores', label: 'Chores and rewards' },
+      { id: 'digest', label: 'Digest and reminders' },
       { id: 'places', label: 'Leave-by places' },
       { id: 'schedule', label: 'Screen schedule' },
       { id: 'features', label: 'Features' },
@@ -299,6 +301,7 @@ export function SettingsPage() {
           'homeassistant',
           'quips',
           'meals',
+          'digest',
           ...PACK,
           // v4 S: the photo sources live on the Photos page
           'photos',
@@ -424,6 +427,13 @@ export function SettingsPage() {
           statuses: integrations.statuses,
           onStatus: integrations.onStatus,
         }}
+        fallback={null}
+      />
+    ),
+    digest: () => (
+      <Mount
+        Component={DigestSection}
+        props={{ draft, set, calendars: load.calendars }}
         fallback={null}
       />
     ),

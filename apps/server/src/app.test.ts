@@ -167,6 +167,7 @@ describe('settings-first server (real mode, fresh data dir)', () => {
     const { plugins } = await json(await r('GET', '/plugins', undefined, auth));
     expect(plugins.map((p: { id: string }) => p.id).sort()).toEqual(
       [
+        'digest',
         'google',
         'google-photos',
         'homeassistant',

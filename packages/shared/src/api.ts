@@ -78,6 +78,7 @@ import { recipeRoutes } from './recipes.js';
 import { listSyncRoutes } from './list-sync.js';
 import { openRoutes } from './open.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
+import { digestRoutes } from './digest.js';
 import {
   HomeConfig,
   HomeConnectionPatch,
@@ -190,6 +191,8 @@ export const BootstrapResponse = z.object({
     screens: z.array(ScreenConfig),
     defaultScreen: Id,
     integrations: IntegrationToggles,
+    /** v4 D: show "since you last looked" on the wall and the phone. */
+    sinceStrip: z.boolean().default(true),
   }),
   theme: ThemeMode,
   panel: PanelSize,
@@ -339,6 +342,8 @@ export const CreateChoreRequest = z.object({
   timeOfDay: ChoreTimeOfDay.optional(),
   icon: ChoreIcon.optional(),
   routineId: Id.optional(),
+  /** v4 D: a missed chore carries over ("since Tuesday"). Default: on for weekly, off for daily. */
+  rollover: z.boolean().optional(),
 });
 export const ChoreResponse = z.object({ chore: Chore });
 
@@ -1048,6 +1053,8 @@ export const routes = {
   ...mealRoutes,
   /* ---- v4 S: photo sources and the slideshow mix (photo-sources.ts) ---- */
   ...photoSourceRoutes,
+  /* ---- v4 D: digest, nudges, activity (digest.ts) ---- */
+  ...digestRoutes,
   ...recipeRoutes,
   /* ---- v4 L: list sharing (list-sync.ts) ---- */
   ...listSyncRoutes,

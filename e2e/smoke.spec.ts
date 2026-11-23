@@ -1141,6 +1141,8 @@ test.describe('companion app on a phone', () => {
     request,
   }) => {
     const problems = watchConsole(page);
+    // The server is shared across projects and retries, so this run's note gets its own text.
+    const noteText = `Back by six ${Date.now().toString(36)}`;
 
     // Installable: a manifest and a service worker at the root.
     const manifest = await request.get('/manifest.webmanifest');
@@ -1174,10 +1176,10 @@ test.describe('companion app on a phone', () => {
     // A note for the wall.
     await tabs.getByRole('button', { name: 'Note' }).click();
     await expect(page.getByRole('heading', { name: 'Note for the wall' })).toBeVisible();
-    await page.getByRole('textbox', { name: 'Note' }).fill('Back by six');
+    await page.getByRole('textbox', { name: 'Note' }).fill(noteText);
     await page.getByRole('button', { name: 'Put it on the wall' }).click();
     await expect(
-      page.getByRole('region', { name: 'Notes on the wall now' }).getByText('Back by six'),
+      page.getByRole('region', { name: 'Notes on the wall now' }).getByText(noteText),
     ).toBeVisible();
 
     // Magic Import from the Lists tab: the mock reads the fixtures off any photo, and nothing is
@@ -1348,4 +1350,57 @@ test('Siri and assistants: a token is made, used for /api/say and MCP, and revok
   await expect(page.getByText('Siri can no longer reach Mantel.')).toBeVisible();
   expect((await request.get('/api/lists', { headers: auth })).status()).toBe(401);
   expect(problems.filter((p) => !/Failed to load resource/.test(p))).toEqual([]);
+});
+
+test('digest: the wall card, "since you last looked", a test digest from Settings that opens on the phone', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+
+  // The digest card on a custom Today layout, drawn from the plugin's blocks.
+  await page.goto('/?mode=daylight&today=custom&cards=plugin:digest:0.0.4.8,agenda:4.0.8.8');
+  const card = page.locator('.region[data-region="plugin:digest"] .plugin-card');
+  await expect(card).toBeVisible();
+  await expect(card.getByText(/^Dinner/)).toBeVisible();
+
+  // The first look on Today sets this display's mark; changes from elsewhere show next time.
+  await page.goto('/?mode=daylight');
+  await expect(page.getByRole('button', { name: 'Today' }).first()).toBeVisible();
+  await page.waitForTimeout(500);
+  const run = Date.now().toString(36);
+  for (const text of [`Smoke milk ${run}`, `Smoke eggs ${run}`])
+    await request.post('/api/lists/list-grocery/items', { data: { text } });
+  // The log compares the list after a short settle; wait until both adds are in it.
+  await expect
+    .poll(async () => {
+      const { entries } = await (await request.get('/api/activity')).json();
+      return entries.filter((e: { subject: string }) => e.subject.endsWith(` ${run}`)).length;
+    })
+    .toBe(2);
+  await page.goto('/?mode=daylight');
+  const strip = page.getByTestId('since-strip');
+  await expect(strip.getByText(/\d+ things added to Grocery/)).toBeVisible();
+  await strip.getByRole('button', { name: /added to Grocery/ }).click();
+  await expect(page.getByTestId('since-strip')).toBeHidden();
+
+  // Settings: the section, and a test digest that lands in the mock outbox and shows here.
+  await page.goto('/settings#digest');
+  await expect(page.getByRole('heading', { name: 'Digest and reminders' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send me a test digest' }).click();
+  await expect(page.getByText(/Sent to 1 phone/)).toBeVisible();
+  await expect(page.getByTestId('digest-preview')).toBeVisible();
+  const { messages } = await (await request.get('/api/push/outbox')).json();
+  const sent = messages.at(-1);
+  expect(sent.kind).toBe('digest');
+  expect(sent.url).toMatch(/^\/app#digest\//);
+
+  // The notification opens the digest page on the phone.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(sent.url);
+  await expect(page.getByTestId('digest')).toBeVisible();
+  await page.getByRole('button', { name: 'Tomorrow' }).click();
+  await expect(page.getByRole('heading', { name: /^Tomorrow, / })).toBeVisible();
+
+  expect(problems).toEqual([]);
 });
