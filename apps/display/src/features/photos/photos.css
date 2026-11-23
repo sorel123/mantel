@@ -85,3 +85,73 @@
     animation: none;
   }
 }
+
+/*
+ * v4 S: the caption line over a photo's top corner (album, place, date; "3 years ago today"
+ * for On this day photos). It belongs to its slide, so it fades in and out with the photo,
+ * rising a little after the photo starts to show.
+ */
+.ph-caption {
+  position: absolute;
+  top: 26px;
+  left: 44px;
+  max-width: min(62%, 760px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font: 600 calc(17px * var(--text-scale)) / 1.25 var(--body);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+  animation: ph-caption-in var(--std) var(--ease) both;
+  animation-delay: calc(var(--ph-dissolve) * 0.6);
+}
+.ph-caption-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ph-caption.otd {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: calc(19px * var(--text-scale));
+}
+.ph-otd-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18);
+}
+@keyframes ph-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-caption {
+    animation: none;
+  }
+}
+:root[data-motion='reduced'] .ph-caption {
+  animation: none;
+}
+/* A small photo card (Today's Photo layout) gets a smaller caption. */
+.photo-panel .ph-caption {
+  top: 18px;
+  left: 20px;
+  font-size: calc(14px * var(--text-scale));
+  padding: 6px 12px;
+}

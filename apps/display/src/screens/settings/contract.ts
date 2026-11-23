@@ -74,6 +74,7 @@ export type SectionId =
   | 'appearance'
   | 'quips'
   | 'layout'
+  | 'photos'
   | 'screens'
   | 'lists'
   | 'companion'

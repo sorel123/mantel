@@ -72,6 +72,7 @@ export function settings(): Settings {
     integrations: { quips: { enabled: false } },
     meals: { ...DEFAULT_MEALS_SETTINGS },
     chores: { celebrationsOff: [], chime: false },
+    photos: { captions: true, onThisDay: true, weights: {} },
     digest: sampleDigestSettings(),
     open: { ...DEFAULT_OPEN_SETTINGS },
   };

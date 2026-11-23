@@ -14,7 +14,9 @@ import { kvGet, kvSet } from '../../db/index.js';
 import { log } from '../../log.js';
 import type { PhotoProvider, ProviderContext } from '../types.js';
 import { IcloudAlbum, type AlbumPhoto } from './photos-icloud.js';
+import type { MixItem } from './photos-mixer.js';
 import type { Ws4Env } from './weather-env.js';
+import { dateInZone } from './weather-time.js';
 
 export const PHOTO_REFRESH_MS = 60 * 60_000;
 const KV_KEY = 'ws4.photos';
@@ -86,6 +88,12 @@ export function realPhotos(
   stop(): void;
   /** True when an album link was given and understood. */
   readonly configured: boolean;
+  /** v4 S: the stored photos for the mixer, with the local date each was taken. */
+  items(): MixItem[];
+  /** v4 S: for Settings, Slideshow. */
+  status(): { syncing: boolean; lastSync: string | null; error: string | null };
+  /** Refresh if the hourly timer is not running yet (the display asked for photos). */
+  touch(): void;
 } {
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const panel = opts.panel ?? DEFAULT_PANEL;
@@ -113,6 +121,7 @@ export function realPhotos(
   let queue: string[] = [];
   let inflight: Promise<void> | null = null;
   let lastRefresh = 0;
+  let lastError: string | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
 
   const fileFor = (id: string) => join(dir, `${id}.jpg`);
@@ -178,7 +187,13 @@ export function realPhotos(
 
   function refreshOnce(): Promise<void> {
     inflight ??= refresh()
-      .catch((err: unknown) => log.warn('photos: album refresh failed', { err: String(err) }))
+      .then(() => {
+        lastError = null;
+      })
+      .catch((err: unknown) => {
+        lastError = err instanceof Error ? err.message : String(err);
+        log.warn('photos: album refresh failed', { err: String(err) });
+      })
       .finally(() => {
         inflight = null;
       });
@@ -197,6 +212,27 @@ export function realPhotos(
   return {
     refresh: refreshOnce,
     configured: album !== null,
+    touch: ensureRunning,
+    items() {
+      const tz = ctx.settings().timezone;
+      return index.items.map(({ id, width, height, dominant, takenAt }) => {
+        const d = takenAt ? new Date(takenAt) : null;
+        return {
+          id,
+          width,
+          height,
+          dominant,
+          takenAt: d && !Number.isNaN(d.getTime()) ? dateInZone(d, tz) : null,
+        };
+      });
+    },
+    status() {
+      return {
+        syncing: inflight !== null,
+        lastSync: lastRefresh ? new Date(lastRefresh).toISOString() : null,
+        error: lastError,
+      };
+    },
     stop() {
       if (timer) clearInterval(timer);
       timer = null;

@@ -13,6 +13,7 @@ import type {
 import type { PluginManifest } from '../plugins.js';
 import { pluginPackManifests } from './plugin-pack.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
+import { googlePhotosManifest, immichManifest, photoFolderManifest } from './photo-manifests.js';
 import { inboxManifest, mailinManifest } from '../inbox.js';
 import { digestManifest } from './digest.js';
 import { haTodoManifest, remindersManifest, todoistManifest } from './list-sync.js';
@@ -228,7 +229,7 @@ export const pluginManifests: PluginManifest[] = [
   },
   {
     id: 'photos',
-    name: 'Photos',
+    name: 'iCloud shared album',
     description: 'A shared iCloud album plays on the Ambient screen.',
     category: 'photos',
     step: 'extras',
@@ -426,6 +427,9 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  immichManifest,
+  googlePhotosManifest,
+  photoFolderManifest,
   inboxManifest,
   mailinManifest,
   digestManifest,
@@ -524,6 +528,24 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
     { ...base('habits'), state: 'connected', summary: '3 habits, 1 due today' },
     { ...base('qotd'), state: 'connected', summary: '365 questions, kid-friendly' },
     { ...base('sky'), state: 'connected', summary: 'Sunrise 7:32 AM, sunset 5:08 PM' },
+    {
+      ...base('immich'),
+      state: 'connected',
+      summary: '1840 photos ready',
+      lastOkAt: ok,
+      config: { url: 'http://192.168.1.20:2283', mode: 'favorites', memories: true, limit: 2000 },
+      hasSecrets: ['apiKey'],
+      sources: { url: 'store', apiKey: 'store' },
+    },
+    { ...base('google-photos'), state: 'connected', summary: '48 picked photos', lastOkAt: ok },
+    {
+      ...base('photo-folder'),
+      state: 'connected',
+      summary: '612 photos from /photos, 3 HEIC skipped',
+      lastOkAt: ok,
+      config: { path: '/photos', limit: 3000 },
+      sources: { path: 'store' },
+    },
     {
       ...base('reminders'),
       state: 'connected',

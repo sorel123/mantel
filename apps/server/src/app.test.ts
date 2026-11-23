@@ -169,7 +169,10 @@ describe('settings-first server (real mode, fresh data dir)', () => {
       [
         'digest',
         'google',
+        'google-photos',
         'homeassistant',
+        'immich',
+        'photo-folder',
         'ical',
         'icloud',
         'inbox',

@@ -15,6 +15,7 @@ export * from './home-webrtc.js';
 export * from './meals.js';
 export * from './people-filter.js';
 export * from './rewards.js';
+export * from './photo-sources.js';
 export * from './inbox.js';
 export * from './digest.js';
 export * from './recipes.js';

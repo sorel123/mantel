@@ -13,6 +13,7 @@ import { Appearance, DEFAULT_APPEARANCE } from './skins.js';
 import { DEFAULT_MEALS_SETTINGS, MealsSettings } from './meals.js';
 import { DEFAULT_OPEN_SETTINGS, OpenSettings } from './open.js';
 import { ChoreIcon, ChoreSettings, ChoreTimeOfDay, DEFAULT_CHORE_SETTINGS } from './rewards.js';
+import { DEFAULT_PHOTO_SETTINGS, PhotoSettings } from './photo-sources.js';
 import { DEFAULT_DIGEST_SETTINGS, DigestSettings } from './digest.js';
 
 export const IsoDateTime = z.iso.datetime({ offset: true });
@@ -587,6 +588,8 @@ export const Settings = z.object({
   meals: MealsSettings.default(() => ({ ...DEFAULT_MEALS_SETTINGS })),
   /** v3 (workstream R): celebrations on the chore chart. */
   chores: ChoreSettings.default(DEFAULT_CHORE_SETTINGS),
+  /** v4 S: the slideshow's captions, "On this day" and per-source weights. */
+  photos: PhotoSettings.default(() => ({ ...DEFAULT_PHOTO_SETTINGS, weights: {} })),
   /** v4 (workstream D): the morning digest, nudges and quiet hours. */
   digest: DigestSettings.default(() => structuredClone(DEFAULT_DIGEST_SETTINGS)),
   /** v4 O: things said to Mantel by Siri, Alexa, Home Assistant or the API. */

@@ -23,6 +23,7 @@ import { registerPushRoutes } from '../plugins/push/index.js';
 import { registerDigestRoutes } from '../plugins/digest/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
+import { registerPhotoSourceRoutes } from '../providers/real/photos-routes.js';
 import { registerListSyncRoutes } from './list-sync.js';
 import { createOpenService, registerOpenRoutes, type OpenService } from '../plugins/voice/index.js';
 
@@ -430,6 +431,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   /* ---- v4 D: digest, nudges and the activity log (plugins/digest, plugins/activity) ---- */
   registerDigestRoutes(handle, deps, { push, notes, meals });
   registerImportRoutes(handle, deps, meals);
+  registerPhotoSourceRoutes(handle, deps);
   /* ---- v4 K: the capture inbox in plugins/inbox (Forward to Mantel is plugins/mailin) ---- */
   registerInboxRoutes(handle, deps, meals);
   /* ---- v4 O: tokens, natural add, Siri's summary, Home Assistant state (plugins/voice) ---- */

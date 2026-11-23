@@ -16,3 +16,5 @@ services:
       DATA_DIR: /data
     volumes:
       - ./data:/data
+      # Optional: a folder of photos for the slideshow (Settings, Photos, Photo folder: /photos).
+      # - /path/to/photos:/photos:ro
