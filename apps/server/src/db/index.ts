@@ -168,6 +168,27 @@ const migrations = [
     icon TEXT NOT NULL,
     sort INTEGER NOT NULL
   )`,
+  // v4 (workstream K): the capture inbox
+  `CREATE TABLE IF NOT EXISTS inbox_items (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    status TEXT NOT NULL,
+    hint TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    name TEXT,
+    mime TEXT,
+    text TEXT,
+    file BLOB,
+    from_name TEXT,
+    subject TEXT,
+    summary TEXT NOT NULL,
+    candidates TEXT NOT NULL,
+    error TEXT,
+    dedupe_key TEXT,
+    created_at TEXT NOT NULL,
+    committed_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS inbox_items_dedupe ON inbox_items (dedupe_key)`,
   // v4 (workstream D): the activity log
   `CREATE TABLE IF NOT EXISTS activity (
     id TEXT PRIMARY KEY,

@@ -210,6 +210,31 @@ export const routines = sqliteTable('routines', {
   sort: integer('sort').notNull(),
 });
 
+/** v4 K: captures waiting to be checked (and recently added ones, for Undo and history). */
+export const inboxItems = sqliteTable('inbox_items', {
+  id: text('id').primaryKey(),
+  source: text('source', { enum: ['email', 'share', 'photo', 'text'] }).notNull(),
+  status: text('status', { enum: ['reading', 'ready', 'failed', 'added'] }).notNull(),
+  hint: text('hint').notNull(),
+  kind: text('kind', { enum: ['text', 'image', 'pdf', 'ics'] }).notNull(),
+  name: text('name'),
+  mime: text('mime'),
+  /** Text original or email body. */
+  text: text('text'),
+  /** Stored file (photo, PDF, .ics). */
+  file: blob('file', { mode: 'buffer' }),
+  fromName: text('from_name'),
+  subject: text('subject'),
+  summary: text('summary').notNull(),
+  /** JSON `ImportCandidates`. */
+  candidates: text('candidates').notNull(),
+  error: text('error'),
+  /** Email Message-ID plus part, so a message read twice is not added twice. */
+  dedupeKey: text('dedupe_key'),
+  createdAt: text('created_at').notNull(),
+  committedAt: text('committed_at'),
+});
+
 /* ---- v4 (workstream D): the activity log behind "since you last looked" ---- */
 
 export const activity = sqliteTable('activity', {

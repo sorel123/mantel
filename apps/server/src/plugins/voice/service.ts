@@ -34,6 +34,8 @@ export interface OpenDeps {
   claudeKey: () => string;
   /** Post a wall note (the notes store plus its WebSocket event and push). */
   postNote: (text: string, personId?: string) => Promise<WallNote>;
+  /** Items waiting in the capture inbox (v4 K). */
+  inboxCount?: () => number;
   now?: () => Date;
   version: string;
   mock: boolean;
@@ -336,7 +338,7 @@ export class OpenService {
       nextEvent: next
         ? { title: next.title, start: next.start, allDay: next.allDay, personIds: next.personIds }
         : null,
-      inboxCount: 0,
+      inboxCount: this.d.inboxCount?.() ?? 0,
       groceryList: grocery ? { id: grocery.id, name: grocery.name, open: open(grocery) } : null,
       lists: lists.map((l) => ({ id: l.id, name: l.name, open: open(l) })),
       people: s.people.map((p) => {

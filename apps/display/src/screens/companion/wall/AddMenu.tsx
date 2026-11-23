@@ -9,7 +9,7 @@ import { useNoteSheet } from './NotesCard';
 import './wall.css';
 
 export function useAddMenu(onEvent: () => void) {
-  const { openSheet, closeSheet, toast } = useOverlay();
+  const { openSheet, closeSheet } = useOverlay();
   const openNote = useNoteSheet();
   const openImport = useCallback(
     () =>
@@ -22,18 +22,14 @@ export function useAddMenu(onEvent: () => void) {
               onClose={close}
             />
             <div className="sheet-body wall-import">
-              <MagicImport
-                onDone={(r) => {
-                  const n = r.events.length + r.items + r.meals;
-                  if (n) toast(`Added ${n} ${n === 1 ? 'thing' : 'things'}.`);
-                }}
-              />
+              {/* The review toasts what was added, with Undo (v4 K). */}
+              <MagicImport />
             </div>
           </>
         ),
         { label: 'Read a photo', wide: true },
       ),
-    [openSheet, toast],
+    [openSheet],
   );
 
   return useCallback(

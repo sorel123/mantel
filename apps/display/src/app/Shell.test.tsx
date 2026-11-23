@@ -75,7 +75,9 @@ describe('Shell', () => {
       timeout: 3000,
     });
     expect(screen.getByRole('button', { name: 'Today' }).getAttribute('aria-current')).toBe('page');
-  });
+    // The whole wall renders and then fades out for 700 ms; on a busy CI runner running all three
+    // packages' tests at once that took over the default 5 s.
+  }, 15_000);
 
   it('goes to Ambient after the idle time from settings', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

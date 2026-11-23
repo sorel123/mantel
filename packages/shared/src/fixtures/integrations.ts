@@ -13,6 +13,7 @@ import type {
 import type { PluginManifest } from '../plugins.js';
 import { pluginPackManifests } from './plugin-pack.js';
 import { timersManifest, trashManifest } from './plugin-cards.js';
+import { inboxManifest, mailinManifest } from '../inbox.js';
 import { digestManifest } from './digest.js';
 import { haTodoManifest, remindersManifest, todoistManifest } from './list-sync.js';
 import { settings } from './settings.js';
@@ -425,6 +426,8 @@ export const pluginManifests: PluginManifest[] = [
   },
   trashManifest,
   timersManifest,
+  inboxManifest,
+  mailinManifest,
   digestManifest,
   ...pluginPackManifests,
   remindersManifest,
@@ -502,6 +505,14 @@ export function integrationStatuses(now = new Date()): IntegrationStatus[] {
       summary: 'Trash Thursday, recycling every other Thursday',
     },
     { ...base('timers'), state: 'connected', summary: 'Ready, from the dock' },
+    { ...base('inbox'), state: 'connected', summary: '2 things to check' },
+    {
+      ...base('mailin'),
+      state: 'connected',
+      summary: 'ourfamily.mantel@gmail.com, checked a minute ago',
+      lastOkAt: ok,
+      config: { provider: 'gmail', address: 'ourfamily.mantel@gmail.com', allowFrom: '' },
+    },
     { ...base('digest'), state: 'connected', summary: 'Morning digest at 7:00 for 4 people' },
     // v4 G, the plugin pack: these run for real in mock mode with sample data.
     { ...base('birthdays'), state: 'connected', summary: '4 birthdays, next: Mia in 3 days' },

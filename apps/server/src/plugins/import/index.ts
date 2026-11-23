@@ -74,7 +74,13 @@ export function registerImportRoutes(handle: Handle, deps: AppDeps, meals?: Meal
     }
   });
 
-  handle('importCommit', async ({ body }) =>
-    commitImport(body, providers, settings.get().timezone, meals),
-  );
+  handle('importCommit', async ({ body }) => {
+    const { created: _created, ...out } = await commitImport(
+      body,
+      providers,
+      settings.get().timezone,
+      meals,
+    );
+    return out;
+  });
 }

@@ -17,6 +17,7 @@ import type { HomeBytes } from '../providers/types.js';
 import { dateInZone } from '../providers/real/weather-time.js';
 import { VERSION } from '../version.js';
 import { registerImportRoutes } from '../plugins/import/index.js';
+import { registerInboxRoutes } from '../plugins/inbox/index.js';
 import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
 import { registerDigestRoutes } from '../plugins/digest/index.js';
@@ -429,6 +430,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   /* ---- v4 D: digest, nudges and the activity log (plugins/digest, plugins/activity) ---- */
   registerDigestRoutes(handle, deps, { push, notes, meals });
   registerImportRoutes(handle, deps, meals);
+  /* ---- v4 K: the capture inbox in plugins/inbox (Forward to Mantel is plugins/mailin) ---- */
+  registerInboxRoutes(handle, deps, meals);
   /* ---- v4 O: tokens, natural add, Siri's summary, Home Assistant state (plugins/voice) ---- */
   const open = createOpenService(deps, { meals, notes, push });
   registerOpenRoutes(handle, deps, open);

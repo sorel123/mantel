@@ -73,6 +73,7 @@ import {
 } from './models.js';
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
+import { inboxRoutes } from './inbox.js';
 import { recipeRoutes } from './recipes.js';
 import { listSyncRoutes } from './list-sync.js';
 import { openRoutes } from './open.js';
@@ -1048,6 +1049,7 @@ export const routes = {
   ...companionRoutes,
   /* ---- v3 M: the meal planner (meals.ts) ---- */
   ...mealRoutes,
+  ...inboxRoutes,
   /* ---- v4 D: digest, nudges, activity (digest.ts) ---- */
   ...digestRoutes,
   ...recipeRoutes,

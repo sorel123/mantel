@@ -29,6 +29,8 @@ export const Person = z.object({
   initial: z.string().max(2),
   color: Color,
   calendarIds: z.array(Id),
+  /** Their email, so Forward to Mantel accepts mail they send (v4 K). */
+  email: z.string().trim().max(200).optional(),
 });
 export type Person = z.infer<typeof Person>;
 

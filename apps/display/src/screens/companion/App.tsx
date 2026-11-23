@@ -1,6 +1,6 @@
 /**
  * The companion app at `/app` (and the old `/add`): the family's remote on a phone, installable
- * from the home screen. Bottom tabs: Lists, Calendar, Meals, Chores, Note. The tab lives in the
+ * from the home screen. Bottom tabs: Lists, Calendar, Inbox, Meals, Chores, Note. The tab lives in the
  * URL hash so a notification can open the right one. A phone pairs once with the admin PIN.
  */
 import { deepLinkUrl, parseDeepLink } from '@mantel/shared';
@@ -18,11 +18,14 @@ import { CalendarTab } from './tabs/CalendarTab';
 import { ChoresTab } from './tabs/ChoresTab';
 import { MealsTab } from './tabs/MealsTab';
 import { NoteTab } from './tabs/NoteTab';
+import { InboxTab } from './inbox/InboxTab';
+import { registerShareWorker } from './inbox/share';
+import { useInbox } from '../../features/inbox';
 import '../lists/lists.css';
 import '../today/calendar.css';
 import './companion.css';
 
-export type Tab = 'lists' | 'calendar' | 'meals' | 'chores' | 'note' | 'digest';
+export type Tab = 'lists' | 'calendar' | 'inbox' | 'meals' | 'chores' | 'note' | 'digest';
 const TABS: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
   {
     id: 'lists',
@@ -33,6 +36,11 @@ const TABS: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
     id: 'calendar',
     label: 'Calendar',
     icon: <path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" />,
+  },
+  {
+    id: 'inbox',
+    label: 'Inbox',
+    icon: <path d="M3 13h5l1.5 3h5L16 13h5M5.5 5h13L21 13v6H3v-6z" />,
   },
   {
     id: 'meals',
@@ -125,6 +133,8 @@ function Ready() {
     () => !isStandalone() && localStorage.getItem(INSTALL_HINT_KEY) !== 'seen',
   );
   useEffect(connectEvents, []);
+  useEffect(registerShareWorker, []);
+  const { pending } = useInbox();
   useThemeColor();
 
   const dismissHint = () => {
@@ -189,6 +199,7 @@ function Ready() {
         {tab === 'digest' && <DigestPage id={deepId} people={boot.people} />}
         {tab === 'lists' && <AddItems people={boot.people} />}
         {tab === 'calendar' && <CalendarTab />}
+        {tab === 'inbox' && <InboxTab />}
         {tab === 'meals' && <MealsTab />}
         {tab === 'chores' && <ChoresTab people={boot.people} />}
         {tab === 'note' && <NoteTab />}
@@ -208,6 +219,11 @@ function Ready() {
                 {t.icon}
               </svg>
               {t.label}
+              {t.id === 'inbox' && pending > 0 && (
+                <span className="ctab-badge" aria-label={`${pending} waiting`}>
+                  {pending}
+                </span>
+              )}
             </button>
           ))}
       </nav>

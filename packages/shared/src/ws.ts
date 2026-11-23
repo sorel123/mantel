@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { HomeEntity, Id, IsoDateTime, MediaPlayer, Presence } from './models.js';
 import { NotesChanged } from './companion.js';
+import { InboxChanged } from './inbox.js';
 import { PluginAlertPayload } from './plugins.js';
 import { WeatherAlertPayload, WeatherSnapshotExtended } from './weather-extended.js';
 import { RewardsRedeemed } from './rewards.js';
@@ -78,6 +79,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   DisplayWake,
   DisplaySleep,
   NotesChanged,
+  InboxChanged,
   ActivityAdded,
 ]);
 export type WsEvent = z.infer<typeof WsEvent>;

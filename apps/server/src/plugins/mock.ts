@@ -6,6 +6,7 @@
 import type { PluginManifest } from '@mantel/shared';
 import { integrationStatuses } from '@mantel/shared/fixtures';
 import type { Plugin } from './types.js';
+import { mailinPlugin, mockMailbox, mockMailinFallback } from './mailin/index.js';
 import type { PackDeps } from './pack/util.js';
 import { packPlugins } from './index.js';
 import {
@@ -13,6 +14,8 @@ import {
   googleManifest,
   homeAssistantManifest,
   icalManifest,
+  inboxManifest,
+  mailinManifest,
   icloudManifest,
   mealsManifest,
   photosManifest,
@@ -41,6 +44,8 @@ export const builtInManifests: PluginManifest[] = [
   mealsManifest,
   trashManifest,
   timersManifest,
+  inboxManifest,
+  mailinManifest,
   digestManifest,
   ...packPlugins().map((p) => p.manifest),
   remindersManifest,
@@ -52,13 +57,17 @@ export const builtInManifests: PluginManifest[] = [
 const LOCAL = new Set<string>([
   trashManifest.id,
   timersManifest.id,
+  inboxManifest.id,
+  mailinManifest.id,
   digestManifest.id,
   ...packPlugins().map((p) => p.manifest.id),
 ]);
 
+/** `empty`: MOCK_EMPTY, a fresh install: Forward to Mantel is not set up and delivers nothing. */
 export function mockPlugins(
   now: () => Date = () => new Date(),
   deps: Omit<PackDeps, 'mock' | 'fetch'> = {},
+  opts: { empty?: boolean } = {},
 ): Plugin[] {
   const mocked = builtInManifests
     .filter((m) => !LOCAL.has(m.id))
@@ -97,5 +106,8 @@ export function mockPlugins(
           }
         : {}),
     }));
-  return [...mocked, ...localPlugins({ ...deps, mock: true })];
+  const mailin = opts.empty
+    ? mailinPlugin({ open: mockMailbox(now()) })
+    : mailinPlugin({ open: mockMailbox(now()), fallback: mockMailinFallback });
+  return [...mocked, ...localPlugins({ ...deps, mock: true }), mailin];
 }

@@ -1,0 +1,51 @@
+/* v4 K: Settings › Capture. */
+.cap-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.cap-status .set-hint {
+  flex: 1 1 260px;
+  margin: 0;
+}
+.cap-count {
+  font-weight: 700;
+}
+.cap-h {
+  margin: 18px 0 0;
+}
+.cap-people {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cap-person {
+  display: grid;
+  grid-template-columns: auto 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.cap-name {
+  font-weight: 700;
+}
+.cap-key {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.cap-key .set-copy {
+  flex: 1 1 280px;
+}
+.set-steps .set-copy {
+  margin: 8px 0;
+}
+.set-ok {
+  color: var(--good);
+  font-weight: 600;
+}

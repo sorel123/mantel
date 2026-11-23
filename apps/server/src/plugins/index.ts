@@ -13,6 +13,8 @@ import { googlePlugin } from './google/index.js';
 import { homeAssistantPlugin } from './homeassistant/index.js';
 import { icalPlugin } from './ical/index.js';
 import { icloudPlugin } from './icloud/index.js';
+import { inboxPlugin } from './inbox/index.js';
+import { mailinPlugin } from './mailin/index.js';
 import { mealsPlugin } from './meals/index.js';
 import { photosPlugin } from './photos/index.js';
 import { pollenPlugin } from './pollen/index.js';
@@ -66,6 +68,7 @@ export function createPlugins(ctx: ProviderContext, opts: CreatePluginsOptions =
     weatherPlugin(weather, opts.fetch),
     quipsPlugin(opts.fetch),
     mealsPlugin(),
+    mailinPlugin(),
     ...localPlugins({
       ...(opts.fetch ? { fetch: opts.fetch } : {}),
       calendar: () => calendar.live.proxy,
@@ -97,6 +100,7 @@ export function localPlugins(opts: PackDeps = {}): Plugin[] {
   return [
     trashPlugin(opts.mock ? { fallback: mockTrashConfig } : {}),
     timersPlugin(),
+    inboxPlugin(),
     digestPlugin(),
     ...packPlugins(opts),
   ];
@@ -130,6 +134,7 @@ export { manifest as quipsManifest } from './quips/manifest.js';
 export { manifest as mealsManifest } from './meals/manifest.js';
 export { manifest as trashManifest } from './trash/manifest.js';
 export { manifest as timersManifest } from './timers/manifest.js';
+export { inboxManifest, mailinManifest } from '@mantel/shared';
 export { manifest as digestManifest } from './digest/manifest.js';
 export { manifest as birthdaysManifest } from './birthdays/manifest.js';
 export { manifest as petsManifest } from './pets/manifest.js';
