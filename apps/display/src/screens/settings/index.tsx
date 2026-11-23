@@ -24,6 +24,7 @@ import { ListsSection } from './ListsAdmin';
 import {
   AppearanceSection,
   ChoresSection,
+  DigestSection,
   HomeSetupSection,
   LayoutSection,
   ListSharingSection,
@@ -93,6 +94,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
       { id: 'open', label: 'Siri and assistants' },
       { id: 'meals', label: 'Meals' },
       { id: 'chores', label: 'Chores and rewards' },
+      { id: 'digest', label: 'Digest and reminders' },
       { id: 'places', label: 'Leave-by places' },
       { id: 'schedule', label: 'Screen schedule' },
       { id: 'features', label: 'Features' },
@@ -290,7 +292,7 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals', ...PACK]}
+        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals', 'digest', ...PACK]}
       />
     ),
     plugins: () => (
@@ -399,6 +401,13 @@ export function SettingsPage() {
       />
     ),
     chores: () => <Mount Component={ChoresSection} props={{ draft, set }} fallback={null} />,
+    digest: () => (
+      <Mount
+        Component={DigestSection}
+        props={{ draft, set, calendars: load.calendars }}
+        fallback={null}
+      />
+    ),
     places: () => (
       <Destinations
         value={draft.destinations}

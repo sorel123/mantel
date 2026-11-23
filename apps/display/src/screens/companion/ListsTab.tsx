@@ -1,4 +1,4 @@
-import type { ChoreCadence, Person } from '@mantel/shared';
+import { parseDeepLink, type ChoreCadence, type Person } from '@mantel/shared';
 import { useState, type FormEvent } from 'react';
 import { Avatar } from '../lists/Avatar';
 import { groceryList } from '../lists/GroceryPeek';
@@ -53,7 +53,11 @@ export function PersonChips({
 
 export function AddItems({ people }: { people: Person[] }) {
   const { lists, error, toggle, add, remove, createList, deleteList } = useLists();
-  const [listId, setListId] = useState<string>();
+  // v4 D: `#lists/<id>` (a notification or "since you last looked") opens that list.
+  const [listId, setListId] = useState<string | undefined>(() => {
+    const d = parseDeepLink(location.hash);
+    return d?.tab === 'lists' ? d.id : undefined;
+  });
   const [text, setText] = useState('');
   const [personId, setPersonId] = useState<string>();
   const [newList, setNewList] = useState('');

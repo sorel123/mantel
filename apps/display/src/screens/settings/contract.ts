@@ -65,6 +65,7 @@ export const SCREEN_LABELS: Record<string, string> = {
 export type SectionId =
   | 'home'
   | 'chores'
+  | 'digest'
   | 'people'
   | 'calendars'
   | 'integrations'

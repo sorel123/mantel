@@ -9,6 +9,7 @@ import { NotesChanged } from './companion.js';
 import { PluginAlertPayload } from './plugins.js';
 import { WeatherAlertPayload, WeatherSnapshotExtended } from './weather-extended.js';
 import { RewardsRedeemed } from './rewards.js';
+import { ActivityAdded } from './digest.js';
 
 const event = <T extends string, P extends z.ZodType>(type: T, payload: P) =>
   z.object({ type: z.literal(type), payload });
@@ -77,6 +78,7 @@ export const WsEvent = z.discriminatedUnion('type', [
   DisplayWake,
   DisplaySleep,
   NotesChanged,
+  ActivityAdded,
 ]);
 export type WsEvent = z.infer<typeof WsEvent>;
 export type WsEventType = WsEvent['type'];

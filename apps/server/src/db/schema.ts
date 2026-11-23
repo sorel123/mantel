@@ -71,6 +71,8 @@ export const chores = sqliteTable('chores', {
     .default('any'),
   icon: text('icon'),
   routineId: text('routine_id'),
+  // v4 (workstream D): null means the default for the cadence (weekly on, daily off)
+  rollover: integer('rollover', { mode: 'boolean' }),
 });
 
 /** One row per tap on the chore chart. Stars are copied so changing a chore never rewrites history. */
@@ -206,6 +208,24 @@ export const routines = sqliteTable('routines', {
   timeOfDay: text('time_of_day', { enum: ['morning', 'afternoon', 'evening', 'any'] }).notNull(),
   icon: text('icon').notNull(),
   sort: integer('sort').notNull(),
+});
+
+/* ---- v4 (workstream D): the activity log behind "since you last looked" ---- */
+
+export const activity = sqliteTable('activity', {
+  id: text('id').primaryKey(),
+  /** ISO time with the home's offset. */
+  at: text('at').notNull(),
+  /** Milliseconds since the epoch, for ordering and `since` queries. */
+  atMs: integer('at_ms').notNull(),
+  kind: text('kind').notNull(),
+  personId: text('person_id'),
+  who: text('who'),
+  subject: text('subject').notNull(),
+  place: text('place'),
+  linkTab: text('link_tab').notNull(),
+  linkId: text('link_id'),
+  grp: text('grp'),
 });
 
 /* ---- v4 workstream L: lists shared with an outside service ---- */

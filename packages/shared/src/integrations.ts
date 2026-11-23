@@ -35,6 +35,7 @@ export const IntegrationId = z.enum([
   'meals',
   'trash',
   'timers',
+  'digest',
   // v4 G: the plugin pack
   'birthdays',
   'pets',
