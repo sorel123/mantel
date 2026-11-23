@@ -127,6 +127,8 @@ export const mealFavourites = sqliteTable('meal_favourites', {
   tags: text('tags').notNull(),
   lastUsed: text('last_used'),
   createdAt: text('created_at').notNull(),
+  /** v4 B: the recipe it cooks. */
+  recipeId: text('recipe_id'),
 });
 
 /**
@@ -143,9 +145,34 @@ export const plannedMeals = sqliteTable(
     ingredients: text('ingredients'),
     eventId: text('event_id'),
     updatedAt: text('updated_at').notNull(),
+    /** v4 B: the recipe it cooks (copied from the favourite, or planned from the box). */
+    recipeId: text('recipe_id'),
   },
   (t) => [primaryKey({ columns: [t.date, t.slot] })],
 );
+
+/* ---- v4 B: the recipe box ---- */
+
+/** Recipes. Ingredients, steps and tags are JSON; the photo's bytes are cached in `image`. */
+export const recipes = sqliteTable('recipes', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  sourceUrl: text('source_url'),
+  imageUrl: text('image_url'),
+  image: blob('image', { mode: 'buffer' }),
+  imageType: text('image_type'),
+  servings: integer('servings'),
+  totalMinutes: integer('total_minutes'),
+  ingredients: text('ingredients').notNull(),
+  steps: text('steps').notNull(),
+  tags: text('tags').notNull(),
+  notes: text('notes').notNull(),
+  rating: integer('rating'),
+  lastCooked: text('last_cooked'),
+  via: text('via', { enum: ['link', 'claude', 'text', 'typed'] }).notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
 /* ---- v3 workstream R: star bank, rewards, routines ---- */
 
 /** Every star earned or spent. A person's balance is the sum; it never resets. */

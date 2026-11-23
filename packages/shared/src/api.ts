@@ -74,6 +74,7 @@ import {
 import { Appearance } from './skins.js';
 import { mealRoutes } from './meals.js';
 import { PhotoCaption, photoSourceRoutes } from './photo-sources.js';
+import { recipeRoutes } from './recipes.js';
 import { listSyncRoutes } from './list-sync.js';
 import { openRoutes } from './open.js';
 import { ChoreIcon, ChorePatchRequest, ChoreTimeOfDay, rewardRoutes } from './rewards.js';
@@ -1047,6 +1048,7 @@ export const routes = {
   ...mealRoutes,
   /* ---- v4 S: photo sources and the slideshow mix (photo-sources.ts) ---- */
   ...photoSourceRoutes,
+  ...recipeRoutes,
   /* ---- v4 L: list sharing (list-sync.ts) ---- */
   ...listSyncRoutes,
   /* ---- v4 O: tokens, natural add, Home Assistant state (open.ts) ---- */

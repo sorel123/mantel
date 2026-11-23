@@ -18,6 +18,8 @@ export interface PlanRow {
   /** Typed with the meal; null means the favourite's. */
   ingredients: string[] | null;
   eventId: string | null;
+  /** v4 B: the recipe it cooks. */
+  recipeId?: string | null;
 }
 
 const json = (v: string | null): string[] | null => {
@@ -38,6 +40,7 @@ function toFavourite(row: typeof mealFavourites.$inferSelect): Favourite {
     ingredients: json(row.ingredients) ?? [],
     tags: json(row.tags) ?? [],
     lastUsed: row.lastUsed,
+    ...(row.recipeId ? { recipeId: row.recipeId } : {}),
   });
 }
 
@@ -49,6 +52,7 @@ function toPlan(row: typeof plannedMeals.$inferSelect): PlanRow {
     favouriteId: row.favouriteId,
     ingredients: json(row.ingredients),
     eventId: row.eventId,
+    recipeId: row.recipeId,
   };
 }
 
@@ -83,6 +87,7 @@ export class MealStore {
         tags: JSON.stringify(f.tags),
         lastUsed: null,
         createdAt: new Date().toISOString(),
+        recipeId: f.recipeId ?? null,
       })
       .run();
     return this.favourite(id)!;
@@ -99,6 +104,7 @@ export class MealStore {
         slot: next.slot,
         ingredients: JSON.stringify(next.ingredients),
         tags: JSON.stringify(next.tags),
+        recipeId: next.recipeId ?? null,
       })
       .where(eq(mealFavourites.id, id))
       .run();
@@ -164,6 +170,7 @@ export class MealStore {
       favouriteId: row.favouriteId,
       ingredients: row.ingredients ? JSON.stringify(row.ingredients) : null,
       eventId: row.eventId,
+      recipeId: row.recipeId ?? null,
       updatedAt: new Date().toISOString(),
     };
     this.db
@@ -178,6 +185,25 @@ export class MealStore {
       .delete(plannedMeals)
       .where(and(eq(plannedMeals.date, date), eq(plannedMeals.slot, slot)))
       .run();
+  }
+
+  /** A recipe left the box: favourites and planned meals keep their title and ingredients. */
+  detachRecipe(recipeId: string, ingredients: string[]): void {
+    this.db.transaction((tx) => {
+      tx.update(mealFavourites)
+        .set({ recipeId: null })
+        .where(eq(mealFavourites.recipeId, recipeId))
+        .run();
+      for (const row of tx
+        .select()
+        .from(plannedMeals)
+        .where(eq(plannedMeals.recipeId, recipeId))
+        .all())
+        tx.update(plannedMeals)
+          .set({ recipeId: null, ingredients: row.ingredients ?? JSON.stringify(ingredients) })
+          .where(and(eq(plannedMeals.date, row.date), eq(plannedMeals.slot, row.slot)))
+          .run();
+    });
   }
 
   isEmpty(): boolean {
