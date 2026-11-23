@@ -3,6 +3,7 @@ import { DEFAULT_APPEARANCE } from '../skins.js';
 import { DEFAULT_MEALS_SETTINGS } from '../meals.js';
 import { DEFAULT_OPEN_SETTINGS } from '../open.js';
 import { people } from './people.js';
+import { sampleDigestSettings } from './digest.js';
 
 export function settings(): Settings {
   return {
@@ -71,6 +72,7 @@ export function settings(): Settings {
     integrations: { quips: { enabled: false } },
     meals: { ...DEFAULT_MEALS_SETTINGS },
     chores: { celebrationsOff: [], chime: false },
+    digest: sampleDigestSettings(),
     open: { ...DEFAULT_OPEN_SETTINGS },
   };
 }

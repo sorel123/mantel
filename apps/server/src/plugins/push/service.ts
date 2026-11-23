@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto';
 import type { PushPatchRequest, PushSubscribeRequest } from '@mantel/shared';
 import {
+  deepLinkUrl,
   type Chore,
   type LeaveBy,
   type Person,
@@ -20,11 +21,13 @@ import {
 import { eq } from 'drizzle-orm';
 import webpush from 'web-push';
 import type { z } from 'zod';
-import { schema, type Db } from '../../db/index.js';
+import { kvGet, kvSet, schema, type Db } from '../../db/index.js';
 import { log } from '../../log.js';
 import type { SecretStore } from '../../secrets.js';
 
 const { pushSubscriptions: subs } = schema;
+const NEW_KINDS_KEY = 'push.kinds.v4';
+const NEW_KINDS: PushEventKind[] = ['digest', 'nudge'];
 type Row = typeof subs.$inferSelect;
 
 /** Where the keys live in the secrets store. */
@@ -62,14 +65,56 @@ const parseEvents = (s: string): PushEventKind[] => {
 
 export class PushService {
   /** Mock deliveries, newest last (tests and the dev route read it). */
-  readonly outbox: Array<{ subscriptionId: string; message: PushMessage }> = [];
+  readonly outbox: Array<{ subscriptionId: string; message: PushMessage; at: string }> = [];
   private keys: { publicKey: string; privateKey: string } | null = null;
   private choreCounts: Map<string, number> | null = null;
   private leaveSent = new Set<string>();
   private timer: NodeJS.Timeout | undefined;
   private choreTimer: NodeJS.Timeout | undefined;
 
-  constructor(private readonly o: PushServiceOptions) {}
+  constructor(private readonly o: PushServiceOptions) {
+    this.addNewKinds();
+  }
+
+  /**
+   * v4 D: phones that turned notifications on before the digest and reminders existed get
+   * them too (they can switch them off on the phone). Runs once per database.
+   */
+  private addNewKinds() {
+    if (kvGet<boolean>(this.o.db, NEW_KINDS_KEY)) return;
+    for (const r of this.o.db.select().from(subs).all()) {
+      const events = parseEvents(r.events);
+      const more = NEW_KINDS.filter((k) => !events.includes(k));
+      if (more.length)
+        this.o.db
+          .update(subs)
+          .set({ events: JSON.stringify([...events, ...more]) })
+          .where(eq(subs.id, r.id))
+          .run();
+    }
+    kvSet(this.o.db, NEW_KINDS_KEY, true);
+  }
+
+  /** Phones that said they are this person's and take `kind`. */
+  phonesOf(personId: string, kind: PushEventKind): number {
+    return this.o.db
+      .select()
+      .from(subs)
+      .all()
+      .filter((r) => r.personId === personId && parseEvents(r.events).includes(kind))
+      .filter((r) => this.o.active?.(r.deviceId) ?? true).length;
+  }
+
+  /** The person a device's phone says it belongs to, if any. */
+  personOfDevice(deviceId: string): string | null {
+    return (
+      this.o.db
+        .select()
+        .from(subs)
+        .all()
+        .find((r) => r.deviceId === deviceId && r.personId)?.personId ?? null
+    );
+  }
 
   /** The VAPID pair, made once and kept encrypted. */
   vapid() {
@@ -177,7 +222,7 @@ export class PushService {
   private async deliver(r: Row, message: PushMessage): Promise<string | null> {
     const now = this.o.now().toISOString();
     if (this.o.mock) {
-      this.outbox.push({ subscriptionId: r.id, message });
+      this.outbox.push({ subscriptionId: r.id, message, at: now });
       this.o.db
         .update(subs)
         .set({ lastSentAt: now, lastError: null })
@@ -232,7 +277,15 @@ export class PushService {
   async notify(
     kind: PushEventKind,
     message: Omit<PushMessage, 'kind'>,
-    opts: { exceptPersonId?: string; onlyPeople?: string[]; exceptDeviceId?: string | null } = {},
+    opts: {
+      exceptPersonId?: string;
+      onlyPeople?: string[];
+      exceptDeviceId?: string | null;
+      /** v4 D: only phones that said they are one of these people's (the digest). */
+      exactPeople?: string[];
+      /** v4 D: also this device's phone, whatever it chose (a test digest). */
+      alsoDeviceId?: string | null;
+    } = {},
   ): Promise<number> {
     const rows = this.o.db
       .select()
@@ -244,9 +297,22 @@ export class PushService {
       .filter((r) => !opts.exceptDeviceId || r.deviceId !== opts.exceptDeviceId)
       .filter(
         (r) => !opts.onlyPeople?.length || !r.personId || opts.onlyPeople.includes(r.personId),
-      );
+      )
+      .filter((r) => !opts.exactPeople || (!!r.personId && opts.exactPeople.includes(r.personId)));
+    if (opts.alsoDeviceId)
+      for (const r of this.o.db.select().from(subs).all())
+        if (r.deviceId === opts.alsoDeviceId && !rows.some((x) => x.id === r.id)) rows.push(r);
     const results = await Promise.all(rows.map((r) => this.deliver(r, { kind, ...message })));
     return results.filter((e) => e === null).length;
+  }
+
+  /** Mock mode with no phone subscribed: keep the message in the outbox as if one had been. */
+  recordMock(kind: PushEventKind, message: Omit<PushMessage, 'kind'>) {
+    this.outbox.push({
+      subscriptionId: 'mock-phone',
+      message: { kind, ...message },
+      at: this.o.now().toISOString(),
+    });
   }
 
   async test(id: string): Promise<{ ok: boolean; message: string }> {
@@ -339,7 +405,7 @@ export class PushService {
         {
           title: everything ? `${name} finished every chore` : `${name} did a chore`,
           body: list.map((c) => c.title).join(', '),
-          url: '/app#chores',
+          url: deepLinkUrl({ tab: 'chores', id: list[0]!.id }),
           tag: `chores-${personId}`,
         },
         { exceptPersonId: personId },
@@ -376,7 +442,7 @@ export class PushService {
           body: `${Math.round(t.durationMinutes)} min drive${
             t.delayMinutes > 2 ? `, ${Math.round(t.delayMinutes)} min of traffic` : ''
           }.`,
-          url: '/app#calendar',
+          url: deepLinkUrl({ tab: 'calendar', ...(t.eventId ? { id: t.eventId } : {}) }),
           tag: `leave-${t.destinationId}`,
         },
         { onlyPeople: t.personIds },

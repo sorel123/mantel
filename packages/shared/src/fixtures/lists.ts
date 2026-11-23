@@ -229,7 +229,13 @@ export function chores(now: Date): { weekStart: string; chores: Chore[]; stars: 
     const doneCount = c.cadence === 'daily' ? week[today]! : week.reduce((a, b) => a + b, 0);
     const earned = week.reduce((a, b) => a + b, 0) * c.stars;
     tallies.set(c.personId, (tallies.get(c.personId) ?? 0) + earned);
-    return { ...c, timeOfDay: c.timeOfDay ?? 'any', doneCount, week };
+    return {
+      ...c,
+      timeOfDay: c.timeOfDay ?? 'any',
+      doneCount,
+      week,
+      rollover: c.cadence === 'weekly',
+    };
   });
   return {
     weekStart: toIsoDate(startOfWeek(now)),

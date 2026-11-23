@@ -1,0 +1,46 @@
+/* Settings, Digest and reminders (v4 D). */
+.dgs-people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--gap);
+  margin: 8px 0 16px;
+}
+.dgs-person {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.dgs-person-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.dgs-person-head h3 {
+  margin: 0;
+}
+.dgs-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.dgs-sub {
+  margin: 22px 0 4px;
+}
+.dgs-test-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.dgs-test-row .set-input {
+  width: auto;
+  min-width: 160px;
+}
+.dgs-preview {
+  margin-top: 14px;
+  max-width: 460px;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  background: var(--bg);
+}

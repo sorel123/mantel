@@ -118,6 +118,27 @@ const migrations = [
     updated_at TEXT NOT NULL,
     PRIMARY KEY (date, slot)
   )`,
+  // v4 B: the recipe box (the photo is cached in the row)
+  `CREATE TABLE IF NOT EXISTS recipes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    source_url TEXT,
+    image_url TEXT,
+    image BLOB,
+    image_type TEXT,
+    servings INTEGER,
+    total_minutes INTEGER,
+    ingredients TEXT NOT NULL,
+    steps TEXT NOT NULL,
+    tags TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    rating INTEGER,
+    last_cooked TEXT,
+    via TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS recipes_source ON recipes (source_url)`,
   // v3 (workstream R): star bank, rewards, routines
   `CREATE TABLE IF NOT EXISTS star_ledger (
     id TEXT PRIMARY KEY,
@@ -168,6 +189,21 @@ const migrations = [
     committed_at TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS inbox_items_dedupe ON inbox_items (dedupe_key)`,
+  // v4 (workstream D): the activity log
+  `CREATE TABLE IF NOT EXISTS activity (
+    id TEXT PRIMARY KEY,
+    at TEXT NOT NULL,
+    at_ms INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    person_id TEXT,
+    who TEXT,
+    subject TEXT NOT NULL,
+    place TEXT,
+    link_tab TEXT NOT NULL,
+    link_id TEXT,
+    grp TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS activity_at ON activity (at_ms)`,
   // v4 (workstream L): lists shared with Reminders, Todoist or Home Assistant
   `CREATE TABLE IF NOT EXISTS list_links (
     list_id TEXT PRIMARY KEY REFERENCES lists(id) ON DELETE CASCADE,
@@ -207,6 +243,11 @@ const addedColumns: Array<[table: string, column: string, definition: string]> =
   ['chores', 'time_of_day', "TEXT NOT NULL DEFAULT 'any'"],
   ['chores', 'icon', 'TEXT'],
   ['chores', 'routine_id', 'TEXT'],
+  // v4 (workstream D): missed chores roll over; null is the default for the cadence
+  ['chores', 'rollover', 'INTEGER'],
+  // v4 B: a favourite or a planned meal can cook a recipe from the box
+  ['meal_favourites', 'recipe_id', 'TEXT'],
+  ['planned_meals', 'recipe_id', 'TEXT'],
 ];
 
 export function openDb(dataDir: string): Db {

@@ -10,6 +10,7 @@ import { HttpError } from './errors.js';
 import { log } from './log.js';
 import { createGeocoder, type Geocoder } from './geocode.js';
 import { createPlugins, type PluginSet } from './plugins/index.js';
+import { writerFor } from './plugins/activity/writer.js';
 import { mockPlugins } from './plugins/mock.js';
 import { PluginRegistry } from './plugins/registry.js';
 import { mockProviders } from './providers/mock/index.js';
@@ -174,6 +175,8 @@ export function createApp(config: Config, overrides: CreateAppOptions = {}) {
   });
 
   const api = new Hono();
+  // v4 D: remember which device wrote last, so the activity log can say who changed what.
+  api.use('*', writerFor(auth).middleware);
   const open = registerRoutes(
     makeHandle(api, { auth, tokens, validateResponses: !config.isProd }),
     deps,

@@ -25,6 +25,7 @@ import {
   timersManifest,
   trashManifest,
   weatherManifest,
+  digestManifest,
   remindersManifest,
   todoistManifest,
   haTodoManifest,
@@ -45,6 +46,7 @@ export const builtInManifests: PluginManifest[] = [
   timersManifest,
   inboxManifest,
   mailinManifest,
+  digestManifest,
   ...packPlugins().map((p) => p.manifest),
   remindersManifest,
   todoistManifest,
@@ -57,6 +59,7 @@ const LOCAL = new Set<string>([
   timersManifest.id,
   inboxManifest.id,
   mailinManifest.id,
+  digestManifest.id,
   ...packPlugins().map((p) => p.manifest.id),
 ]);
 

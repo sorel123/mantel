@@ -21,6 +21,7 @@ import { pollenPlugin } from './pollen/index.js';
 import { quipsPlugin } from './quips/index.js';
 import { routesPlugin } from './routes/index.js';
 import { timersPlugin } from './timers/index.js';
+import { digestPlugin } from './digest/plugin.js';
 import { mockTrashConfig, trashPlugin } from './trash/index.js';
 import type { Plugin } from './types.js';
 import type { PackDeps } from './pack/util.js';
@@ -100,6 +101,7 @@ export function localPlugins(opts: PackDeps = {}): Plugin[] {
     trashPlugin(opts.mock ? { fallback: mockTrashConfig } : {}),
     timersPlugin(),
     inboxPlugin(),
+    digestPlugin(),
     ...packPlugins(opts),
   ];
 }
@@ -133,6 +135,7 @@ export { manifest as mealsManifest } from './meals/manifest.js';
 export { manifest as trashManifest } from './trash/manifest.js';
 export { manifest as timersManifest } from './timers/manifest.js';
 export { inboxManifest, mailinManifest } from '@mantel/shared';
+export { manifest as digestManifest } from './digest/manifest.js';
 export { manifest as birthdaysManifest } from './birthdays/manifest.js';
 export { manifest as petsManifest } from './pets/manifest.js';
 export { manifest as pollManifest } from './poll/manifest.js';

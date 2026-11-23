@@ -1,0 +1,284 @@
+/* v4 D: the "since you last looked" strip and the digest page. Tokens only. */
+
+/* ---------- the strip ---------- */
+
+.since {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px 10px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+}
+.since-wall {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--screen-bottom) + 6px);
+  translate: -50% 0;
+  width: min(1040px, calc(100% - 2 * var(--screen-x)));
+  z-index: var(--z-status);
+}
+.since-phone {
+  margin: 0 0 14px;
+  flex-wrap: wrap;
+  padding: 12px;
+}
+.since-label {
+  flex: none;
+  color: var(--ink-2);
+}
+.since-phone .since-label {
+  width: 100%;
+}
+.since-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.since-phone .since-lines {
+  flex-direction: column;
+  overflow: visible;
+  width: 100%;
+}
+.since-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 0 16px 0 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: calc(16px * var(--text-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+.since-phone .since-line {
+  width: 100%;
+  white-space: normal;
+  text-align: left;
+  border-radius: var(--radius-md);
+}
+.since-line:active {
+  transform: scale(0.97);
+  background: var(--accent-soft);
+}
+.since-ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.since-ic.person {
+  background: var(--pc);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.since-ic .pi {
+  width: 20px;
+  height: 20px;
+}
+.since-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.since-ok {
+  flex: none;
+  min-height: var(--tap);
+}
+.since-phone .since-ok {
+  width: 100%;
+}
+
+/* ---------- the digest ---------- */
+
+.digest {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dg-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.dg-greeting {
+  font-family: var(--display);
+  margin: 0;
+}
+.dg-headline {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: calc(17px * var(--text-scale));
+  line-height: 1.4;
+}
+.dg-card {
+  display: block;
+  padding: 16px 18px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  text-decoration: none;
+}
+.dg-card h2 {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+}
+.dg-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: var(--tap);
+  font-size: calc(17px * var(--text-scale));
+}
+.dg-row .pi,
+.dg-weather .pi {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+}
+.dg-row.warn .pi,
+.dg-weather.warn .pi {
+  color: var(--warn);
+}
+.dg-row.good .pi {
+  color: var(--good);
+}
+.dg-weather {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: calc(17px * var(--text-scale));
+}
+.dg-weather.warn {
+  border-left: 5px solid var(--warn);
+}
+.dg-weather div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dg-weather span {
+  color: var(--ink-2);
+  font-size: calc(15px * var(--text-scale));
+}
+.dg-events,
+.dg-chores {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dg-event,
+.dg-chores a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 6px 0;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.dg-events li:last-child .dg-event,
+.dg-chores li:last-child a {
+  border-bottom: 0;
+}
+.dg-event {
+  border-left: 4px solid var(--pc, var(--accent));
+  padding-left: 12px;
+  border-bottom: 0;
+  margin: 2px 0;
+}
+.dg-time {
+  flex: none;
+  width: 74px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.dg-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: calc(17px * var(--text-scale));
+}
+.dg-title small {
+  color: var(--ink-2);
+  font-size: calc(14px * var(--text-scale));
+}
+.dg-since {
+  flex: none;
+}
+.dg-leave {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.dg-since {
+  --pc: var(--warn);
+}
+.dg-chores .done .dg-title {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.dg-chores .done .cb {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.dg-chores .done .cb svg {
+  opacity: 1;
+}
+.dg-empty {
+  margin: 0;
+  color: var(--ink-2);
+}
+.dg-skel-card {
+  height: 72px;
+  border-radius: var(--radius-card);
+}
+.dg-skel-card.tall {
+  height: 180px;
+}
+
+/* A deep link landed on this item: a short glow so the eye finds it. */
+.deep-flash {
+  animation: deep-flash var(--dissolve) var(--ease) 1;
+  border-radius: var(--radius-md);
+}
+@keyframes deep-flash {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px var(--accent);
+    background: var(--accent-soft);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+[data-motion='reduced'] .deep-flash {
+  animation: none;
+  box-shadow: 0 0 0 3px var(--accent);
+}

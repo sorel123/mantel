@@ -71,6 +71,8 @@ export const chores = sqliteTable('chores', {
     .default('any'),
   icon: text('icon'),
   routineId: text('routine_id'),
+  // v4 (workstream D): null means the default for the cadence (weekly on, daily off)
+  rollover: integer('rollover', { mode: 'boolean' }),
 });
 
 /** One row per tap on the chore chart. Stars are copied so changing a chore never rewrites history. */
@@ -127,6 +129,8 @@ export const mealFavourites = sqliteTable('meal_favourites', {
   tags: text('tags').notNull(),
   lastUsed: text('last_used'),
   createdAt: text('created_at').notNull(),
+  /** v4 B: the recipe it cooks. */
+  recipeId: text('recipe_id'),
 });
 
 /**
@@ -143,9 +147,34 @@ export const plannedMeals = sqliteTable(
     ingredients: text('ingredients'),
     eventId: text('event_id'),
     updatedAt: text('updated_at').notNull(),
+    /** v4 B: the recipe it cooks (copied from the favourite, or planned from the box). */
+    recipeId: text('recipe_id'),
   },
   (t) => [primaryKey({ columns: [t.date, t.slot] })],
 );
+
+/* ---- v4 B: the recipe box ---- */
+
+/** Recipes. Ingredients, steps and tags are JSON; the photo's bytes are cached in `image`. */
+export const recipes = sqliteTable('recipes', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  sourceUrl: text('source_url'),
+  imageUrl: text('image_url'),
+  image: blob('image', { mode: 'buffer' }),
+  imageType: text('image_type'),
+  servings: integer('servings'),
+  totalMinutes: integer('total_minutes'),
+  ingredients: text('ingredients').notNull(),
+  steps: text('steps').notNull(),
+  tags: text('tags').notNull(),
+  notes: text('notes').notNull(),
+  rating: integer('rating'),
+  lastCooked: text('last_cooked'),
+  via: text('via', { enum: ['link', 'claude', 'text', 'typed'] }).notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
 /* ---- v3 workstream R: star bank, rewards, routines ---- */
 
 /** Every star earned or spent. A person's balance is the sum; it never resets. */
@@ -204,6 +233,24 @@ export const inboxItems = sqliteTable('inbox_items', {
   dedupeKey: text('dedupe_key'),
   createdAt: text('created_at').notNull(),
   committedAt: text('committed_at'),
+});
+
+/* ---- v4 (workstream D): the activity log behind "since you last looked" ---- */
+
+export const activity = sqliteTable('activity', {
+  id: text('id').primaryKey(),
+  /** ISO time with the home's offset. */
+  at: text('at').notNull(),
+  /** Milliseconds since the epoch, for ordering and `since` queries. */
+  atMs: integer('at_ms').notNull(),
+  kind: text('kind').notNull(),
+  personId: text('person_id'),
+  who: text('who'),
+  subject: text('subject').notNull(),
+  place: text('place'),
+  linkTab: text('link_tab').notNull(),
+  linkId: text('link_id'),
+  grp: text('grp'),
 });
 
 /* ---- v4 workstream L: lists shared with an outside service ---- */

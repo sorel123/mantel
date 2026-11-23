@@ -20,6 +20,7 @@ import { registerImportRoutes } from '../plugins/import/index.js';
 import { registerInboxRoutes } from '../plugins/inbox/index.js';
 import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
+import { registerDigestRoutes } from '../plugins/digest/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
 import { registerListSyncRoutes } from './list-sync.js';
@@ -93,6 +94,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
         screens: s.screens,
         defaultScreen: s.defaultScreen,
         integrations: s.integrations,
+        sinceStrip: s.digest.sinceStrip,
       },
       theme: s.theme,
       panel: DEFAULT_PANEL,
@@ -303,7 +305,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   handle('countdowns', async () => providers.calendar.countdowns());
   // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
   const meals = createMealsService(deps);
-  registerMealRoutes(handle, meals);
+  registerMealRoutes(handle, meals, deps);
 
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());
@@ -425,6 +427,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   /* ---- v3 C: companion (wall notes, Web Push, Magic Import) in plugins/{notes,push,import} ---- */
   const push = registerPushRoutes(handle, deps, todaysEvents);
   const notes = registerNotesRoutes(handle, deps, push);
+  /* ---- v4 D: digest, nudges and the activity log (plugins/digest, plugins/activity) ---- */
+  registerDigestRoutes(handle, deps, { push, notes, meals });
   registerImportRoutes(handle, deps, meals);
   /* ---- v4 K: the capture inbox in plugins/inbox (Forward to Mantel is plugins/mailin) ---- */
   registerInboxRoutes(handle, deps, meals);

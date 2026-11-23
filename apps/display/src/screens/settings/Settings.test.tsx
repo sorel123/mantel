@@ -197,6 +197,7 @@ describe('Settings page', () => {
         p.id !== 'homeassistant' &&
         p.id !== 'quips' &&
         p.id !== 'meals' &&
+        p.id !== 'digest' &&
         !PACK.has(p.id),
     ))
       expect(screen.getByRole('article', { name: p.name })).toBeTruthy();
