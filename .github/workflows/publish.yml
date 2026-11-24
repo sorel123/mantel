@@ -28,6 +28,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: version
+        # A v* tag stamps its number; main builds say main-<sha> so Settings does not offer an
+        # "update" to a release that is older than the image.
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"; else echo "v=main-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"; fi
       - id: meta
         uses: docker/metadata-action@v5
         with:
@@ -45,6 +50,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             REVISION=${{ github.sha }}
+            MANTEL_VERSION=${{ steps.version.outputs.v }}
             MANTEL_GOOGLE_CLIENT_ID=${{ secrets.MANTEL_GOOGLE_CLIENT_ID }}
             MANTEL_GOOGLE_CLIENT_SECRET=${{ secrets.MANTEL_GOOGLE_CLIENT_SECRET }}
           cache-from: type=gha
