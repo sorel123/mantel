@@ -46,10 +46,11 @@ if [ -z "$grub_gen" ] || [ "$grub_gen" -lt "$MIN_GRUB_SBAT" ]; then
 fi
 python3 "$here/gadget.py" gadget ids.json
 cp "$here/cloud.conf" gadget/cloud.conf
-# The system log goes to the serial port too (the VM test reads it; a real PC has no serial
-# port, so nothing shows on its screen).
+# The system log goes to the screen (tty1, the last console), so the long first boot shows
+# progress instead of one still line; kernel messages also go to the serial port, and the VM
+# test's diagnostics write there directly.
 ls gadget
-printf '%s' "${CMDLINE_EXTRA:-console=ttyS0,115200n8 systemd.journald.forward_to_console=1}" > gadget/cmdline.extra
+printf '%s' "${CMDLINE_EXTRA:-console=ttyS0,115200n8 console=tty1 systemd.journald.forward_to_console=1}" > gadget/cmdline.extra
 snap pack gadget . --filename=pc-mantel.snap >/dev/null
 
 # Snaps the kiosk needs (graphics drivers, bases) are added as ubuntu-image asks for them.
