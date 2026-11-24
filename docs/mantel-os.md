@@ -115,6 +115,11 @@ in the Snap Store, new images use the store's copy and update nightly.
 
 - Test grade: the image uses Canonical's reference test model, not a model signed with
   Mantel's own key, and Mantel itself does not update from the store yet.
+- The boot loaders (shim and GRUB) come with the image and do not update on the box yet; that
+  needs Mantel's own signed model (above). When Microsoft revokes an older GRUB, a box with
+  Secure Boot on can stop booting until it is re-flashed with a newer image. If you see
+  "Verification failed: (0x1A) Security Violation", re-flash with the latest image, or turn
+  Secure Boot off (the box then works the same, without disk encryption).
 - Changing role from the box's screen after setup means opening `/box` (no button for it yet).
 - The automatic test only proves part of the screen. In the test machine Mantel starts and the
   screen system starts, but that machine has no graphics chip, so the browser cannot draw
