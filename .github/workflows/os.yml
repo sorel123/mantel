@@ -9,6 +9,7 @@ on:
       - 'packaging/snap/**'
       - 'packaging/os/**'
       - 'packaging/build-bundle.mjs'
+      - 'apps/server/tsup.bundle.config.ts'
       - '.github/workflows/os.yml'
   push:
     branches: [main]

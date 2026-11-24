@@ -25,6 +25,14 @@ $Rule = 'Mantel server'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DataDir = Join-Path $env:ProgramData 'Mantel'
 $PortFile = Join-Path $DataDir 'port.txt'
+# The tray icon runs without admin rights, and Windows hides a SYSTEM task from it, so the
+# start-at-boot choice is also written here where it can read it.
+$StateFile = Join-Path $DataDir 'service.json'
+
+function Save-ServiceState([bool] $AtStartup) {
+  New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
+  Set-Content -Path $StateFile -Value (@{ autoStart = $AtStartup } | ConvertTo-Json -Compress) -Encoding ASCII
+}
 
 function Get-MantelPort {
   if (Test-Path $PortFile) {
@@ -53,6 +61,7 @@ function Register-MantelTask([bool] $AtStartup) {
   $reg = @{ TaskName = $TaskName; Action = $action; Principal = $principal; Settings = $settings; Force = $true }
   if ($triggers.Count -gt 0) { $reg.Trigger = $triggers }
   Register-ScheduledTask @reg | Out-Null
+  Save-ServiceState $AtStartup
 }
 
 function Set-Firewall([int] $Port) {
@@ -71,6 +80,7 @@ if ($Remove) {
   Stop-Mantel
   Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
   Remove-NetFirewallRule -DisplayName $Rule -ErrorAction SilentlyContinue
+  Remove-Item -Path $StateFile -Force -ErrorAction SilentlyContinue
   return
 }
 

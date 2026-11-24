@@ -3,15 +3,24 @@
  * Assembles a self-contained Mantel folder for the platform this script runs on:
  *
  *   <out>/node(.exe)   the Node that runs this script, so the bundle needs no install
- *   <out>/app/         the server (dist/index.js), its production node_modules (with this
- *                      platform's native SQLite and image binaries) and the built display
+ *   <out>/app/         the server as one file (dist/index.js, its JavaScript dependencies
+ *                      bundled in), node_modules with only the packages that carry native
+ *                      binaries (SQLite, image processing) for this platform, and the built display
  *
  * Run `pnpm build` first. Usage: node packaging/build-bundle.mjs <out-dir> [version]
  * The Windows installer and the Mac/Linux archives are made from this folder in CI
  * (.github/workflows/package.yml); see packaging/README.md.
  */
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,7 +50,22 @@ execFileSync(pnpm, ['--filter', '@mantel/server', 'deploy', '--prod', '--legacy'
   shell: process.platform === 'win32',
   env: { ...process.env, npm_config_node_linker: 'hoisted' },
 });
-cpSync(join(root, 'apps/server/dist'), join(app, 'dist'), { recursive: true });
+
+// The server as one file with its JavaScript dependencies inside (apps/server/tsup.bundle.config.ts).
+// A full node_modules is about 12,000 small files, and Windows Defender scans every one as the
+// installer writes it, which made installing on a Surface take half an hour.
+execFileSync(
+  pnpm,
+  ['--filter', '@mantel/server', 'exec', 'tsup', '--config', 'tsup.bundle.config.ts'],
+  {
+    cwd: root,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  },
+);
+cpSync(join(root, 'apps/server/dist-bundle'), join(app, 'dist'), { recursive: true });
+pruneToNative(join(app, 'node_modules'));
+
 cpSync(join(root, 'apps/display/dist'), join(app, 'display'), { recursive: true });
 
 // Values the app reads at start: its version, and Mantel's shared Google sign-in client when the
@@ -68,3 +92,58 @@ writeFileSync(
   ),
 );
 console.log(`bundle ready: ${out} (node ${process.version}, ${process.platform}-${process.arch})`);
+
+/**
+ * Keeps only the packages the bundled server still loads from node_modules (the native ones
+ * listed in tsup.bundle.config.ts) and what they depend on, and drops type declarations, source
+ * maps, docs and native build sources that nothing reads at run time.
+ */
+function pruneToNative(modules) {
+  const config = readFileSync(join(root, 'apps/server/tsup.bundle.config.ts'), 'utf8');
+  const list = /bundleExternal = \[([^\]]*)\]/.exec(config);
+  if (!list) throw new Error('bundleExternal not found in apps/server/tsup.bundle.config.ts');
+  const keep = new Set();
+  // Used only to fetch or compile the native binary when installing, never at run time.
+  const installOnly = new Set(['prebuild-install', 'node-gyp', 'nan', 'node-addon-api']);
+  const visit = (name) => {
+    if (keep.has(name) || installOnly.has(name) || !existsSync(join(modules, name, 'package.json')))
+      return;
+    keep.add(name);
+    const pkg = JSON.parse(readFileSync(join(modules, name, 'package.json'), 'utf8'));
+    for (const dep of Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies })) visit(dep);
+  };
+  for (const m of list[1].matchAll(/'([^']+)'/g)) visit(m[1]);
+
+  for (const entry of readdirSync(modules)) {
+    if (entry === '.bin' || entry.startsWith('.')) {
+      rmSync(join(modules, entry), { recursive: true, force: true });
+      continue;
+    }
+    const names = entry.startsWith('@')
+      ? readdirSync(join(modules, entry)).map((n) => `${entry}/${n}`)
+      : [entry];
+    for (const name of names) {
+      if (!keep.has(name)) rmSync(join(modules, name), { recursive: true, force: true });
+    }
+    if (entry.startsWith('@') && readdirSync(join(modules, entry)).length === 0) {
+      rmSync(join(modules, entry), { recursive: true, force: true });
+    }
+  }
+
+  const junk = /\.(d\.[cm]?ts|map|md|markdown|cc|cpp|c|h|hpp|gyp|gypi|mk)$/i;
+  const junkDirs = new Set(['deps', 'src', 'docs', 'test', 'tests', 'obj', 'obj.target', '.deps']);
+  const sweep = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) {
+        // better-sqlite3 ships its C sources in deps/ and src/; the built binary is in build/Release.
+        if (junkDirs.has(e.name)) rmSync(p, { recursive: true, force: true });
+        else sweep(p);
+      } else if (junk.test(e.name) && !/^license/i.test(e.name)) {
+        rmSync(p, { force: true });
+      }
+    }
+  };
+  sweep(modules);
+  console.log(`node_modules kept for native code: ${[...keep].sort().join(', ')}`);
+}

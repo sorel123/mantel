@@ -20,3 +20,4 @@ helpers/reminders-mac/.swiftpm/
 # Python (Home Assistant integration tests)
 __pycache__/
 .pytest_cache/
+dist-bundle/

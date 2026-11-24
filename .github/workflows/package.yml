@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'packaging/**'
+      - 'apps/server/tsup.bundle.config.ts'
       - 'deploy/kiosk/**'
       - 'helpers/reminders-mac/**'
       - '.github/workflows/package.yml'
@@ -54,6 +55,13 @@ jobs:
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: Assemble the bundle
         run: node packaging/build-bundle.mjs dist/bundle "${{ steps.v.outputs.version }}"
+      - name: Keep the bundle small
+        # Windows Defender scans every file the installer writes; ~12,000 files took 30 minutes on a Surface.
+        shell: bash
+        run: |
+          n=$(find dist/bundle -type f | wc -l)
+          echo "bundle has $n files ($(du -sh dist/bundle | cut -f1))"
+          if [ "$n" -gt 1500 ]; then echo "::error::the bundle has $n files; keep it under 1500 (see packaging/README.md)"; exit 1; fi
 
       - name: Check the PowerShell scripts parse
         if: runner.os == 'Windows'
