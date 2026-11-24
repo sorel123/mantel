@@ -6,10 +6,14 @@
  * Ownership: calendar (WS2), home + media (WS3), weather + commute + photos (WS4),
  * lists + chores (WS5). Settings and devices belong to the scaffold and WS6.
  */
+import type { ListSyncService } from './real/lists-sync.js';
 import type {
   BodyOf,
   CalendarEvent,
   EditScope,
+  GooglePickSession,
+  GooglePickStatus,
+  PhotoSourceInfo,
   HomeConfig,
   HomeConnectionStatus,
   HomeDiscovery,
@@ -96,6 +100,19 @@ export interface PhotoProvider {
   next(n: number): Promise<ResponseOf<'photosNext'>>;
   /** null when the id is unknown. */
   bytes(id: string): Promise<PhotoBytes | null>;
+  /** v4 S: every photo source with its count and state (the mixer answers; older providers don't). */
+  sources?(): Promise<PhotoSourceInfo[]>;
+  /** v4 S: Google Photos picking, when the Google Photos plugin is built. */
+  picker?: GooglePhotoPicker;
+}
+
+/** v4 S: the Google Photos picker flow behind `/api/photo-sources/google/*`. */
+export interface GooglePhotoPicker {
+  start(): Promise<GooglePickSession>;
+  status(id: string): Promise<GooglePickStatus>;
+  clear(): Promise<number>;
+  /** Google's redirect landed on this server (loopback sign-in). Throws an HttpError on a bad code. */
+  callback(url: string): Promise<void>;
 }
 
 /** Image bytes or a live stream (MJPEG) for camera and artwork routes. */
@@ -178,6 +195,8 @@ export interface ListsProvider {
   createRoutine(req: BodyOf<'routineCreate'>): Promise<ResponseOf<'routineCreate'>>;
   patchRoutine(id: string, req: BodyOf<'routinePatch'>): Promise<ResponseOf<'routinePatch'>>;
   deleteRoutine(id: string): Promise<ResponseOf<'routineDelete'>>;
+  /** v4 workstream L: sharing lists with Reminders, Todoist and Home Assistant. */
+  sync?: ListSyncService;
 }
 
 export interface Providers {

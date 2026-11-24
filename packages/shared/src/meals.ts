@@ -46,6 +46,8 @@ export const Favourite = z.object({
   tags: z.array(Tag).max(10).default([]),
   /** The last date it was planned for; null when never. Drives "Recent". */
   lastUsed: IsoDate.nullable().default(null),
+  /** v4 B: the recipe in the recipe box this favourite cooks, if any. */
+  recipeId: Id.nullable().optional(),
 });
 export type Favourite = z.infer<typeof Favourite>;
 
@@ -59,6 +61,8 @@ export const PlannedMeal = z.object({
   slot: PlanSlot,
   title: z.string(),
   favouriteId: Id.optional(),
+  /** v4 B: the recipe this meal cooks; the planner opens it. */
+  recipeId: Id.optional(),
   /** `mantel` from the planner; `calendar` from the Meals calendar (read-only here). */
   source: z.enum(['mantel', 'calendar']),
   /** The favourite's ingredients, or the ones typed with the meal. Empty for calendar meals. */
@@ -112,6 +116,8 @@ export const MealsPlanRequest = z
     slot: PlanSlot,
     title: z.string().trim().max(80).optional(),
     favouriteId: Id.nullable().optional(),
+    /** v4 B: plan a recipe from the recipe box (its title and ingredients). */
+    recipeId: Id.nullable().optional(),
     /** Typed ingredients; with a favourite and none given, the favourite's are used. */
     ingredients: z.array(Ingredient).max(60).optional(),
   })

@@ -1,0 +1,12 @@
+{
+  "domain": "mantel",
+  "name": "Mantel",
+  "codeowners": ["@sorel123"],
+  "config_flow": true,
+  "documentation": "https://github.com/sorel123/mantel/blob/main/docs/open.md",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/sorel123/mantel/issues",
+  "requirements": [],
+  "version": "0.4.0"
+}

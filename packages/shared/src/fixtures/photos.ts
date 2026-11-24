@@ -1,4 +1,5 @@
 import type { Photo } from '../models.js';
+import type { PhotoCaption, PhotoSourceId, PhotoSourceInfo } from '../photo-sources.js';
 
 /** Generated landscapes in the mockup's ambient palettes. The server renders them as SVG at `/api/photos/:id`. */
 export const photoPalettes = [
@@ -62,4 +63,140 @@ export function photoSvg(index: number, width = 1180, height = 820): string {
 <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p.sky[0]}"/><stop offset=".55" stop-color="${p.sky[1]}"/><stop offset="1" stop-color="${p.sky[2]}"/></linearGradient>
 <radialGradient id="g" cx="${sunX}" cy="${sunY}" r="${height * 0.35}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${p.sun}"/><stop offset=".12" stop-color="${p.sun}" stop-opacity=".8"/><stop offset=".13" stop-color="${p.sun}" stop-opacity=".13"/><stop offset="1" stop-color="${p.sun}" stop-opacity="0"/></radialGradient></defs>
 <rect width="100%" height="100%" fill="url(#s)"/><rect width="100%" height="100%" fill="url(#g)"/>${hills}</svg>`;
+}
+
+/* ---------- v4 S: where each mock photo came from, and the sources list ---------- */
+
+/** Which source and caption each mock photo carries. Photo 2 and 6 are "On this day" photos. */
+const MOCK_CAPTIONS: {
+  source: PhotoSourceId;
+  album?: string;
+  place?: string;
+  /** Years before today; `onThisDay` photos are taken on today's date. */
+  yearsBack: number;
+  onThisDay?: boolean;
+  /** Days before today for the others. */
+  daysBack?: number;
+}[] = [
+  {
+    source: 'immich',
+    album: 'Summer at the lake',
+    place: 'Traverse City, Michigan',
+    yearsBack: 1,
+    daysBack: 130,
+  },
+  { source: 'photos', album: 'Family', yearsBack: 0, daysBack: 12 },
+  { source: 'photo-folder', album: 'Holidays 2021', yearsBack: 5, onThisDay: true },
+  {
+    source: 'google-photos',
+    album: 'Picked from Google Photos',
+    place: 'Ann Arbor, Michigan',
+    yearsBack: 2,
+    daysBack: 40,
+  },
+  {
+    source: 'immich',
+    album: 'Favourites',
+    place: 'Sleeping Bear Dunes, Michigan',
+    yearsBack: 0,
+    daysBack: 60,
+  },
+  { source: 'photo-folder', album: 'Camping', yearsBack: 3, daysBack: 200 },
+  {
+    source: 'immich',
+    album: 'Birthdays',
+    place: 'Detroit, Michigan',
+    yearsBack: 2,
+    onThisDay: true,
+  },
+  { source: 'photos', album: 'Family', yearsBack: 0, daysBack: 3 },
+];
+
+const SOURCE_NAMES: Record<PhotoSourceId, string> = {
+  photos: 'iCloud',
+  immich: 'Immich',
+  'google-photos': 'Google Photos',
+  'photo-folder': 'Photo folder',
+};
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** The caption mock photo `index` carries, relative to `now`. */
+export function photoCaption(index: number, now = new Date()): PhotoCaption {
+  const c = MOCK_CAPTIONS[index % MOCK_CAPTIONS.length]!;
+  const d = new Date(now.getFullYear() - c.yearsBack, now.getMonth(), now.getDate(), 12);
+  if (!c.onThisDay) d.setDate(d.getDate() - (c.daysBack ?? 0));
+  return {
+    source: SOURCE_NAMES[c.source],
+    ...(c.album ? { album: c.album } : {}),
+    ...(c.place ? { place: c.place } : {}),
+    takenAt: ymd(d),
+    ...(c.onThisDay ? { yearsAgo: c.yearsBack } : {}),
+  };
+}
+
+/** The mock photo's source id. */
+export function photoSourceOf(index: number): PhotoSourceId {
+  return MOCK_CAPTIONS[index % MOCK_CAPTIONS.length]!.source;
+}
+
+/** Mock sources: the counts a household with all four connected might see. */
+export function photoSources(now = new Date()): PhotoSourceInfo[] {
+  const synced = new Date(now.getTime() - 14 * 60_000).toISOString();
+  return [
+    {
+      id: 'photos',
+      name: 'iCloud shared album',
+      count: 214,
+      onThisDay: 0,
+      weight: 'normal',
+      state: 'ready',
+      lastSync: synced,
+      error: null,
+    },
+    {
+      id: 'immich',
+      name: 'Immich',
+      count: 1840,
+      onThisDay: 6,
+      weight: 'more',
+      state: 'ready',
+      lastSync: synced,
+      error: null,
+    },
+    {
+      id: 'google-photos',
+      name: 'Google Photos',
+      count: 48,
+      onThisDay: 0,
+      weight: 'normal',
+      state: 'ready',
+      lastSync: synced,
+      error: null,
+    },
+    {
+      id: 'photo-folder',
+      name: 'Photo folder',
+      count: 612,
+      onThisDay: 2,
+      weight: 'less',
+      state: 'ready',
+      lastSync: synced,
+      error: null,
+    },
+  ];
+}
+
+export function photoSourceRouteFixtures(now = new Date()) {
+  return {
+    photoSources: { sources: photoSources(now) },
+    googlePhotosPick: {
+      id: 'mock-session',
+      pickerUri: 'https://photos.google.com/picker/mock-session',
+      expiresAt: new Date(now.getTime() + 30 * 60_000).toISOString(),
+    },
+    googlePhotosPickStatus: { state: 'done' as const, saved: 12 },
+    googlePhotosClear: { removed: 48 },
+  };
 }

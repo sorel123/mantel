@@ -1,0 +1,106 @@
+/* Settings, Photos (v4 S). */
+.ph-set-summary {
+  min-height: 28px;
+  padding: 2px 0 12px;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+.ph-set-summary b {
+  color: var(--ink);
+}
+.ph-set-skel {
+  display: inline-block;
+  width: 260px;
+  height: 18px;
+}
+.ph-weights {
+  display: grid;
+  padding-bottom: 6px;
+}
+.ph-weight-skel {
+  display: block;
+  height: 44px;
+  margin: 8px 0;
+}
+.ph-src-state.error {
+  color: var(--warn);
+}
+.ph-src-state.syncing {
+  color: var(--accent);
+}
+.ph-preview {
+  padding: 6px 0 14px;
+  transition: opacity var(--std) var(--ease);
+}
+.ph-preview.off {
+  opacity: 0.35;
+}
+.ph-preview-photo {
+  position: relative;
+  height: 150px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 70% 85%,
+      color-mix(in srgb, var(--warn) 70%, transparent),
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 80%, black) 0%,
+      var(--accent) 55%,
+      color-mix(in srgb, var(--warn) 60%, var(--accent)) 100%
+    );
+}
+.ph-preview-photo .ph-caption {
+  top: 16px;
+  left: 18px;
+  font-size: 15px;
+}
+.ph-pick {
+  display: grid;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+.ph-pick-open {
+  animation: ph-pick-in var(--std) var(--ease) both;
+}
+.ph-pick p {
+  margin: 0 0 8px;
+}
+.ph-ok {
+  color: var(--good);
+  font-weight: 600;
+  margin: 0;
+}
+.ph-pulse {
+  animation: ph-pulse 1.6s var(--ease) infinite;
+}
+@keyframes ph-pick-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ph-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+:root[data-motion='reduced'] .ph-pick-open,
+:root[data-motion='reduced'] .ph-pulse {
+  animation: none;
+}
+.ph-google {
+  padding: 4px 0 10px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+.ph-google .h3 {
+  margin-top: 14px;
+}

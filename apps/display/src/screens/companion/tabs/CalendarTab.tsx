@@ -91,7 +91,10 @@ export function CalendarTab() {
               {list.length ? (
                 <div className="list">
                   {list.map((e) => (
-                    <EventRow key={e.id} event={e} day={day} />
+                    // v4 D: a deep link to this event scrolls here and makes it glow.
+                    <div key={e.id} data-deep={e.id} className="deep-wrap">
+                      <EventRow event={e} day={day} />
+                    </div>
                   ))}
                 </div>
               ) : (

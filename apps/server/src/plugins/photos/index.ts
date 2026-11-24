@@ -3,7 +3,12 @@ import type { TestResult } from '@mantel/shared';
 import { IcloudAlbum } from '../../providers/real/photos-icloud.js';
 import { realPhotos } from '../../providers/real/photos.js';
 import { loadWs4Env } from '../../providers/real/weather-env.js';
-import type { PhotoProvider, ProviderContext } from '../../providers/types.js';
+import type { MixSource } from '../../providers/real/photos-mixer.js';
+import {
+  integrationValues,
+  type PhotoProvider,
+  type ProviderContext,
+} from '../../providers/types.js';
 import { live, type Live } from '../live.js';
 import { humanError } from '../registry.js';
 import type { Plugin, PluginStatusFields } from '../types.js';
@@ -16,6 +21,8 @@ const none: PhotoProvider = {
 
 export function photosPlugin(opts: { fetch?: typeof fetch; dir?: string } = {}): Plugin & {
   live: Live<PhotoProvider>;
+  /** v4 S: the album as one source of the slideshow mixer. */
+  source: MixSource;
 } {
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const livePhotos = live<PhotoProvider>(none);
@@ -24,9 +31,22 @@ export function photosPlugin(opts: { fetch?: typeof fetch; dir?: string } = {}):
   let builtFrom = '';
   let lastError: string | null = null;
 
+  const source: MixSource = {
+    id: 'photos',
+    name: 'iCloud shared album',
+    short: 'iCloud',
+    enabled: () => (ctx ? integrationValues(ctx, 'photos').enabled : false),
+    configured: () => instance?.configured ?? false,
+    items: () => instance?.items() ?? [],
+    bytes: async (id) => (instance ? instance.bytes(id) : null),
+    touch: () => instance?.touch(),
+    status: () => instance?.status() ?? { syncing: false, lastSync: null, error: lastError },
+  };
+
   return {
     manifest,
     live: livePhotos,
+    source,
     start(c) {
       ctx = c;
     },

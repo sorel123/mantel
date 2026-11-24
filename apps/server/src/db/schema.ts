@@ -71,6 +71,8 @@ export const chores = sqliteTable('chores', {
     .default('any'),
   icon: text('icon'),
   routineId: text('routine_id'),
+  // v4 (workstream D): null means the default for the cadence (weekly on, daily off)
+  rollover: integer('rollover', { mode: 'boolean' }),
 });
 
 /** One row per tap on the chore chart. Stars are copied so changing a chore never rewrites history. */
@@ -127,6 +129,8 @@ export const mealFavourites = sqliteTable('meal_favourites', {
   tags: text('tags').notNull(),
   lastUsed: text('last_used'),
   createdAt: text('created_at').notNull(),
+  /** v4 B: the recipe it cooks. */
+  recipeId: text('recipe_id'),
 });
 
 /**
@@ -143,9 +147,34 @@ export const plannedMeals = sqliteTable(
     ingredients: text('ingredients'),
     eventId: text('event_id'),
     updatedAt: text('updated_at').notNull(),
+    /** v4 B: the recipe it cooks (copied from the favourite, or planned from the box). */
+    recipeId: text('recipe_id'),
   },
   (t) => [primaryKey({ columns: [t.date, t.slot] })],
 );
+
+/* ---- v4 B: the recipe box ---- */
+
+/** Recipes. Ingredients, steps and tags are JSON; the photo's bytes are cached in `image`. */
+export const recipes = sqliteTable('recipes', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  sourceUrl: text('source_url'),
+  imageUrl: text('image_url'),
+  image: blob('image', { mode: 'buffer' }),
+  imageType: text('image_type'),
+  servings: integer('servings'),
+  totalMinutes: integer('total_minutes'),
+  ingredients: text('ingredients').notNull(),
+  steps: text('steps').notNull(),
+  tags: text('tags').notNull(),
+  notes: text('notes').notNull(),
+  rating: integer('rating'),
+  lastCooked: text('last_cooked'),
+  via: text('via', { enum: ['link', 'claude', 'text', 'typed'] }).notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
 /* ---- v3 workstream R: star bank, rewards, routines ---- */
 
 /** Every star earned or spent. A person's balance is the sum; it never resets. */
@@ -179,4 +208,93 @@ export const routines = sqliteTable('routines', {
   timeOfDay: text('time_of_day', { enum: ['morning', 'afternoon', 'evening', 'any'] }).notNull(),
   icon: text('icon').notNull(),
   sort: integer('sort').notNull(),
+});
+
+/** v4 K: captures waiting to be checked (and recently added ones, for Undo and history). */
+export const inboxItems = sqliteTable('inbox_items', {
+  id: text('id').primaryKey(),
+  source: text('source', { enum: ['email', 'share', 'photo', 'text'] }).notNull(),
+  status: text('status', { enum: ['reading', 'ready', 'failed', 'added'] }).notNull(),
+  hint: text('hint').notNull(),
+  kind: text('kind', { enum: ['text', 'image', 'pdf', 'ics'] }).notNull(),
+  name: text('name'),
+  mime: text('mime'),
+  /** Text original or email body. */
+  text: text('text'),
+  /** Stored file (photo, PDF, .ics). */
+  file: blob('file', { mode: 'buffer' }),
+  fromName: text('from_name'),
+  subject: text('subject'),
+  summary: text('summary').notNull(),
+  /** JSON `ImportCandidates`. */
+  candidates: text('candidates').notNull(),
+  error: text('error'),
+  /** Email Message-ID plus part, so a message read twice is not added twice. */
+  dedupeKey: text('dedupe_key'),
+  createdAt: text('created_at').notNull(),
+  committedAt: text('committed_at'),
+});
+
+/* ---- v4 (workstream D): the activity log behind "since you last looked" ---- */
+
+export const activity = sqliteTable('activity', {
+  id: text('id').primaryKey(),
+  /** ISO time with the home's offset. */
+  at: text('at').notNull(),
+  /** Milliseconds since the epoch, for ordering and `since` queries. */
+  atMs: integer('at_ms').notNull(),
+  kind: text('kind').notNull(),
+  personId: text('person_id'),
+  who: text('who'),
+  subject: text('subject').notNull(),
+  place: text('place'),
+  linkTab: text('link_tab').notNull(),
+  linkId: text('link_id'),
+  grp: text('grp'),
+});
+
+/* ---- v4 workstream L: lists shared with an outside service ---- */
+
+/** A Mantel list linked to one list in Reminders, Todoist or a Home Assistant to-do entity. */
+export const listLinks = sqliteTable('list_links', {
+  listId: text('list_id')
+    .primaryKey()
+    .references(() => lists.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  remoteListId: text('remote_list_id').notNull(),
+  remoteName: text('remote_name').notNull(),
+  linkedAt: text('linked_at').notNull(),
+  lastSyncAt: text('last_sync_at'),
+  lastError: text('last_error'),
+});
+
+/**
+ * One item paired with its copy in the service, and the text and tick both sides last agreed on
+ * (the base a three-way merge compares against). Kept after the item is deleted on either side,
+ * until the delete has been carried across.
+ */
+export const listSyncItems = sqliteTable(
+  'list_sync_items',
+  {
+    listId: text('list_id')
+      .notNull()
+      .references(() => lists.id, { onDelete: 'cascade' }),
+    itemId: text('item_id').notNull(),
+    remoteId: text('remote_id').notNull(),
+    baseText: text('base_text').notNull(),
+    baseDone: integer('base_done', { mode: 'boolean' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.listId, t.itemId] })],
+);
+/** v4 O: API tokens for Siri, Home Assistant, MCP and scripts. Only the SHA-256 is stored. */
+export const apiTokens = sqliteTable('api_tokens', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  /** JSON array of `TokenScope`. */
+  scopes: text('scopes').notNull(),
+  prefix: text('prefix').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  createdAt: text('created_at').notNull(),
+  lastUsedAt: text('last_used_at'),
+  revokedAt: text('revoked_at'),
 });

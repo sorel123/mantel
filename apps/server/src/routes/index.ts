@@ -17,13 +17,18 @@ import type { HomeBytes } from '../providers/types.js';
 import { dateInZone } from '../providers/real/weather-time.js';
 import { VERSION } from '../version.js';
 import { registerImportRoutes } from '../plugins/import/index.js';
+import { registerInboxRoutes } from '../plugins/inbox/index.js';
 import { registerNotesRoutes } from '../plugins/notes/index.js';
 import { registerPushRoutes } from '../plugins/push/index.js';
+import { registerDigestRoutes } from '../plugins/digest/index.js';
 import { createMealsService, registerMealRoutes } from '../plugins/meals/index.js';
 import { registerRewardRoutes } from './rewards.js';
+import { registerPhotoSourceRoutes } from '../providers/real/photos-routes.js';
+import { registerListSyncRoutes } from './list-sync.js';
+import { createOpenService, registerOpenRoutes, type OpenService } from '../plugins/voice/index.js';
 
-/** Every contract route. Each block is owned by the workstream named beside it. */
-export function registerRoutes(handle: Handle, deps: AppDeps) {
+/** Every contract route. Each block is owned by the workstream named beside it. Returns the Open Mantel service for MCP. */
+export function registerRoutes(handle: Handle, deps: AppDeps): OpenService {
   const { providers, auth, settings, config, sync, hub, registry, setup, geocoder } = deps;
   const started = Date.now();
 
@@ -90,6 +95,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
         screens: s.screens,
         defaultScreen: s.defaultScreen,
         integrations: s.integrations,
+        sinceStrip: s.digest.sinceStrip,
       },
       theme: s.theme,
       panel: DEFAULT_PANEL,
@@ -300,7 +306,7 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('countdowns', async () => providers.calendar.countdowns());
   // v3 M: `GET /meals` answers the planner merged over the Meals calendar (plugins/meals).
   const meals = createMealsService(deps);
-  registerMealRoutes(handle, meals);
+  registerMealRoutes(handle, meals, deps);
 
   /* ---- WS3: Home Assistant and media ---- */
   handle('homeState', async () => providers.home.state());
@@ -421,8 +427,16 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
 
   /* ---- v3 C: companion (wall notes, Web Push, Magic Import) in plugins/{notes,push,import} ---- */
   const push = registerPushRoutes(handle, deps, todaysEvents);
-  registerNotesRoutes(handle, deps, push);
+  const notes = registerNotesRoutes(handle, deps, push);
+  /* ---- v4 D: digest, nudges and the activity log (plugins/digest, plugins/activity) ---- */
+  registerDigestRoutes(handle, deps, { push, notes, meals });
   registerImportRoutes(handle, deps, meals);
+  registerPhotoSourceRoutes(handle, deps);
+  /* ---- v4 K: the capture inbox in plugins/inbox (Forward to Mantel is plugins/mailin) ---- */
+  registerInboxRoutes(handle, deps, meals);
+  /* ---- v4 O: tokens, natural add, Siri's summary, Home Assistant state (plugins/voice) ---- */
+  const open = createOpenService(deps, { meals, notes, push });
+  registerOpenRoutes(handle, deps, open);
   handle('photosNext', async ({ query }) => providers.photos.next(query.n ?? 5));
   handle('photo', async ({ params }) => {
     const photo = await providers.photos.bytes(params.id ?? '');
@@ -449,6 +463,8 @@ export function registerRoutes(handle: Handle, deps: AppDeps) {
   handle('choreCreate', async ({ body }) => providers.lists.createChore(body));
   handle('choreDelete', async ({ params }) => providers.lists.deleteChore(params.id!));
   registerRewardRoutes(handle, deps);
+  registerListSyncRoutes(handle, deps);
+  return open;
 }
 
 /** The wizard step a plugin belongs to, for marking progress from the server side. */

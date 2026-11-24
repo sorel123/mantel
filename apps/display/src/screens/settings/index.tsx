@@ -23,11 +23,17 @@ import { AdvancedSection, IntegrationCard, IntegrationsSection } from './Integra
 import { ListsSection } from './ListsAdmin';
 import {
   AppearanceSection,
+  CaptureSection,
   ChoresSection,
+  DigestSection,
   HomeSetupSection,
   LayoutSection,
+  ListSharingSection,
   MealsSection,
+  PhotosSection,
+  PluginsSection,
   Mount,
+  OpenSection,
 } from './Optional';
 import { ScreensSection } from './Screens';
 import { QuipsSection } from './Quips';
@@ -47,6 +53,19 @@ type Load =
       mock: boolean;
     };
 
+/** v4 G: the plugin pack lives on its own page (Plugins), not in Integrations. */
+const PACK = [
+  'birthdays',
+  'pets',
+  'poll',
+  'sports',
+  'school',
+  'housestatus',
+  'habits',
+  'qotd',
+  'sky',
+];
+
 /** The left nav, in groups. Ids double as URL hashes (`/settings#calendars`). */
 export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: string }> }> = [
   {
@@ -57,6 +76,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
       { id: 'calendars', label: 'Calendars' },
       { id: 'homeassistant', label: 'Home Assistant' },
       { id: 'integrations', label: 'Integrations' },
+      { id: 'plugins', label: 'Plugins' },
     ],
   },
   {
@@ -64,6 +84,7 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     items: [
       { id: 'appearance', label: 'Appearance' },
       { id: 'layout', label: 'Layout' },
+      { id: 'photos', label: 'Photos' },
       { id: 'quips', label: 'Weather quips' },
       { id: 'screens', label: 'Screens and dock' },
     ],
@@ -73,8 +94,11 @@ export const NAV: Array<{ group: string; items: Array<{ id: SectionId; label: st
     items: [
       { id: 'lists', label: 'Lists and chores' },
       { id: 'companion', label: 'Phone app' },
+      { id: 'capture', label: 'Capture' },
+      { id: 'open', label: 'Siri and assistants' },
       { id: 'meals', label: 'Meals' },
       { id: 'chores', label: 'Chores and rewards' },
+      { id: 'digest', label: 'Digest and reminders' },
       { id: 'places', label: 'Leave-by places' },
       { id: 'schedule', label: 'Screen schedule' },
       { id: 'features', label: 'Features' },
@@ -272,7 +296,34 @@ export function SettingsPage() {
         plugins={integrations.plugins}
         statuses={integrations.statuses}
         onStatus={integrations.onStatus}
-        exclude={['google', 'icloud', 'ical', 'homeassistant', 'quips', 'meals']}
+        exclude={[
+          'google',
+          'icloud',
+          'ical',
+          'homeassistant',
+          'quips',
+          'meals',
+          'digest',
+          ...PACK,
+          // v4 S: the photo sources live on the Photos page
+          'photos',
+          'immich',
+          'google-photos',
+          'photo-folder',
+        ]}
+      />
+    ),
+    plugins: () => (
+      <Mount
+        Component={PluginsSection}
+        props={{
+          draft,
+          set,
+          plugins: integrations.plugins,
+          statuses: integrations.statuses,
+          onStatus: integrations.onStatus,
+        }}
+        fallback={null}
       />
     ),
     homeassistant: () => (
@@ -352,8 +403,15 @@ export function SettingsPage() {
         onStatus={integrations.onStatus}
       />
     ),
-    lists: () => <ListsSection people={draft.people} />,
+    lists: () => (
+      <>
+        <ListsSection people={draft.people} />
+        <Mount Component={ListSharingSection} fallback={null} />
+      </>
+    ),
     companion: () => <CompanionSection />,
+    capture: () => <Mount Component={CaptureSection} props={{ draft, set }} fallback={null} />,
+    open: () => <Mount Component={OpenSection} props={{ draft, set }} fallback={null} />,
     meals: () => (
       <Mount
         Component={MealsSection}
@@ -362,6 +420,26 @@ export function SettingsPage() {
       />
     ),
     chores: () => <Mount Component={ChoresSection} props={{ draft, set }} fallback={null} />,
+    photos: () => (
+      <Mount
+        Component={PhotosSection}
+        props={{
+          draft,
+          set,
+          plugins: integrations.plugins,
+          statuses: integrations.statuses,
+          onStatus: integrations.onStatus,
+        }}
+        fallback={null}
+      />
+    ),
+    digest: () => (
+      <Mount
+        Component={DigestSection}
+        props={{ draft, set, calendars: load.calendars }}
+        fallback={null}
+      />
+    ),
     places: () => (
       <Destinations
         value={draft.destinations}

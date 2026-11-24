@@ -256,13 +256,17 @@ const SECTIONS: Array<[string, string]> = [
   ['people', 'People'],
   ['calendars', 'Calendars'],
   ['integrations', 'Integrations'],
+  ['plugins', 'Plugins'],
   ['homeassistant', 'Home Assistant'],
   ['appearance', 'Appearance'],
   ['layout', 'Layout'],
+  ['photos', 'Photos'],
   ['quips', 'Weather quips'],
   ['screens', 'Screens and dock'],
   ['lists', 'Lists and chores'],
   ['companion', 'Phone app'],
+  ['capture', 'Capture'],
+  ['open', 'Siri and assistants'],
   ['meals', 'Meals'],
   ['chores', 'Chores and rewards'],
   ['places', 'Leave-by places'],
@@ -290,8 +294,9 @@ test('the settings hub shows every section by hash, and the phone page loads', a
 
   // Integrations render one card per plugin manifest, calendars have a picker from the setup JSON.
   await page.goto('/settings#integrations');
-  await expect(page.getByRole('article', { name: 'Photos' })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Leave-by times' })).toBeVisible();
+  await page.goto('/settings#photos');
+  await expect(page.getByRole('article', { name: 'iCloud shared album' })).toBeVisible();
   await page.goto('/settings#calendars');
   await expect(page.getByRole('table', { name: 'Calendars on the wall' })).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Show Family' })).toBeVisible();
@@ -372,6 +377,46 @@ test('the skin gallery switches skins and makes a custom one', async ({ page }) 
   await page.getByRole('button', { name: 'Use this skin' }).click();
   await page.getByRole('switch', { name: 'Follow the season' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-skin', 'custom');
+  expect(problems).toEqual([]);
+});
+
+test('photo sources: four cards, weights, Google Photos picking, and a captioned Ambient frame', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings#photos');
+  for (const name of ['iCloud shared album', 'Immich', 'Google Photos', 'Photo folder'])
+    await expect(page.getByRole('article', { name })).toBeVisible();
+  await expect(page.getByText(/from this day in past years/)).toBeVisible();
+
+  // Weights and toggles are settings: change one and save.
+  const immich = page.getByRole('group', { name: 'How much of Immich' });
+  // (Both viewports share one mock server, so pick whichever weight is not already saved.)
+  const less = immich.getByRole('button', { name: 'Less' });
+  const pick = (await less.getAttribute('aria-pressed')) === 'true' ? 'More' : 'Less';
+  await immich.getByRole('button', { name: pick }).click();
+  await expect(immich.getByRole('button', { name: pick })).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.set-bar').getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText(/^Saved\./)).toBeVisible();
+
+  // Google Photos: Pick photos shows a QR code, then saves what was picked (mock: 12 photos).
+  const google = page.getByRole('region', { name: 'Pick from Google Photos' });
+  await google.getByRole('button', { name: 'Pick photos' }).click();
+  await expect(
+    google.getByRole('img', { name: 'QR code for the Google Photos picker' }),
+  ).toBeVisible();
+  await expect(google.getByText('Saved 12 photos from Google Photos (mock mode).')).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Ambient shows the photo's caption line.
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Screens' })
+    .getByRole('button', { name: 'Ambient mode' })
+    .click();
+  await expect(page.locator('.ambient .ph-caption').first()).toBeVisible();
+  await expect(page.locator('.ambient .ph-caption').first()).toHaveText(/·/);
   expect(problems).toEqual([]);
 });
 
@@ -727,6 +772,56 @@ test('plugin cards: trash day on Today, kitchen timers from the dock, a timer ba
   expect(problems).toEqual([]);
 });
 
+test('plugin pack: six cards on Today, a family poll, pet care, and the gallery adds a card', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  const cards = [
+    'plugin:birthdays:0.0.4.3',
+    'plugin:pets:4.0.4.4',
+    'plugin:poll:8.0.4.4',
+    'plugin:sports:0.3.4.3',
+    'plugin:school:4.4.4.2',
+    'plugin:sky:8.4.4.4',
+    'plugin:qotd:0.6.4.2',
+    'plugin:habits:4.6.4.2',
+  ].join(',');
+  await page.goto(`/?mode=daylight&today=custom&cards=${cards}`);
+  for (const id of ['birthdays', 'pets', 'poll', 'sports', 'school', 'sky', 'qotd', 'habits'])
+    await expect(
+      page.locator(`.region[data-region="plugin:${id}"] .plugin-card .pb`),
+    ).toBeVisible();
+  await expect(page.getByText('Mia turns 11')).toBeVisible();
+  await expect(page.getByText('Lions 24, Packers 17')).toBeVisible();
+
+  // Ask a poll from the card, vote for one person, then close it.
+  const poll = page.locator('.region[data-region="plugin:poll"] .plugin-card');
+  await poll.getByRole('textbox', { name: 'Ask the family' }).fill('Pizza or tacos?');
+  await poll.getByRole('button', { name: 'Ask' }).click();
+  await expect(poll.locator('.pb-head b')).toHaveText('Pizza or tacos?');
+  await poll.locator('li', { hasText: /^J/ }).last().getByRole('button', { name: 'Tacos' }).click();
+  await poll.getByRole('button', { name: 'Close now' }).click();
+  await expect(poll.locator('.pb-head b')).toHaveText('Tacos wins');
+
+  // Another question of the day.
+  const qotd = page.locator('.region[data-region="plugin:qotd"] .plugin-card');
+  const first = await qotd.locator('.pb-lead').textContent();
+  await qotd.getByRole('button', { name: 'Another one' }).click();
+  await expect(qotd.locator('.pb-lead')).not.toHaveText(first ?? '');
+
+  // The gallery in Settings: previews, and Add to Today.
+  await page.goto('/settings#plugins');
+  const tile = page.getByRole('article', { name: 'Habits and plants' });
+  await expect(tile.locator('.plg-preview .pb')).toBeVisible();
+  await tile.getByRole('button', { name: 'Add to Today' }).click();
+  await expect(tile.getByRole('button', { name: 'On Today' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Sky' }).locator('.plg-preview')).toContainText(
+    /Sunrise|Sunset/,
+  );
+
+  expect(problems).toEqual([]);
+});
+
 test('fill and scale reach the edges of the viewport', async ({ page }) => {
   const problems = watchConsole(page);
   const size = page.viewportSize()!;
@@ -823,6 +918,100 @@ test('the meal planner plans a dinner from a favourite and sends its ingredients
   await expect(page.getByRole('switch', { name: 'Meal planner' })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Meal slots' })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Grocery list' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test('the recipe box imports a link, plans it for Thursday dinner and sends it to the grocery list', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/?mode=daylight');
+  await page.getByRole('button', { name: 'Open the meal planner' }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'Meal planner' });
+  await sheet.getByRole('button', { name: 'Recipes' }).click();
+
+  // The grid: eight mock recipes with photos, search and tags.
+  const grid = sheet.getByLabel('Recipe box');
+  await expect(grid.getByRole('button', { name: 'Open Weeknight beef tacos' })).toBeVisible();
+  expect(await grid.getByRole('button', { name: /^Open / }).count()).toBeGreaterThanOrEqual(8);
+  await sheet.getByRole('searchbox', { name: 'Search recipes' }).fill('cheddar');
+  await expect(grid.getByRole('button', { name: /^Open / })).toHaveCount(1);
+  await sheet.getByRole('searchbox', { name: 'Search recipes' }).fill('');
+
+  // Paste a link: mock mode reads the saved page through the real JSON-LD reader.
+  await sheet.getByRole('button', { name: 'Add a recipe' }).click();
+  await sheet
+    .getByRole('textbox', { name: 'Recipe link' })
+    .fill('https://recipes.example/sections');
+  await sheet.getByRole('button', { name: 'Add', exact: true }).click();
+  const recipe = sheet.getByLabel('Brown Butter Chocolate Chip Cookies', { exact: true });
+  await expect(
+    recipe.getByRole('heading', { name: 'Brown Butter Chocolate Chip Cookies' }),
+  ).toBeVisible();
+  await expect(
+    recipe.getByRole('button', { name: /1 cup \(226g\) unsalted butter/ }),
+  ).toBeVisible();
+
+  // The servings stepper rescales: 24 to 25 is not tidy, 24 to 48 via the server is; check one step.
+  await recipe.getByRole('button', { name: 'More servings' }).click();
+  await expect(recipe.getByText('25 servings')).toBeVisible();
+  await recipe.getByRole('button', { name: 'Fewer servings' }).click();
+
+  // Tap to strike an ingredient.
+  const butter = recipe.getByRole('button', { name: /unsalted butter/ });
+  await butter.click();
+  await expect(butter).toHaveAttribute('aria-pressed', 'true');
+
+  // Plan this: Thursday dinner.
+  await recipe.getByRole('button', { name: 'Plan this' }).click();
+  await recipe
+    .getByRole('button', { name: /^Thursday \d+$/ })
+    .first()
+    .click();
+  await recipe.getByRole('group', { name: 'Meal' }).getByRole('button', { name: 'Dinner' }).click();
+  await recipe.getByRole('button', { name: 'Plan for Thursday dinner' }).click();
+  await expect(
+    page.getByText('Brown Butter Chocolate Chip Cookies for Thursday dinner'),
+  ).toBeVisible();
+
+  // Its ingredients go to the grocery list, with amounts.
+  await recipe.getByRole('button', { name: 'Add ingredients to the grocery list' }).click();
+  await expect(
+    page.getByText(/^Added \d+ to Grocery|already there|topped up|^Everything is already/).first(),
+  ).toBeVisible();
+  const lists = await (await request.get('/api/lists')).json();
+  const grocery = lists.lists.find((l: { name: string }) => l.name === 'Grocery');
+  expect(grocery.items.map((i: { text: string }) => i.text).join('|')).toMatch(/dark chocolate/);
+
+  // Cook mode: one step at a time, a timer for a step that names a time, the screen kept on.
+  await recipe.getByRole('button', { name: 'Start cooking' }).click();
+  const cook = sheet.getByLabel('Cooking Brown Butter Chocolate Chip Cookies');
+  await expect(cook.getByText('Step 1 of 5')).toBeVisible();
+  await expect(cook.getByRole('button', { name: 'Set a timer for 7 min' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('mantel.keepAwake'))).not.toBeNull();
+  await cook.getByRole('button', { name: 'Next step' }).click();
+  await expect(cook.getByText('Step 2 of 5')).toBeVisible();
+  await cook.getByRole('button', { name: 'Done cooking' }).click();
+  await expect(cook).toBeHidden();
+
+  // The planner's Thursday dinner opens the recipe.
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Open the meal planner' }).first().click();
+  // (The planned Thursday may fall in next week: page there when it does.)
+  const week = await (await request.get('/api/meals/week')).json();
+  const onThursday = (w: {
+    days: string[];
+    meals: Array<{ date: string; slot: string; recipeId?: string }>;
+  }) => w.meals.find((m) => m.date === w.days[3] && m.slot === 'dinner' && m.recipeId);
+  if (!onThursday(week)) await sheet.getByRole('button', { name: 'Next week' }).click();
+  await sheet
+    .getByRole('button', { name: 'Thursday dinner: Brown Butter Chocolate Chip Cookies' })
+    .click();
+  await expect(
+    sheet.getByRole('heading', { name: 'Brown Butter Chocolate Chip Cookies' }),
+  ).toBeVisible();
+  await expect(sheet.getByText('Thursday dinner', { exact: true })).toBeVisible();
   expect(problems).toEqual([]);
 });
 
@@ -953,6 +1142,8 @@ test.describe('companion app on a phone', () => {
     request,
   }) => {
     const problems = watchConsole(page);
+    // The server is shared across projects and retries, so this run's note gets its own text.
+    const noteText = `Back by six ${Date.now().toString(36)}`;
 
     // Installable: a manifest and a service worker at the root.
     const manifest = await request.get('/manifest.webmanifest');
@@ -972,16 +1163,24 @@ test.describe('companion app on a phone', () => {
     await expect(page).toHaveURL(/#calendar$/);
     await tabs.getByRole('button', { name: 'Meals' }).click();
     await expect(page.getByRole('heading', { name: 'Meals' })).toBeVisible();
+    // v4 B: recipes under Meals, with a paste box for a link found on the phone.
+    await page.getByRole('button', { name: 'Recipes', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: 'Recipe link' })).toBeVisible();
+    await page.getByRole('button', { name: /Weeknight beef tacos/ }).click();
+    await expect(page.getByRole('heading', { name: 'Weeknight beef tacos' })).toBeVisible();
+    await page.getByRole('button', { name: '+ Grocery' }).click();
+    await page.getByRole('button', { name: '‹ All recipes' }).click();
+    await page.getByRole('button', { name: 'This week' }).click();
     await tabs.getByRole('button', { name: 'Chores' }).click();
     await expect(page.getByRole('heading', { name: 'Chores' })).toBeVisible();
 
     // A note for the wall.
     await tabs.getByRole('button', { name: 'Note' }).click();
     await expect(page.getByRole('heading', { name: 'Note for the wall' })).toBeVisible();
-    await page.getByRole('textbox', { name: 'Note' }).fill('Back by six');
+    await page.getByRole('textbox', { name: 'Note' }).fill(noteText);
     await page.getByRole('button', { name: 'Put it on the wall' }).click();
     await expect(
-      page.getByRole('region', { name: 'Notes on the wall now' }).getByText('Back by six'),
+      page.getByRole('region', { name: 'Notes on the wall now' }).getByText(noteText),
     ).toBeVisible();
 
     // Magic Import from the Lists tab: the mock reads the fixtures off any photo, and nothing is
@@ -993,12 +1192,14 @@ test.describe('companion app on a phone', () => {
       mimeType: 'image/png',
       buffer: TINY_PNG,
     });
-    await expect(page.getByRole('heading', { name: 'Check what was found' })).toBeVisible();
+    // v4 K: the photo lands in the inbox and is reviewed with the inbox's review.
+    await expect(page.getByRole('heading', { name: 'flyer.png' })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Events found' })).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'Add Science fair' })).toBeChecked();
     await page.getByRole('checkbox', { name: 'Add Glue sticks' }).click();
-    await page.getByRole('button', { name: /^Add \d+ things$/ }).click();
+    await page.getByRole('button', { name: /^Add selected \(\d+\)$/ }).click();
     await expect(page.getByRole('heading', { name: /^Added / })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
     const { lists } = (await (await request.get('/api/lists')).json()) as {
       lists: Array<{ id: string; items: Array<{ text: string }> }>;
     };
@@ -1058,5 +1259,237 @@ test('the wall shows notes, the + button offers a note, a drawing or a photo, an
   );
   await expect(page.getByText('The photo is sent to Anthropic')).toBeVisible();
   await request.delete(`/api/push/subscriptions/${subscription.id}`);
+  expect(problems).toEqual([]);
+});
+
+/* ---------- v4 K: capture from anywhere ---------- */
+
+test('the inbox: forwarded mail waits on the dock chip, is reviewed, edited, added and undone', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  // The mock mailbox delivered the school newsletter (PDF) and Maya's invite (a photo).
+  await expect
+    .poll(
+      async () => ((await (await request.get('/api/inbox')).json()) as { pending: number }).pending,
+    )
+    .toBeGreaterThanOrEqual(2);
+  await page.goto('/?mode=daylight');
+  await page.getByRole('button', { name: /^Inbox: \d+ things? to check$/ }).click();
+  const inbox = page.getByRole('dialog', { name: 'Inbox' });
+  await expect(inbox.getByRole('heading', { name: /things? to check$/ })).toBeVisible();
+  await inbox.getByRole('button', { name: /Lincoln Lions News/ }).click();
+  await expect(inbox.getByRole('region', { name: 'The original' })).toBeVisible();
+  await inbox.getByRole('button', { name: /Maya's party!/ }).click();
+  const review = inbox.getByRole('article', { name: "Review Maya's party!" });
+  await expect(review.getByRole('img', { name: /maya-party-invite/ })).toBeVisible();
+  await expect(review.getByRole('checkbox', { name: "Add Maya's birthday party" })).toBeChecked();
+  // Edit the time, then add both things.
+  await review.getByRole('textbox', { name: 'Start time' }).fill('15:00');
+  await review.getByRole('button', { name: 'Add all 2' }).click();
+  await expect(page.getByText('Added 1 event and 1 list item.')).toBeVisible();
+  const lists = async () =>
+    (
+      (await (await request.get('/api/lists')).json()) as {
+        lists: Array<{ id: string; items: Array<{ text: string }> }>;
+      }
+    ).lists
+      .find((l) => l.id === 'list-grocery')!
+      .items.map((i) => i.text);
+  expect(await lists()).toContain('Birthday present for Maya');
+  // Undo takes it all back, and the invite is waiting again.
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('Undone. It is back in the inbox.')).toBeVisible();
+  expect(await lists()).not.toContain('Birthday present for Maya');
+  await expect(inbox.getByRole('button', { name: /Maya's party!/ })).toBeVisible();
+  await inbox.getByRole('button', { name: 'Close' }).click();
+
+  // Settings shows how things get in.
+  await page.goto('/settings#capture');
+  await expect(page.getByRole('heading', { name: 'Forward to Mantel' }).first()).toBeVisible();
+  await expect(page.getByRole('textbox', { name: "Jay's email" })).toBeVisible();
+  await page.getByRole('button', { name: /iPhone: the Send to Mantel shortcut/ }).click();
+  await page.getByRole('button', { name: 'Make a key for the shortcut' }).click();
+  await page.getByRole('button', { name: 'Test' }).click();
+  await expect(page.getByText(/^The key works/)).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test.describe('the inbox on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('pasted text is read, a newsletter is reviewed, and the share target is declared', async ({
+    page,
+    request,
+  }) => {
+    const problems = watchConsole(page);
+    const manifest = (await (await request.get('/manifest.webmanifest')).json()) as {
+      share_target: { action: string; method: string };
+    };
+    expect(manifest.share_target).toMatchObject({ action: '/app/share', method: 'POST' });
+
+    await page.goto('/app#inbox');
+    await expect(page.getByRole('heading', { name: 'Inbox', exact: true })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Text to read' }).fill('Dentist Tuesday at 3');
+    await page.getByRole('button', { name: 'Read it' }).click();
+    const review = page.getByRole('article', { name: /^Review Dentist Tuesday at 3/ });
+    await expect(review.getByRole('checkbox', { name: 'Add Dentist' })).toBeChecked();
+    await review.getByRole('button', { name: 'Dismiss' }).click();
+
+    await page.getByRole('button', { name: /Lincoln Lions News/ }).click();
+    const nl = page.getByRole('article', { name: /^Review Lincoln Lions News/ });
+    await expect(nl.getByRole('region', { name: 'Events found' })).toBeVisible();
+    await nl.getByRole('button', { name: 'Show the original' }).click();
+    await expect(nl.getByRole('link', { name: 'Open the PDF' })).toBeVisible();
+    await page.getByRole('button', { name: '‹ Inbox' }).click();
+    await expect(page.getByRole('region', { name: 'Waiting to be checked' })).toBeVisible();
+    expect(problems).toEqual([]);
+  });
+});
+
+test('list sharing: two linked lists with a status, the picker, and stop sharing', async ({
+  page,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings#lists');
+  const section = page.locator('#list-sharing');
+  await expect(section.getByRole('heading', { name: 'Share lists with other apps' })).toBeVisible();
+  await expect(section.getByText('Why not Apple Notes?')).toBeVisible();
+  await expect(section.getByText('Apple Reminders · Groceries')).toBeVisible();
+  await expect(section.getByText('Todoist · Home')).toBeVisible();
+  // Chores isn't shared: open the picker, pick Home Assistant, choose a to-do list.
+  const chores = section.locator('.ls-row', { hasText: 'Chores' });
+  await chores.getByRole('button', { name: 'Share this list with…' }).click();
+  const picker = section.getByRole('group', { name: 'Share Chores with' });
+  await expect(picker.getByRole('button', { name: /Apple Reminders/ })).toBeVisible();
+  await picker.getByRole('button', { name: /Home Assistant/ }).click();
+  await expect(picker.getByRole('button', { name: /Shopping list/ })).toBeVisible();
+  await picker.getByRole('button', { name: /Shopping list/ }).click();
+  await expect(section.getByText(/now shared with Home Assistant/)).toBeVisible();
+  await expect(chores.getByText('Home Assistant · Shopping list')).toBeVisible();
+  await chores.getByRole('button', { name: 'Stop sharing' }).click();
+  await expect(chores.getByText('Only on Mantel')).toBeVisible();
+  // The Mac helper and the Shortcuts recipe are a tap away.
+  await section.getByRole('button', { name: /Apple Reminders on a Mac/ }).click();
+  await expect(section.getByRole('button', { name: 'Show a pairing code' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+/* ---------- v4 O: tokens, natural add, Siri, Alexa, Home Assistant, Claude ---------- */
+
+test('Siri and assistants: a token is made, used for /api/say and MCP, and revoked', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+  await page.goto('/settings#open');
+  await expect(
+    page.getByRole('heading', { name: 'Siri and assistants', exact: true }),
+  ).toBeVisible();
+
+  // Natural add: test a phrase without adding it.
+  await page.getByRole('textbox', { name: 'Try a phrase' }).fill('dentist Tuesday at 3');
+  await page.getByRole('button', { name: 'Test', exact: true }).click();
+  await expect(page.getByText(/Would add Dentist .* at 3 PM/)).toBeVisible();
+
+  // Make a token for Siri; the secret shows once and the guides fill it in.
+  await page.getByRole('button', { name: 'New token for Siri' }).click();
+  await page.getByLabel('Admin PIN').fill('1234');
+  await page.getByRole('button', { name: 'Make token' }).click();
+  const secretRow = page.locator('.open-secret code');
+  await expect(secretRow).toHaveText(/^mtl_/);
+  const secret = (await secretRow.textContent())!;
+  await page.getByRole('button', { name: /Add to Mantel by voice/ }).click();
+  await expect(page.getByText(`Bearer ${secret}`).first()).toBeVisible();
+
+  // The token works from outside: a phrase, the spoken day, and MCP.
+  const auth = { authorization: `Bearer ${secret}` };
+  const said = await request.post('/api/say', {
+    headers: auth,
+    data: { text: 'pickles and limes' },
+  });
+  expect((await said.json()).speech).toMatch(/^Added pickles and limes to /);
+  const today = await request.get('/api/today.txt', { headers: auth });
+  expect(await today.text()).toMatch(/^Today is/);
+  const tools = await request.post('/mcp', {
+    headers: auth,
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  });
+  expect((await tools.json()).result.tools.length).toBeGreaterThan(3);
+  // A Siri token cannot change settings.
+  expect((await request.get('/api/settings', { headers: auth })).status()).toBe(403);
+
+  // The Alexa and Claude guides open.
+  await page.getByRole('button', { name: /Alexa, ask Mantel to add milk/ }).click();
+  await expect(page.getByText('Interaction model (JSON Editor)')).toBeVisible();
+  await page.getByRole('button', { name: /Let Claude read and add/ }).click();
+  await expect(page.getByText(/claude mcp add --transport http mantel/)).toBeVisible();
+
+  // Revoke it: the token stops working.
+  await page
+    .getByRole('button', { name: /^Revoke Siri/ })
+    .first()
+    .click();
+  await page
+    .getByRole('group', { name: /Revoke Siri/ })
+    .getByLabel('Admin PIN')
+    .fill('1234');
+  await page.getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(page.getByText('Siri can no longer reach Mantel.')).toBeVisible();
+  expect((await request.get('/api/lists', { headers: auth })).status()).toBe(401);
+  expect(problems.filter((p) => !/Failed to load resource/.test(p))).toEqual([]);
+});
+
+test('digest: the wall card, "since you last looked", a test digest from Settings that opens on the phone', async ({
+  page,
+  request,
+}) => {
+  const problems = watchConsole(page);
+
+  // The digest card on a custom Today layout, drawn from the plugin's blocks.
+  await page.goto('/?mode=daylight&today=custom&cards=plugin:digest:0.0.4.8,agenda:4.0.8.8');
+  const card = page.locator('.region[data-region="plugin:digest"] .plugin-card');
+  await expect(card).toBeVisible();
+  await expect(card.getByText(/^Dinner/)).toBeVisible();
+
+  // The first look on Today sets this display's mark; changes from elsewhere show next time.
+  await page.goto('/?mode=daylight');
+  await expect(page.getByRole('button', { name: 'Today' }).first()).toBeVisible();
+  await page.waitForTimeout(500);
+  const run = Date.now().toString(36);
+  for (const text of [`Smoke milk ${run}`, `Smoke eggs ${run}`])
+    await request.post('/api/lists/list-grocery/items', { data: { text } });
+  // The log compares the list after a short settle; wait until both adds are in it.
+  await expect
+    .poll(async () => {
+      const { entries } = await (await request.get('/api/activity')).json();
+      return entries.filter((e: { subject: string }) => e.subject.endsWith(` ${run}`)).length;
+    })
+    .toBe(2);
+  await page.goto('/?mode=daylight');
+  const strip = page.getByTestId('since-strip');
+  await expect(strip.getByText(/\d+ things added to Grocery/)).toBeVisible();
+  await strip.getByRole('button', { name: /added to Grocery/ }).click();
+  await expect(page.getByTestId('since-strip')).toBeHidden();
+
+  // Settings: the section, and a test digest that lands in the mock outbox and shows here.
+  await page.goto('/settings#digest');
+  await expect(page.getByRole('heading', { name: 'Digest and reminders' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send me a test digest' }).click();
+  await expect(page.getByText(/Sent to 1 phone/)).toBeVisible();
+  await expect(page.getByTestId('digest-preview')).toBeVisible();
+  const { messages } = await (await request.get('/api/push/outbox')).json();
+  const sent = messages.at(-1);
+  expect(sent.kind).toBe('digest');
+  expect(sent.url).toMatch(/^\/app#digest\//);
+
+  // The notification opens the digest page on the phone.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(sent.url);
+  await expect(page.getByTestId('digest')).toBeVisible();
+  await page.getByRole('button', { name: 'Tomorrow' }).click();
+  await expect(page.getByRole('heading', { name: /^Tomorrow, / })).toBeVisible();
+
   expect(problems).toEqual([]);
 });

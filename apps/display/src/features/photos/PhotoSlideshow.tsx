@@ -1,4 +1,4 @@
-import type { PhotoRef } from '@mantel/shared';
+import { captionText, type PhotoRef } from '@mantel/shared';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { PhotoFeed, type LoadedPhoto } from './feed';
 import './photos.css';
@@ -21,11 +21,14 @@ export function PhotoSlideshow({
   intervalMs = 9000,
   onPhoto,
   feed: feedProp,
+  captions = true,
 }: {
   intervalMs?: number;
   onPhoto?: (photo: PhotoRef | null) => void;
   /** Supply photos from somewhere other than the server (tests, demos). */
   feed?: PhotoFeed;
+  /** Draw the caption line (album, place, date) the server sent; it is omitted when Settings turns captions off. */
+  captions?: boolean;
 }) {
   const [slides, setSlides] = useState<Slide[]>([]);
   const onPhotoRef = useRef(onPhoto);
@@ -79,8 +82,21 @@ export function PhotoSlideshow({
           style={{ backgroundColor: s.photo.dominant }}
         >
           <img src={s.src} alt="" draggable={false} />
+          {captions && s.photo.caption && <PhotoCaptionLine photo={s.photo} />}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** The caption over a photo's top corner: "3 years ago today · Birthdays · Detroit, Michigan". */
+function PhotoCaptionLine({ photo }: { photo: PhotoRef }) {
+  const text = photo.caption ? captionText(photo.caption) : '';
+  if (!text) return null;
+  return (
+    <div className={`ph-caption${photo.caption?.yearsAgo ? ' otd' : ''}`}>
+      {photo.caption?.yearsAgo ? <span className="ph-otd-dot" /> : null}
+      <span className="ph-caption-text">{text}</span>
     </div>
   );
 }

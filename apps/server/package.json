@@ -20,6 +20,8 @@
     "fast-xml-parser": "^5.11.2",
     "hono": "^4.13.14",
     "ical.js": "^2.2.1",
+    "imapflow": "^1.7.8",
+    "mailparser": "^3.15.0",
     "sharp": "^0.35.5",
     "web-push": "^3.6.7",
     "ws": "^8.22.0",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^22.18.0",
     "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.2",

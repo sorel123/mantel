@@ -10,7 +10,7 @@ export function mockProviders(ctx: ProviderContext): Providers {
   const providers: Providers = {
     calendar: mockCalendar(ctx),
     weather: mockWeather(ctx),
-    photos: mockPhotos(),
+    photos: mockPhotos(ctx),
     home: mockHome(ctx),
     lists: mockLists(ctx),
   };

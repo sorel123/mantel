@@ -35,6 +35,26 @@ export const IntegrationId = z.enum([
   'meals',
   'trash',
   'timers',
+  // v4 S: more photo sources and Microsoft calendars
+  'immich',
+  'google-photos',
+  'photo-folder',
+  'inbox',
+  'mailin',
+  'digest',
+  // v4 G: the plugin pack
+  'birthdays',
+  'pets',
+  'poll',
+  'sports',
+  'school',
+  'housestatus',
+  'habits',
+  'qotd',
+  'sky',
+  'reminders',
+  'todoist',
+  'ha-todo',
 ]);
 export type IntegrationId = z.infer<typeof IntegrationId>;
 

@@ -167,10 +167,16 @@ describe('settings-first server (real mode, fresh data dir)', () => {
     const { plugins } = await json(await r('GET', '/plugins', undefined, auth));
     expect(plugins.map((p: { id: string }) => p.id).sort()).toEqual(
       [
+        'digest',
         'google',
+        'google-photos',
         'homeassistant',
+        'immich',
+        'photo-folder',
         'ical',
         'icloud',
+        'inbox',
+        'mailin',
         'meals',
         'photos',
         'pollen',
@@ -179,6 +185,18 @@ describe('settings-first server (real mode, fresh data dir)', () => {
         'timers',
         'trash',
         'weather',
+        'birthdays',
+        'pets',
+        'poll',
+        'sports',
+        'school',
+        'housestatus',
+        'habits',
+        'qotd',
+        'sky',
+        'reminders',
+        'todoist',
+        'ha-todo',
       ].sort(),
     );
     const { integrations } = await json(await r('GET', '/integrations', undefined, auth));
@@ -186,6 +204,9 @@ describe('settings-first server (real mode, fresh data dir)', () => {
     const byId = Object.fromEntries(integrations.map((i: { id: string }) => [i.id, i]));
     expect(byId.google.state).toBe('not_set_up');
     expect(byId.homeassistant.state).toBe('not_set_up');
+    expect(byId.todoist.state).toBe('not_set_up');
+    expect(byId.reminders.state).toBe('not_set_up');
+    expect(byId['ha-todo'].state).toBe('not_set_up');
     expect(byId.weather.state).toBe('connected');
     expect(byId.google.config.redirectUri).toMatch(/\/api\/calendar\/google\/callback$/);
   });

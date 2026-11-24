@@ -6,20 +6,32 @@
 import type { PluginManifest } from '@mantel/shared';
 import { integrationStatuses } from '@mantel/shared/fixtures';
 import type { Plugin } from './types.js';
+import { mailinPlugin, mockMailbox, mockMailinFallback } from './mailin/index.js';
+import type { PackDeps } from './pack/util.js';
+import { packPlugins } from './index.js';
 import {
   localPlugins,
   googleManifest,
   homeAssistantManifest,
   icalManifest,
+  inboxManifest,
+  mailinManifest,
   icloudManifest,
   mealsManifest,
   photosManifest,
+  immichManifest,
+  googlePhotosManifest,
+  photoFolderManifest,
   pollenManifest,
   quipsManifest,
   routesManifest,
   timersManifest,
   trashManifest,
   weatherManifest,
+  digestManifest,
+  remindersManifest,
+  todoistManifest,
+  haTodoManifest,
 } from './index.js';
 
 export const builtInManifests: PluginManifest[] = [
@@ -28,6 +40,9 @@ export const builtInManifests: PluginManifest[] = [
   icloudManifest,
   homeAssistantManifest,
   photosManifest,
+  immichManifest,
+  googlePhotosManifest,
+  photoFolderManifest,
   routesManifest,
   pollenManifest,
   weatherManifest,
@@ -35,12 +50,31 @@ export const builtInManifests: PluginManifest[] = [
   mealsManifest,
   trashManifest,
   timersManifest,
+  inboxManifest,
+  mailinManifest,
+  digestManifest,
+  ...packPlugins().map((p) => p.manifest),
+  remindersManifest,
+  todoistManifest,
+  haTodoManifest,
 ];
 
 /** The manifests whose plugins run for real in mock mode (they need no outside service). */
-const LOCAL = new Set<string>([trashManifest.id, timersManifest.id]);
+const LOCAL = new Set<string>([
+  trashManifest.id,
+  timersManifest.id,
+  inboxManifest.id,
+  mailinManifest.id,
+  digestManifest.id,
+  ...packPlugins().map((p) => p.manifest.id),
+]);
 
-export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {
+/** `empty`: MOCK_EMPTY, a fresh install: Forward to Mantel is not set up and delivers nothing. */
+export function mockPlugins(
+  now: () => Date = () => new Date(),
+  deps: Omit<PackDeps, 'mock' | 'fetch'> = {},
+  opts: { empty?: boolean } = {},
+): Plugin[] {
   const mocked = builtInManifests
     .filter((m) => !LOCAL.has(m.id))
     .map((manifest) => ({
@@ -78,5 +112,8 @@ export function mockPlugins(now: () => Date = () => new Date()): Plugin[] {
           }
         : {}),
     }));
-  return [...mocked, ...localPlugins({ mock: true })];
+  const mailin = opts.empty
+    ? mailinPlugin({ open: mockMailbox(now()) })
+    : mailinPlugin({ open: mockMailbox(now()), fallback: mockMailinFallback });
+  return [...mocked, ...localPlugins({ ...deps, mock: true }), mailin];
 }
