@@ -24,9 +24,10 @@ GADGET_CHANNEL="${GADGET_CHANNEL:-24/beta}"
 # Refuse to build with a GRUB below this SBAT generation (packaging/os/boot-chain.sh shows them).
 MIN_GRUB_SBAT="${MIN_GRUB_SBAT:-5}"
 FRAME_CHANNEL="${FRAME_CHANNEL:-24/stable}"
-# The kiosk's 24 track is the current WebKit on core24 (shares Frame's graphics stack); its
-# latest/stable is WebKit 2.38 from 2023 on core20.
-KIOSK_CHANNEL="${KIOSK_CHANNEL:-24/edge}"
+# The kiosk's 24/edge (WebKit 2.52) draws but drops mouse clicks and taps: mousedown/up arrive,
+# click never fires (WebKit bug 288477, a Wayland launcher bug since 2.46). 22/stable (WebKit
+# 2.38 on core22) predates it. Set KIOSK_CHANNEL=24/edge to try the newer one.
+KIOSK_CHANNEL="${KIOSK_CHANNEL:-22/stable}"
 NM_CHANNEL="${NM_CHANNEL:-24/stable}"
 
 snap_id() { snap info "$1" | awk '/^snap-id:/ {print $2}'; }
