@@ -178,7 +178,8 @@ test('every screen, the sheets, the dialogs and the doorbell work in mock mode',
   await dock.getByRole('button', { name: 'Ambient mode' }).click();
   const ambient = page.getByRole('button', { name: /^Ambient mode\. Tap to wake/ });
   await expect(ambient).toBeVisible();
-  await expect(ambient.getByText(/^Next · |^Tomorrow/)).toBeVisible();
+  // .first(): on some days a second line (like "Tomorrow is A day · Mac and cheese") also starts with "Tomorrow".
+  await expect(ambient.getByText(/^Next · |^Tomorrow/).first()).toBeVisible();
   await ambient.click();
   await expect(ambient).toBeHidden();
   await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
