@@ -152,6 +152,15 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then channel=beta; else channel=edge; fi
           snapcraft upload snap/mantel_*.snap --release="$channel"
 
+  boot-chain:
+    name: Boot chain signatures and SBAT
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y -q sbsigntool squashfs-tools
+      - run: packaging/os/boot-chain.sh
+
   image:
     name: PC image (amd64) and VM boot test
     needs: snap
