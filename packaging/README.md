@@ -31,6 +31,14 @@ Everything is on the [Releases page](https://github.com/sorel123/mantel/releases
    admin PIN chosen in the wizard. Windows asks to allow the network once; the installer opens
    the port (8787 unless you change it) for private networks only.
 
+**Already running Mantel in Docker or on another PC?** On the installer's **Where Mantel runs**
+page pick **Show a Mantel that already runs on another computer** and type its address (for
+example `http://192.168.0.100:8787`). This computer then runs no server: the full-screen
+shortcut, the status icon and Settings all point at that address (kept in
+`C:\ProgramData\Mantel\display.json`), and the first time it opens you enter the admin PIN. A
+pairing code on that page also sets up the brightness schedule. Running the installer again
+switches either way; switching to "show" removes a server an earlier install left here.
+
 Settings, keys and photos live in `C:\ProgramData\Mantel`. Upgrades and uninstalls leave that
 folder alone; the log is `server.log` there. To update, run the newer setup file over the old
 one. Settings › Health says when a newer release is out.

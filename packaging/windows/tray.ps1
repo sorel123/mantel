@@ -39,15 +39,29 @@ function Get-LanAddress {
   return $null
 }
 
+# Set by the installer when this computer only shows a Mantel that runs elsewhere (Docker,
+# another PC): C:\ProgramData\Mantel\display.json holds {"server":"http://192.168.0.100:8787"}.
+function Get-RemoteServer {
+  $f = Join-Path $DataDir 'display.json'
+  if (-not (Test-Path $f)) { return $null }
+  try {
+    $u = [string] (Get-Content $f -Raw | ConvertFrom-Json).server
+    if ($u -match '^https?://') { return $u.TrimEnd('/') }
+  } catch { }
+  return $null
+}
+
 function Get-State([int] $UsePort) {
   if ($UsePort -le 0) { $UsePort = Get-ConfiguredPort }
+  $remote = if ($Port -gt 0) { $null } else { Get-RemoteServer }
+  $base = if ($remote) { $remote } else { "http://127.0.0.1:$UsePort" }
   $running = $false
   $version = $null
   try {
     # Straight to the server with no proxy. Invoke-RestMethod goes through the system proxy and,
     # in Windows PowerShell, can fail where Internet Explorer is gone, which showed a running
     # server as stopped.
-    $req = [System.Net.WebRequest]::Create("http://127.0.0.1:$UsePort/api/health")
+    $req = [System.Net.WebRequest]::Create("$base/api/health")
     $req.Proxy = $null
     $req.Timeout = 2000
     $res = $req.GetResponse()
@@ -70,12 +84,19 @@ function Get-State([int] $UsePort) {
     try { $autoStart = [bool] (Get-Content $stateFile -Raw | ConvertFrom-Json).autoStart } catch { }
   }
   $lan = Get-LanAddress
+  if ($remote) {
+    return [pscustomobject] @{
+      running = $running; version = $version; port = $UsePort; address = $remote; local = $remote
+      remote = $remote; installed = $false; autoStart = $false
+    }
+  }
   [pscustomobject] @{
     running   = $running
     version   = $version
     port      = $UsePort
     address   = if ($lan) { "http://${lan}:$UsePort" } else { "http://localhost:$UsePort" }
     local     = "http://localhost:$UsePort"
+    remote    = $null
     installed = [bool] $installed
     autoStart = [bool] $autoStart
   }
@@ -141,7 +162,12 @@ $script:wasRunning = $null
 function Update-Tray {
   $s = Get-State 0
   $script:state = $s
-  if ($s.running) {
+  if ($s.remote) {
+    # This computer only shows Mantel; the server, its port and start-up belong to the other machine.
+    $miStatus.Text = if ($s.running) { "Showing Mantel from another computer (version $($s.version))" } else { 'The Mantel server is not answering' }
+    $tray.Icon = if ($s.running) { $iconOn } else { $iconOff }
+    $tray.Text = if ($s.running) { "Mantel`n$($s.address)" } else { 'Mantel server not answering' }
+  } elseif ($s.running) {
     $miStatus.Text = "Mantel is running (version $($s.version))"
     $tray.Icon = $iconOn
     $tray.Text = "Mantel is running`n$($s.address)"
@@ -153,12 +179,16 @@ function Update-Tray {
     $miToggle.Text = 'Start server'
   }
   $miAddress.Text = "Address: $($s.address)"
+  $miToggle.Visible = -not $s.remote
+  $miPort.Visible = -not $s.remote
+  $miAuto.Visible = -not $s.remote
   $miAuto.Checked = $s.autoStart
   $miToggle.Enabled = $s.installed
   $miPort.Enabled = $s.installed
   $miAuto.Enabled = $s.installed
   if ($null -ne $script:wasRunning -and $script:wasRunning -ne $s.running) {
     if ($s.running) { $tray.ShowBalloonTip(4000, 'Mantel', "Running at $($s.address)", 'Info') }
+    elseif ($s.remote) { $tray.ShowBalloonTip(6000, 'Mantel', "The Mantel server at $($s.remote) is not answering.", 'Warning') }
     else { $tray.ShowBalloonTip(6000, 'Mantel stopped', 'The server is not answering. Right-click the icon to start it.', 'Warning') }
   }
   $script:wasRunning = $s.running
