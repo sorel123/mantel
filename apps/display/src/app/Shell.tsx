@@ -68,6 +68,14 @@ export function Shell() {
     previewLook ?? (state.status === 'ready' ? state.data.settings.appearance : undefined),
   );
   useMotionPreference();
+  // The server restarts on its own (first boot, updates, settings): keep trying by ourselves
+  // so a wall display with no mouse or keyboard comes back without anyone pressing a button.
+  const failed = state.status === 'error';
+  useEffect(() => {
+    if (!failed) return;
+    const t = setInterval(reload, 5000);
+    return () => clearInterval(t);
+  }, [failed, reload]);
 
   if (state.status === 'ready') return <Display />;
 
@@ -78,6 +86,7 @@ export function Shell() {
       <div className="notice card">
         <h1 className="h2">Can't reach the server</h1>
         <p>{state.message}</p>
+        <p className="muted">Trying again every few seconds.</p>
         <button className="btn primary" onClick={reload}>
           Try again
         </button>
