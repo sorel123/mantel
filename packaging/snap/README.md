@@ -2,7 +2,7 @@
 
 The Mantel server packaged as a [snap](https://snapcraft.io/docs), for Mantel OS (Ubuntu Core)
 and for anyone on ordinary Ubuntu. It is built from the same bundle as the Linux download
-(`packaging/build-bundle.mjs`: Node, the server with production dependencies, the built display),
+(`packaging/build-bundle.mjs`: Node, the server as one file plus its native packages, the built display),
 so there is no second build of the app to keep in step.
 
 | File                | What it is                                                                                |

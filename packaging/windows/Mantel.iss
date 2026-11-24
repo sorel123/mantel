@@ -36,6 +36,11 @@ Name: "tray"; Description: "Show the Mantel status icon near the clock when I si
 Name: "autokiosk"; Description: "Open Mantel full screen when I sign in to Windows (for a wall display)"; Flags: unchecked
 Name: "brightness"; Description: "Follow the screen schedule with this device's backlight (Surface and other tablets)"; Flags: unchecked
 
+[InstallDelete]
+; Earlier releases shipped a full node_modules (about 12,000 files). The server is one file now,
+; so clear the old folder on upgrade rather than leave thousands of unused files behind.
+Type: filesandordirs; Name: "{app}\app\node_modules"
+
 [Files]
 Source: "{#BundleDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 Source: "{#SourcePath}run-server.cmd"; DestDir: "{app}"; Flags: ignoreversion

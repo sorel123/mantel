@@ -37,10 +37,15 @@ one. Settings › Health says when a newer release is out.
 
 ## How it works
 
-- `build-bundle.mjs` assembles a folder: the Node that built it, the server with production
-  `node_modules` (SQLite and image processing are native, so each platform is built on its own
-  runner), the built display, and a `builtin.env` holding the version and Mantel's shared Google
+- `build-bundle.mjs` assembles a folder: the Node that built it, the server as one JavaScript
+  file with its dependencies inside (`apps/server/tsup.bundle.config.ts`), a small
+  `node_modules` holding only the native packages (SQLite and image processing, so each platform
+  is built on its own runner), the built display, and a `builtin.env` holding the version and Mantel's shared Google
   sign-in client (see [`docs/google-shared-client.md`](../docs/google-shared-client.md)).
+  The bundle is a few hundred files rather than the ~12,000 of a full `node_modules`: Windows
+  Defender scans every file an installer writes, and that made installing take about half an
+  hour on a Surface. CI fails if the bundle grows past 1,500 files. A package that has to stay
+  outside the single file (native code, or something loaded by path) goes in `bundleExternal`.
 - `windows/Mantel.iss` (Inno Setup) wraps it; `windows/service.ps1` registers a
   **Mantel server** scheduled task that runs `run-server.cmd` as SYSTEM at boot and restarts it.
 - `LOCAL_PAIR=1` (set by the launchers) lets a browser on the same computer pair itself:
