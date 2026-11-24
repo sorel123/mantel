@@ -6,7 +6,7 @@
   Edge's kiosk mode is avoided on purpose: it runs InPrivate. Without Chrome, falls back to
   the default browser, windowed. Alt+F4 leaves kiosk mode.
 #>
-param([string] $Url = 'http://localhost:8787', [switch] $Windowed)
+param([string] $Url = 'http://localhost:8787', [string] $Path = '', [switch] $Windowed)
 $candidates = @(
   "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
   "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
@@ -16,8 +16,14 @@ $chrome = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 # Give the server a moment after boot.
 for ($i = 0; $i -lt 30; $i++) {
-  try { Invoke-RestMethod -Uri "$Url/api/health" -TimeoutSec 2 | Out-Null; break } catch { Start-Sleep -Seconds 2 }
+  # Straight to the server: a system proxy or the missing Internet Explorer engine must not get in the way.
+  try {
+    $req = [System.Net.WebRequest]::Create("$Url/api/health"); $req.Proxy = $null; $req.Timeout = 2000
+    $req.GetResponse().Close(); break
+  } catch { Start-Sleep -Seconds 2 }
 }
+# Settings and other pages open in the same Chrome profile as the display, which is already paired.
+$Url = $Url.TrimEnd('/') + $Path
 
 if (-not $chrome) { Start-Process $Url; return }
 $profile = Join-Path $env:LocalAppData 'Mantel\chrome'

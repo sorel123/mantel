@@ -44,11 +44,31 @@ function Get-State([int] $UsePort) {
   $running = $false
   $version = $null
   try {
-    $h = Invoke-RestMethod -Uri "http://127.0.0.1:$UsePort/api/health" -TimeoutSec 2
+    # Straight to the server with no proxy. Invoke-RestMethod goes through the system proxy and,
+    # in Windows PowerShell, can fail where Internet Explorer is gone, which showed a running
+    # server as stopped.
+    $req = [System.Net.WebRequest]::Create("http://127.0.0.1:$UsePort/api/health")
+    $req.Proxy = $null
+    $req.Timeout = 2000
+    $res = $req.GetResponse()
+    try {
+      $reader = New-Object System.IO.StreamReader($res.GetResponseStream())
+      $h = $reader.ReadToEnd() | ConvertFrom-Json
+    } finally { $res.Close() }
     $running = [bool] $h.ok
     $version = $h.version
   } catch { }
+  # The task runs as SYSTEM, and Windows hides it from this icon, which runs without admin
+  # rights. So "installed" means the server files sit next to this script, and the start-at-boot
+  # choice comes from service.json, which service.ps1 writes.
+  $installed = (Test-Path (Join-Path $Here 'run-server.cmd')) -and (Test-Path (Join-Path $Here 'node.exe'))
+  $autoStart = $false
+  $stateFile = Join-Path $DataDir 'service.json'
   $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+  if ($task) { $installed = $true; $autoStart = $task.Triggers.Count -gt 0 }
+  elseif (Test-Path $stateFile) {
+    try { $autoStart = [bool] (Get-Content $stateFile -Raw | ConvertFrom-Json).autoStart } catch { }
+  }
   $lan = Get-LanAddress
   [pscustomobject] @{
     running   = $running
@@ -56,8 +76,8 @@ function Get-State([int] $UsePort) {
     port      = $UsePort
     address   = if ($lan) { "http://${lan}:$UsePort" } else { "http://localhost:$UsePort" }
     local     = "http://localhost:$UsePort"
-    installed = [bool] $task
-    autoStart = [bool] ($task -and $task.Triggers.Count -gt 0)
+    installed = [bool] $installed
+    autoStart = [bool] $autoStart
   }
 }
 
@@ -145,8 +165,9 @@ function Update-Tray {
 }
 
 $kiosk = Join-Path $Here 'kiosk.ps1'
-function Open-Wall([bool] $windowed) {
+function Open-Wall([bool] $windowed, [string] $path = '') {
   $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', "`"$kiosk`"", '-Url', $script:state.local)
+  if ($path) { $a += @('-Path', $path) }
   if ($windowed) { $a += '-Windowed' }
   Start-Process powershell.exe -ArgumentList $a -WindowStyle Hidden
 }
@@ -155,7 +176,8 @@ $miAddress.add_Click({ [System.Windows.Forms.Clipboard]::SetText($script:state.a
 $miFull.add_Click({ Open-Wall $false })
 $miWindow.add_Click({ Open-Wall $true })
 $tray.add_DoubleClick({ Open-Wall $true })
-$miSettings.add_Click({ Start-Process "$($script:state.local)/settings" })
+# In the display's own Chrome window, which is already paired; a plain browser tab would not be.
+$miSettings.add_Click({ Open-Wall $true '/settings' })
 $miAuto.add_Click({
   Invoke-Service @('-AutoStart', $(if ($script:state.autoStart) { 'off' } else { 'on' }))
   Update-Tray
