@@ -17,7 +17,12 @@ cd "$work"
 
 # Channels: the reference model follows edge/beta; a family's box follows stable.
 KERNEL_CHANNEL="${KERNEL_CHANNEL:-24/stable}"
-GADGET_CHANNEL="${GADGET_CHANNEL:-24/stable}"
+# The gadget carries the boot loaders (shim, GRUB). 24/stable's GRUB (SBAT grub,4) is on the
+# revocation list Windows updates put in PC firmware, so Secure Boot refuses it ("Verification
+# failed: (0x1A) Security Violation"). 24/beta has the GRUB Ubuntu 24.04 itself ships.
+GADGET_CHANNEL="${GADGET_CHANNEL:-24/beta}"
+# Refuse to build with a GRUB below this SBAT generation (packaging/os/boot-chain.sh shows them).
+MIN_GRUB_SBAT="${MIN_GRUB_SBAT:-5}"
 FRAME_CHANNEL="${FRAME_CHANNEL:-24/stable}"
 # The kiosk's 24 track is the current WebKit on core24 (shares Frame's graphics stack); its
 # latest/stable is WebKit 2.38 from 2023 on core20.
@@ -34,6 +39,11 @@ snap info wpe-webkit-mir-kiosk | sed -n '/^channels:/,$p' || true
 # Our pc gadget: the store's, with Mantel's defaults and connections added.
 snap download pc --channel="$GADGET_CHANNEL" --basename=pc-store >/dev/null
 unsquashfs -q -d gadget pc-store.snap
+grub_gen="$(objcopy -O binary --only-section=.sbat gadget/grubx64.efi /dev/stdout | tr -d '\0' | awk -F, '$1=="grub" {print $2}')"
+echo "gadget $GADGET_CHANNEL: GRUB SBAT generation ${grub_gen:-unknown}"
+if [ -z "$grub_gen" ] || [ "$grub_gen" -lt "$MIN_GRUB_SBAT" ]; then
+  echo "this gadget's GRUB is revoked for Secure Boot (needs grub,$MIN_GRUB_SBAT or later)" >&2; exit 1
+fi
 python3 "$here/gadget.py" gadget ids.json
 cp "$here/cloud.conf" gadget/cloud.conf
 # The system log goes to the serial port too (the VM test reads it; a real PC has no serial
