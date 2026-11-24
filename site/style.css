@@ -1,0 +1,35 @@
+body {
+  font:
+    17px/1.55 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  color: #2b2a27;
+  background: #f7f3ec;
+  margin: 0;
+}
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px 72px;
+}
+h1 {
+  font-size: 2.2rem;
+  margin: 0 0 8px;
+}
+h2 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+}
+a {
+  color: #8a4b1f;
+}
+.lede {
+  font-size: 1.15rem;
+  color: #5a564e;
+}
+footer {
+  margin-top: 3rem;
+  font-size: 0.9rem;
+  color: #6d675c;
+}
